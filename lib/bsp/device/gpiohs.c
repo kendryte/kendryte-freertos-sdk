@@ -1,0 +1,232 @@
+/* Copyright 2018 Canaan Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+#include <FreeRTOS.h>
+#include <driver.h>
+#include <fpioa.h>
+#include <gpiohs.h>
+#include <hal.h>
+#include <plic.h>
+#include <semphr.h>
+#include <stdio.h>
+#include <sysctl.h>
+#include "fpioa_cfg.h"
+
+#define COMMON_ENTRY_NO_PIN                                                        \
+    gpiohs_data* data = (gpiohs_data*)userdata;                                    \
+    volatile gpiohs_t* gpiohs = (volatile gpiohs_t*)data->base_addr; \
+    (void)gpiohs;
+
+#define COMMON_ENTRY     \
+    COMMON_ENTRY_NO_PIN; \
+    configASSERT(pin < data->pin_count);
+
+typedef struct
+{
+    size_t pin_count;
+    uintptr_t base_addr;
+
+    struct gpiohs_pin_context
+    {
+        void* gpio_userdata;
+        size_t pin;
+        gpio_pin_edge edge;
+        gpio_onchanged callback;
+        void* userdata;
+    } pin_context[32];
+
+} gpiohs_data;
+
+static void gpiohs_pin_onchange_isr(void* userdata);
+
+static void gpiohs_install(void* userdata)
+{
+    COMMON_ENTRY_NO_PIN;
+
+    gpiohs->rise_ie.u32[0] = 0;
+    gpiohs->rise_ip.u32[0] = 0xFFFFFFFF;
+    gpiohs->fall_ie.u32[0] = 0;
+    gpiohs->fall_ip.u32[0] = 0xFFFFFFFF;
+
+    size_t i;
+    for (i = 0; i < 32; i++)
+    {
+        data->pin_context[i].gpio_userdata = data;
+        data->pin_context[i].pin = i;
+        data->pin_context[i].callback = NULL;
+        data->pin_context[i].userdata = NULL;
+        pic_set_irq_handler(IRQN_GPIOHS0_INTERRUPT + i, gpiohs_pin_onchange_isr, data->pin_context + i);
+        pic_set_irq_priority(IRQN_GPIOHS0_INTERRUPT + i, 1);
+    }
+}
+
+static int gpiohs_open(void* userdata)
+{
+    return 1;
+}
+
+static void gpiohs_close(void* userdata)
+{
+}
+
+static uint32_t get_bit(volatile uint32_t* bits, size_t idx)
+{
+    return ((*bits) & (1 << idx)) >> idx;
+}
+
+static void set_bit(volatile uint32_t* bits, size_t idx, uint32_t value)
+{
+    uint32_t org = (*bits) & ~(1 << idx);
+    *bits = org | (value << idx);
+}
+
+static void gpiohs_set_drive_mode(void* userdata, size_t pin, gpio_drive_mode mode)
+{
+    COMMON_ENTRY;
+    int io_number = fpioa_get_io_by_func(FUNC_GPIOHS0 + pin);
+    configASSERT(io_number > 0);
+
+    enum fpioa_pull_e pull;
+    uint32_t dir;
+
+    switch (mode)
+    {
+    case GPIO_DM_INPUT:
+        pull = FPIOA_PULL_NONE;
+        dir = 0;
+        break;
+    case GPIO_DM_INPUT_PULL_DOWN:
+        pull = FPIOA_PULL_DOWN;
+        dir = 0;
+        break;
+    case GPIO_DM_INPUT_PULL_UP:
+        pull = FPIOA_PULL_UP;
+        dir = 0;
+        break;
+    case GPIO_DM_OUTPUT:
+        pull = FPIOA_PULL_DOWN;
+        dir = 1;
+        break;
+    default:
+        configASSERT(!"GPIO drive mode is not supported.") break;
+    }
+
+    fpioa_set_io_pull(io_number, pull);
+    volatile uint32_t* reg = dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
+    volatile uint32_t* reg_d = !dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
+    set_bit(reg_d, pin, 0);
+    set_bit(reg, pin, 1);
+}
+
+void gpiohs_set_pin_edge(void* userdata, size_t pin, gpio_pin_edge edge)
+{
+    COMMON_ENTRY;
+
+    uint32_t rise = 0, fall = 0, irq = 0;
+    switch (edge)
+    {
+    case GPIO_PE_NONE:
+        rise = fall = irq = 0;
+        break;
+    case GPIO_PE_FALLING:
+        rise = 0;
+        fall = irq = 1;
+        break;
+    case GPIO_PE_RISING:
+        fall = 0;
+        rise = irq = 1;
+        break;
+    case GPIO_PE_BOTH:
+        rise = fall = irq = 1;
+        break;
+    default:
+        configASSERT(!"Invalid gpio edge");
+        break;
+    }
+
+    data->pin_context[pin].edge = edge;
+    set_bit(gpiohs->rise_ie.u32, pin, rise);
+    set_bit(gpiohs->fall_ie.u32, pin, fall);
+    pic_set_irq_enable(IRQN_GPIOHS0_INTERRUPT + pin, irq);
+}
+
+static void gpiohs_pin_onchange_isr(void* userdata)
+{
+    struct gpiohs_pin_context* ctx = (struct gpiohs_pin_context*)userdata;
+    gpiohs_data* data = (gpiohs_data*)ctx->gpio_userdata;
+    volatile gpiohs_t* gpiohs = (volatile gpiohs_t*)data->base_addr;
+
+    size_t pin = ctx->pin;
+    uint32_t rise = 0, fall = 0;
+    switch (ctx->edge)
+    {
+    case GPIO_PE_NONE:
+        rise = fall = 0;
+        break;
+    case GPIO_PE_FALLING:
+        rise = 0;
+        fall = 1;
+        break;
+    case GPIO_PE_RISING:
+        fall = 0;
+        rise = 1;
+        break;
+    case GPIO_PE_BOTH:
+        rise = fall = 1;
+        break;
+    default:
+        configASSERT(!"Invalid gpio edge");
+        break;
+    }
+
+    if (rise)
+    {
+        set_bit(gpiohs->rise_ie.u32, pin, 0);
+        set_bit(gpiohs->rise_ip.u32, pin, 1);
+        set_bit(gpiohs->rise_ie.u32, pin, 1);
+    }
+
+    if (fall)
+    {
+        set_bit(gpiohs->fall_ie.u32, pin, 0);
+        set_bit(gpiohs->fall_ip.u32, pin, 1);
+        set_bit(gpiohs->fall_ie.u32, pin, 1);
+    }
+
+    if (ctx->callback)
+        ctx->callback(ctx->pin, ctx->userdata);
+}
+
+void gpiohs_set_onchanged(void* userdata, size_t pin, gpio_onchanged callback, void* callback_data)
+{
+    COMMON_ENTRY;
+    data->pin_context[pin].userdata = callback_data;
+    data->pin_context[pin].callback = callback;
+}
+
+gpio_pin_value gpiohs_get_pin_value(void* userdata, size_t pin)
+{
+    COMMON_ENTRY;
+    return get_bit(gpiohs->input_val.u32, pin);
+}
+
+void gpiohs_set_pin_value(void* userdata, size_t pin, gpio_pin_value value)
+{
+    COMMON_ENTRY;
+    set_bit(gpiohs->output_val.u32, pin, value);
+}
+
+static gpiohs_data dev0_data = {32, GPIOHS_BASE_ADDR, {{0}}};
+
+const gpio_driver_t g_gpiohs_driver_gpio0 = {{&dev0_data, gpiohs_install, gpiohs_open, gpiohs_close}, 32, gpiohs_set_drive_mode, gpiohs_set_pin_edge, gpiohs_set_onchanged, gpiohs_set_pin_value, gpiohs_get_pin_value};
