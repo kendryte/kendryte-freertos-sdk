@@ -25,7 +25,7 @@ volatile BaseType_t xHigherPriorityTaskWoken = 0;
 extern TaskHandle_t volatile xPendingAddReadyTCBs[portNUM_PROCESSORS];
 
 volatile UBaseType_t xCoreSyncEvents[portNUM_PROCESSORS] = {0};
-volatile UBaseType_t xWakeUp[portNUM_PROCESSORS] = {1,0};
+extern volatile unsigned int xWakeUp[portNUM_PROCESSORS];
 
 uintptr_t handle_irq_m_soft(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
@@ -58,8 +58,8 @@ uintptr_t handle_irq_m_soft(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 
 void core_sync_complete(uint64_t hart_id)
 {
-    xCoreSyncEvents[hart_id] = CORE_SYNC_NONE;
     clint_ipi_clear(hart_id);
+    xCoreSyncEvents[hart_id] = CORE_SYNC_NONE;
 }
 
 uintptr_t handle_irq_m_timer(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])

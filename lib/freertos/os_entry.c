@@ -73,10 +73,10 @@ int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char**))
     }
     else
     {
-        do
+        while (!xIsProcessorWakeUp(core_id))
         {
             asm volatile("wfi");
-        } while (!xIsProcessorWakeUp(core_id));
+        }
 
         start_scheduler(core_id);
         return 0;

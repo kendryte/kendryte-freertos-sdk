@@ -96,7 +96,7 @@ extern char _heap_start[];
 extern char _heap_end[];
 char* _heap_cur = &_heap_start[0];
 
-static void __attribute__((noreturn)) sys_exit(int code)
+void __attribute__((noreturn)) sys_exit(int code)
 {
     /* First print some diagnostic information. */
     LOGW(TAG, "sys_exit called with 0x%lx\n", (uint64_t)code);
