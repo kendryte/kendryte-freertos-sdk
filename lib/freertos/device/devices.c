@@ -705,24 +705,14 @@ void install_custom_driver(const char* name, const custom_driver_t* driver)
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {
     sysctl_clock_set_clock_select(SYSCTL_CLOCK_SELECT_ACLK, SYSCTL_SOURCE_IN0);
-    sysctl->pll0.pll_reset0 = 1;
 
+    sysctl_pll_disable(SYSCTL_PLL0);
+    sysctl_pll_enable(SYSCTL_PLL0);
     uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, SYSCTL_SOURCE_IN0, frequency * 2);
-    sysctl->pll0.pll_reset0 = 0;
-    while (1)
-    {
-        uint32_t lock = sysctl->pll_lock.pll_lock0 & 0x3;
-        if (lock == 0x3)
-        {
-            break;
-        }
-        else
-        {
-            sysctl->pll_lock.pll_slip_clear0 = 1;
-        }
-    }
 
-    sysctl->pll0.pll_out_en0 = 1;
+    while (sysctl_pll_is_lock(SYSCTL_PLL0) == 0)
+        sysctl_pll_clear_slip(SYSCTL_PLL0);
+    sysctl_clock_enable(SYSCTL_PLL0);
     sysctl_clock_set_clock_select(SYSCTL_CLOCK_SELECT_ACLK, SYSCTL_SOURCE_PLL0);
     uart_init();
     return result;
