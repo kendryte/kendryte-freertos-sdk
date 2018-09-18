@@ -22,7 +22,6 @@
 #include "device/hal.h"
 #include "portable/portmacro.h"
 #include <stdio.h>
-#include <printf.h>
 
 typedef struct
 {

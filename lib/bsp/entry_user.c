@@ -55,8 +55,6 @@ void _init_bsp(int core_id, int number_of_cores)
 
     if (core_id == 0)
     {
-        /* Copy lma data to memory */
-        init_lma();
         /* Initialize bss data to 0 */
         init_bss();
         /* Register finalization function */

@@ -25,16 +25,6 @@
 _start:
   j 1f
   .word 0xdeadbeef
-.align 3
-.global xWakeUp
-xWakeUp:
-  .dword 1
-  .dword 0
-.align 3
-.global xCoreSyncEvents
-xCoreSyncEvents:
-  .dword 0
-  .dword 0
 1:
   csrw mideleg, 0
   csrw medeleg, 0

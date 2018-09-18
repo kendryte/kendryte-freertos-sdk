@@ -24,11 +24,14 @@
 volatile BaseType_t xHigherPriorityTaskWoken = 0;
 extern TaskHandle_t volatile xPendingAddReadyTCBs[portNUM_PROCESSORS];
 
-extern volatile UBaseType_t xCoreSyncEvents[portNUM_PROCESSORS];
-extern volatile UBaseType_t xWakeUp[portNUM_PROCESSORS];
+volatile UBaseType_t xCoreSyncEvents[portNUM_PROCESSORS] = { 0 };
+volatile UBaseType_t xWakeUp[portNUM_PROCESSORS] = { 1, 0 };
+
+volatile int xx[99999];
 
 uintptr_t handle_irq_m_soft(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
+    xx[0] = 0;
     uint64_t hart_id = xPortGetProcessorId();
     switch (xCoreSyncEvents[hart_id])
     {
