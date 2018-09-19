@@ -143,7 +143,7 @@ SECTIONS
      we can shorten the on-disk segment size.  */
   .sdata :
   {
-    _gp = . + 0x800;
+    __global_pointer$ = . + 0x800;
     *(.srodata.cst16) *(.srodata.cst8) *(.srodata.cst4) *(.srodata.cst2) *(.srodata .srodata.*)
     *(.sdata .sdata.* .gnu.linkonce.s.*)
   } > ram : DATA

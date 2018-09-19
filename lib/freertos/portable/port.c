@@ -140,6 +140,9 @@ int vPortSetInterruptMask(void)
  */
 StackType_t* pxPortInitialiseStack(StackType_t* pxTopOfStack, TaskFunction_t pxCode, void* pvParameters)
 {
+    UBaseType_t gp;
+    __asm volatile("mv %0, gp" : "=r"(gp));
+
     /* Simulate the stack frame as it would be created by a context switch
 	interrupt. */
     pxTopOfStack--;
@@ -147,7 +150,9 @@ StackType_t* pxPortInitialiseStack(StackType_t* pxTopOfStack, TaskFunction_t pxC
     pxTopOfStack -= 22;
     *pxTopOfStack = (portSTACK_TYPE)pvParameters; /* Register a0 */
     pxTopOfStack -= 6;
-    pxTopOfStack -= 2;
+    pxTopOfStack--;
+    *pxTopOfStack = gp;
+    pxTopOfStack--;
     *pxTopOfStack = (StackType_t)(pxTopOfStack - 1);
     pxTopOfStack--;
     *pxTopOfStack = (portSTACK_TYPE)prvTaskExitError; /* Register ra */
