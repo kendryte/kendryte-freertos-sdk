@@ -15,34 +15,14 @@
 #ifndef _BSP_DUMP_H
 #define _BSP_DUMP_H
 
-#include <stdlib.h>
-#include <string.h>
-#include "syslog.h"
-#include "uarths.h"
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-#define DUMP_PRINTF printk
-
-    static inline void
-    dump_core(const char* reason, uintptr_t cause, uintptr_t epc)
-    {
-        if (CONFIG_LOG_LEVEL >= LOG_ERROR)
-        {
-            const char unknown_reason[] = "unknown";
-
-            if (!reason)
-                reason = unknown_reason;
-
-            DUMP_PRINTF("core %d, core dump: %s\n", (int)read_csr(mhartid), reason);
-            DUMP_PRINTF("Cause 0x%016lx, EPC 0x%016lx\n", cause, epc);
-        }
-    }
-
-#undef DUMP_PRINTF
+void dump_core(const char* reason, uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
 
 #ifdef __cplusplus
 }

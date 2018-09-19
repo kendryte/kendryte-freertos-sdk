@@ -125,7 +125,7 @@ trap_entry:
   addi sp, sp, -REGBYTES
   SREG t0, 0x0(sp)
   csrr t0, mcause
-  bgez t0, .handle_syscall
+  bgez t0, .handle_other
   # Test soft interrupt
   slli t0, t0, 1
   addi t0, t0, -(IRQ_M_SOFT << 1)
@@ -237,41 +237,95 @@ trap_entry:
 
   addi sp, sp, 36*REGBYTES
   mret
+.handle_other:
+  csrr t0, mcause
+  addi t0, t0, -CAUSE_USER_ECALL
+  bltz t0, .handle_except
 .handle_syscall:
   LREG t0, 0x0(sp)
   addi sp, sp, REGBYTES
-  addi sp, sp, -36*REGBYTES
 
-  SREG ra, 0*REGBYTES(sp)
-  SREG t0, 1*REGBYTES(sp)
-  SREG t1, 2*REGBYTES(sp)
-  SREG t2, 3*REGBYTES(sp)
-  SREG a0, 4*REGBYTES(sp)
-  SREG a1, 5*REGBYTES(sp)
-  SREG a2, 6*REGBYTES(sp)
-  SREG a3, 7*REGBYTES(sp)
-  SREG a4, 8*REGBYTES(sp)
-  SREG a5, 9*REGBYTES(sp)
-  SREG a6, 10*REGBYTES(sp)
-  SREG a7, 11*REGBYTES(sp)
-  SREG t3, 12*REGBYTES(sp)
-  SREG t4, 13*REGBYTES(sp)
-  SREG t5, 14*REGBYTES(sp)
-  SREG t6, 15*REGBYTES(sp)
+  csrr a6, mepc
+  jal handle_syscall
+  csrw mepc, a1
+  mret
+.handle_except:
+  LREG t0, 0x0(sp)
+  addi sp, sp, REGBYTES
+  addi sp, sp, -64*REGBYTES
+  
+  SREG x0, 0*REGBYTES(sp)
+  SREG x1, 1*REGBYTES(sp)
+  SREG x2, 2*REGBYTES(sp)
+  SREG x3, 3*REGBYTES(sp)
+  SREG x4, 4*REGBYTES(sp)
+  SREG x5, 5*REGBYTES(sp)
+  SREG x6, 6*REGBYTES(sp)
+  SREG x7, 7*REGBYTES(sp)
+  SREG x8, 8*REGBYTES(sp)
+  SREG x9, 9*REGBYTES(sp)
+  SREG x10, 10*REGBYTES(sp)
+  SREG x11, 11*REGBYTES(sp)
+  SREG x12, 12*REGBYTES(sp)
+  SREG x13, 13*REGBYTES(sp)
+  SREG x14, 14*REGBYTES(sp)
+  SREG x15, 15*REGBYTES(sp)
+  SREG x16, 16*REGBYTES(sp)
+  SREG x17, 17*REGBYTES(sp)
+  SREG x18, 18*REGBYTES(sp)
+  SREG x19, 19*REGBYTES(sp)
+  SREG x20, 20*REGBYTES(sp)
+  SREG x21, 21*REGBYTES(sp)
+  SREG x22, 22*REGBYTES(sp)
+  SREG x23, 23*REGBYTES(sp)
+  SREG x24, 24*REGBYTES(sp)
+  SREG x25, 25*REGBYTES(sp)
+  SREG x26, 26*REGBYTES(sp)
+  SREG x27, 27*REGBYTES(sp)
+  SREG x28, 28*REGBYTES(sp)
+  SREG x29, 29*REGBYTES(sp)
+  SREG x30, 30*REGBYTES(sp)
+  SREG x31, 31*REGBYTES(sp)
+
+  SFREG f0, ( 0  + 32)*REGBYTES(sp)
+  SFREG f1, ( 1  + 32)*REGBYTES(sp)
+  SFREG f2, ( 2  + 32)*REGBYTES(sp)
+  SFREG f3, ( 3  + 32)*REGBYTES(sp)
+  SFREG f4, ( 4  + 32)*REGBYTES(sp)
+  SFREG f5, ( 5  + 32)*REGBYTES(sp)
+  SFREG f6, ( 6  + 32)*REGBYTES(sp)
+  SFREG f7, ( 7  + 32)*REGBYTES(sp)
+  SFREG f8, ( 8  + 32)*REGBYTES(sp)
+  SFREG f9, ( 9  + 32)*REGBYTES(sp)
+  SFREG f10,( 10 + 32)*REGBYTES(sp)
+  SFREG f11,( 11 + 32)*REGBYTES(sp)
+  SFREG f12,( 12 + 32)*REGBYTES(sp)
+  SFREG f13,( 13 + 32)*REGBYTES(sp)
+  SFREG f14,( 14 + 32)*REGBYTES(sp)
+  SFREG f15,( 15 + 32)*REGBYTES(sp)
+  SFREG f16,( 16 + 32)*REGBYTES(sp)
+  SFREG f17,( 17 + 32)*REGBYTES(sp)
+  SFREG f18,( 18 + 32)*REGBYTES(sp)
+  SFREG f19,( 19 + 32)*REGBYTES(sp)
+  SFREG f20,( 20 + 32)*REGBYTES(sp)
+  SFREG f21,( 21 + 32)*REGBYTES(sp)
+  SFREG f22,( 22 + 32)*REGBYTES(sp)
+  SFREG f23,( 23 + 32)*REGBYTES(sp)
+  SFREG f24,( 24 + 32)*REGBYTES(sp)
+  SFREG f25,( 25 + 32)*REGBYTES(sp)
+  SFREG f26,( 26 + 32)*REGBYTES(sp)
+  SFREG f27,( 27 + 32)*REGBYTES(sp)
+  SFREG f28,( 28 + 32)*REGBYTES(sp)
+  SFREG f29,( 29 + 32)*REGBYTES(sp)
+  SFREG f30,( 30 + 32)*REGBYTES(sp)
+  SFREG f31,( 31 + 32)*REGBYTES(sp)
 
   csrr a0, mcause
   csrr a1, mepc
   mv a2, sp
-
-  jal handle_syscall
-  # Remain in M-mode after eret
-  li t0, MSTATUS_MPP
-  csrs mstatus, t0
+  add a3, sp, 32*REGBYTES
+  jal handle_except
   csrw mepc, a0
-  
-  LREG a0, 4*REGBYTES(sp)
-
-  addi sp, sp, 36*REGBYTES
   mret
   
 .global _init

@@ -15,13 +15,16 @@
 /* Enable kernel-mode log API */
 #include <stdint.h>
 #include <stdlib.h>
+#include <syslog.h>
 #include "interrupt.h"
 #include "dump.h"
+
+static const char* TAG = "INTERRUPT";
 
 void __attribute__((weak))
 handle_irq_dummy(uintptr_t cause, uintptr_t epc)
 {
-    dump_core("unhandled interrupt", cause, epc);
+    LOGE(TAG, "unhandled interrupt: Cause 0x%016lx, EPC 0x%016lx\n", cause, epc);
     exit(1337);
 }
 
