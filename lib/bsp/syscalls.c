@@ -225,7 +225,6 @@ static int sys_open(const char* name, int flags, int mode)
     UNUSED(mode);
 
     uintptr_t ptr = io_open(name);
-    LOGD("SYSCALL", "%s: %lu\n", name, ptr);
     return ptr;
 }
 
@@ -304,10 +303,9 @@ static int sys_gettimeofday(struct timeval* tp, void* tzp)
 }
 
 uintptr_t __attribute__((weak))
-handle_ecall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_ecall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
     UNUSED(cause);
-    UNUSED(fregs);
     enum syscall_id_e
     {
         SYS_ID_NOSYS,
@@ -385,230 +383,98 @@ handle_ecall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs
 #pragma GCC diagnostic warning "-Woverride-init"
 #endif
 
-    regs[10] = syscall_table[syscall_id_table[0xFF & regs[17]]](
-        regs[10], /* a0 */
-        regs[11], /* a1 */
-        regs[12], /* a2 */
-        regs[13], /* a3 */
-        regs[14], /* a4 */
-        regs[15], /* a5 */
-        regs[17] /* n */
-    );
+    regs[4] = syscall_table[syscall_id_table[0xFF & regs[11]]](
+        regs[4], /* a0 */
+        regs[5], /* a1 */
+        regs[6], /* a2 */
+        regs[7], /* a3 */
+        regs[8], /* a4 */
+        regs[9], /* a5 */
+        regs[11] /* n */
+        );
 
     return epc + ((*(unsigned short*)epc & 3) == 3 ? 4 : 2);
 }
 
 uintptr_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_u(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+handle_ecall_u(uintptr_t cause, uintptr_t epc, uintptr_t regs[32]);
 
 uintptr_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_h(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+handle_ecall_h(uintptr_t cause, uintptr_t epc, uintptr_t regs[32]);
 
 uintptr_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_s(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+handle_ecall_s(uintptr_t cause, uintptr_t epc, uintptr_t regs[32]);
 
 uintptr_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_m(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+handle_ecall_m(uintptr_t cause, uintptr_t epc, uintptr_t regs[32]);
 
 uintptr_t __attribute__((weak))
-handle_misaligned_fetch(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_misaligned_fetch(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-    dump_core("misaligned fetch", cause, epc, regs, fregs);
+    dump_core("misaligned fetch", cause, epc);
     exit(1337);
     return epc;
 }
 
 uintptr_t __attribute__((weak))
-handle_fault_fetch(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_fault_fetch(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-    dump_core("fault fetch", cause, epc, regs, fregs);
+    dump_core("fault fetch", cause, epc);
     exit(1337);
     return epc;
 }
 
 uintptr_t __attribute__((weak))
-handle_illegal_instruction(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_illegal_instruction(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-    dump_core("illegal instruction", cause, epc, regs, fregs);
+    dump_core("illegal instruction", cause, epc);
     exit(1337);
     return epc;
 }
 
 uintptr_t __attribute__((weak))
-handle_breakpoint(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_breakpoint(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-    dump_core("breakpoint", cause, epc, regs, fregs);
+    dump_core("breakpoint", cause, epc);
     exit(1337);
     return epc;
 }
 
 uintptr_t __attribute__((weak))
-handle_misaligned_load(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_misaligned_load(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-    /* notice this function only support 16bit or 32bit instruction */
-
-    bool compressed = (*(unsigned short*)epc & 3) != 3;
-    bool fpu = 0; /*!< load to fpu ? */
-    uintptr_t addr = 0; /*!< src addr */
-    uint8_t src = 0; /*!< src register */
-    uint8_t dst = 0; /*!< dst register */
-    uint8_t len = 0; /*!< data length */
-    int offset = 0; /*!< addr offset to addr in reg */
-    bool unsigned_ = 0; /*!< unsigned */
-    uint64_t data_load = 0; /*!< real data load */
-    int i;
-
-    if (compressed)
-    {
-        /* compressed instruction should not get this fault. */
-        goto on_error;
-    }
-    else
-    {
-        uint32_t instruct = *(uint32_t*)epc;
-        uint8_t opcode = instruct & 0x7F;
-
-        dst = (instruct >> 7) & 0x1F;
-        len = (instruct >> 12) & 3;
-        unsigned_ = (instruct >> 14) & 1;
-        src = (instruct >> 15) & 0x1F;
-        offset = (instruct >> 20);
-        len = 1 << len;
-        switch (opcode)
-        {
-        case 3: /*!< load */
-            break;
-        case 7: /*!< fpu load */
-            fpu = 1;
-            break;
-        default:
-            goto on_error;
-        }
-    }
-
-    if (offset >> 11)
-        offset = -((offset & 0x3FF) + 1);
-
-    addr = (uint64_t)((uint64_t)regs[src] + offset);
-
-    for (i = 0; i < len; ++i)
-        data_load |= ((uint64_t) * ((uint8_t*)addr + i)) << (8 * i);
-
-    if (!unsigned_ & !fpu)
-    {
-        /* adjust sign */
-        switch (len)
-        {
-        case 1:
-            data_load = (uint64_t)(int64_t)((int8_t)data_load);
-            break;
-        case 2:
-            data_load = (uint64_t)(int64_t)((int16_t)data_load);
-            break;
-        case 4:
-            data_load = (uint64_t)(int64_t)((int32_t)data_load);
-            break;
-        }
-    }
-
-    if (fpu)
-        fregs[dst] = data_load;
-    else
-        regs[dst] = data_load;
-
-    LOGV(TAG, "misaligned load recovered at %08lx. len:%02d,addr:%08lx,reg:%02d,data:%016lx,signed:%1d,float:%1d", (uint64_t)epc, len, (uint64_t)addr, dst, data_load, !unsigned_, fpu);
-
-    return epc + (compressed ? 2 : 4);
-on_error:
-    dump_core("misaligned load", cause, epc, regs, fregs);
+    dump_core("misaligned load", cause, epc);
     exit(1337);
     return epc;
 }
 
 uintptr_t __attribute__((weak))
-handle_fault_load(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_fault_load(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-    dump_core("fault load", cause, epc, regs, fregs);
+    dump_core("fault load", cause, epc);
     exit(1337);
     return epc;
 }
 
 uintptr_t __attribute__((weak))
-handle_misaligned_store(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_misaligned_store(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-    /* notice this function only support 16bit or 32bit instruction */
-
-    bool compressed = (*(unsigned short*)epc & 3) != 3;
-    bool fpu = 0; /*!< load to fpu ? */
-    uintptr_t addr = 0; /*!< src addr */
-    uint8_t src = 0; /*!< src register */
-    uint8_t dst = 0; /*!< dst register */
-    uint8_t len = 0; /*!< data length */
-    int offset = 0; /*!< addr offset to addr in reg */
-    uint64_t data_store = 0; /*!< real data store */
-    int i;
-
-    if (compressed)
-    {
-        /* compressed instruction should not get this fault. */
-        goto on_error;
-    }
-    else
-    {
-        uint32_t instruct = *(uint32_t*)epc;
-        uint8_t opcode = instruct & 0x7F;
-
-        len = (instruct >> 12) & 7;
-        dst = (instruct >> 15) & 0x1F;
-        src = (instruct >> 20) & 0x1F;
-        offset = ((instruct >> 7) & 0x1F) | ((instruct >> 20) & 0xFE0);
-        len = 1 << len;
-        switch (opcode)
-        {
-        case 0x23: /*!< load */
-            break;
-        case 0x27: /*!< fpu store */
-            fpu = 1;
-            break;
-        default:
-            goto on_error;
-        }
-    }
-
-    if (offset >> 11)
-        offset = -((offset & 0x3FF) + 1);
-
-    addr = (uint64_t)((uint64_t)regs[dst] + offset);
-
-    if (fpu)
-        data_store = fregs[src];
-    else
-        data_store = regs[src];
-
-    for (i = 0; i < len; ++i)
-        *((uint8_t*)addr + i) = (data_store >> (i * 8)) & 0xFF;
-
-    LOGV(TAG, "misaligned store recovered at %08lx. len:%02d,addr:%08lx,reg:%02d,data:%016lx,float:%1d", (uint64_t)epc, len, (uint64_t)addr, src, data_store, fpu);
-
-    return epc + (compressed ? 2 : 4);
-on_error:
-    dump_core("misaligned store", cause, epc, regs, fregs);
+    dump_core("misaligned store", cause, epc);
     exit(1337);
     return epc;
 }
 
 uintptr_t __attribute__((weak))
-handle_fault_store(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+handle_fault_store(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-    dump_core("fault store", cause, epc, regs, fregs);
+    dump_core("fault store", cause, epc);
     exit(1337);
     return epc;
 }
 
-uintptr_t handle_syscall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+uintptr_t handle_syscall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
 {
-
-    static uintptr_t (*const cause_table[])(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]) = {
+    static uintptr_t (*const cause_table[])(uintptr_t cause, uintptr_t epc, uintptr_t regs[32]) = {
         [CAUSE_MISALIGNED_FETCH] = handle_misaligned_fetch,
         [CAUSE_FAULT_FETCH] = handle_fault_fetch,
         [CAUSE_ILLEGAL_INSTRUCTION] = handle_illegal_instruction,
@@ -623,5 +489,5 @@ uintptr_t handle_syscall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uin
         [CAUSE_MACHINE_ECALL] = handle_ecall_m,
     };
 
-    return cause_table[cause](cause, epc, regs, fregs);
+    return cause_table[cause](cause, epc, regs);
 }

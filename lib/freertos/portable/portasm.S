@@ -98,7 +98,7 @@
 .global vTaskIncrementTick
 .global vPortEndScheduler
 .global xExitStack
-.global xPortGetProcessorId
+.global uxPortGetProcessorId
 
 
 # /* Macro for saving task context */

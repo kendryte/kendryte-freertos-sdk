@@ -129,11 +129,9 @@ extern int vPortSetInterruptMask( void );
 extern void vPortClearInterruptMask( int );
 extern void vTaskEnterCritical( void );
 extern void vTaskExitCritical( void );
-extern UBaseType_t xPortGetProcessorId(void);
+extern UBaseType_t uxPortGetProcessorId(void);
 void prvSetNextTimerInterrupt();
-void vPortNotifyProcessorAddNewTaskToReadyList(UBaseType_t xPsrId);
-void vPortWakeUpProcessor(UBaseType_t xPsrId);
-UBaseType_t xIsProcessorWakeUp(UBaseType_t xPsrId);
+void vPortAddNewTaskToReadyListAsync(UBaseType_t uxPsrId, void* pxNewTaskHandle);
 
 void vPortEnterCritical(void);
 void vPortExitCritical(void);

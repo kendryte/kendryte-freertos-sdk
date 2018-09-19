@@ -84,7 +84,7 @@ void vPortSetupTimer(void);
  */
 static void prvTaskExitError(void);
 
-UBaseType_t xPortGetProcessorId()
+UBaseType_t uxPortGetProcessorId()
 {
     return (UBaseType_t)read_csr(mhartid);
 }
@@ -94,10 +94,20 @@ UBaseType_t xPortGetProcessorId()
 /* Sets and enable the timer interrupt */
 void vPortSetupTimer(void)
 {
-    UBaseType_t xPsrId = xPortGetProcessorId();
-    clint->mtimecmp[xPsrId] = clint->mtime + (configTICK_CLOCK_HZ / configTICK_RATE_HZ);
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
+    clint->mtimecmp[uxPsrId] = clint->mtime + (configTICK_CLOCK_HZ / configTICK_RATE_HZ);
     /* Enable timer interupt */
     __asm volatile("csrs mie,%0" ::"r"(0x80));
+}
+
+/*-----------------------------------------------------------*/
+
+/* Sets the next timer interrupt
+ * Reads previous timer compare register, and adds tickrate */
+void prvSetNextTimerInterrupt(void)
+{
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
+    clint->mtimecmp[uxPsrId] += (configTICK_CLOCK_HZ / configTICK_RATE_HZ);
 }
 /*-----------------------------------------------------------*/
 
@@ -109,8 +119,8 @@ void prvTaskExitError(void)
     
     Artificially force an assert() to be triggered if configASSERT() is
     defined, then stop here so application writers can catch the error. */
-    UBaseType_t xPsrId = xPortGetProcessorId();
-    configASSERT(uxCriticalNesting[xPsrId] == ~0UL);
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
+    configASSERT(uxCriticalNesting[uxPsrId] == ~0UL);
     portDISABLE_INTERRUPTS();
     for (;;)
         ;
@@ -162,7 +172,7 @@ StackType_t* pxPortInitialiseStack(StackType_t* pxTopOfStack, TaskFunction_t pxC
 /*-----------------------------------------------------------*/
 void vPortSysTickHandler(void)
 {
-    core_sync_complete(xPortGetProcessorId());
+    core_sync_complete(uxPortGetProcessorId());
     vTaskSwitchContext();
 }
 /*-----------------------------------------------------------*/
@@ -181,7 +191,7 @@ void vPortExitCritical(void)
 
 void vPortYield()
 {
-    core_sync_request_context_switch(xPortGetProcessorId());
+    core_sync_request_context_switch(uxPortGetProcessorId());
 }
 
 void vPortFatal(const char* file, int line, const char* message)
