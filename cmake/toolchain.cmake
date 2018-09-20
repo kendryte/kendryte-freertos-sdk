@@ -32,10 +32,6 @@ ELSE()
     global_set(CMAKE_OBJDUMP "${TOOLCHAIN}/riscv64-unknown-elf-objdump${EXT}")
 ENDIF()
 
-if (CMAKE_MAKE_PROGRAM)
-    global_set(_TC_MAKE "${CMAKE_MAKE_PROGRAM}")
-endif()
-
 get_filename_component(_BIN_DIR "${CMAKE_C_COMPILER}" DIRECTORY)
 if (NOT "${TOOLCHAIN}" STREQUAL "${_BIN_DIR}" AND NOT "${TOOLCHAIN}" STREQUAL "${_BIN_DIR}/")
     message("TOOLCHAIN is [${TOOLCHAIN}]")
