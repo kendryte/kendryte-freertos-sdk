@@ -1724,3 +1724,22 @@ uint32_t sysctl_pll_fast_enable_pll(void)
 
     return 0;
 }
+
+uint32_t sysctl_spi0_dvp_data_set(uint8_t en)
+{
+    sysctl->misc.spi_dvp_data_enable = en;
+    return 0;
+}
+
+uint32_t sysctl_power_mode_sel(uint8_t power_bank, io_power_mode_t io_power_mode)
+{
+    sysctl_power_sel_u_t sel;
+    sel.sel = sysctl->power_sel;
+
+    if (io_power_mode)
+        sel.data |= 1 << power_bank;
+    else
+        sel.data &= ~(1 << power_bank);
+    sysctl->power_sel = sel.sel;
+    return 0;
+}
