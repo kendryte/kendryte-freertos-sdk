@@ -22,6 +22,7 @@
 #include "device/hal.h"
 #include "portable/portmacro.h"
 #include <stdio.h>
+#include <core_sync.h>
 
 typedef struct
 {
@@ -39,7 +40,7 @@ static void main_thunk(void* p)
 
 void enable_core(int core_id)
 {
-    vPortWakeUpProcessor(core_id);
+    core_sync_awaken(core_id);
 }
 
 int __attribute__((weak)) configure_fpioa()
@@ -47,7 +48,7 @@ int __attribute__((weak)) configure_fpioa()
     return 0;
 }
 
-int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char**))
+int os_entry(int core_id, int number_of_cores, int(*user_main)(int, char**))
 {
     clear_csr(mie, MIP_MTIP);
     clint_ipi_enable();
@@ -74,7 +75,7 @@ int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char**))
     }
     else
     {
-        while (!xIsProcessorWakeUp(core_id))
+        while (!core_sync_is_awake(core_id))
         {
             asm volatile("wfi");
         }

@@ -159,27 +159,27 @@ int clint_ipi_enable(void);
 int clint_ipi_disable(void);
 
 /**
- * @brief       Send local interprocessor interrupt to core by hart id
+ * @brief       Send local interprocessor interrupt to core by core id
  *
- * @param[in]   hart_id  The hart identifier
+ * @param[in]   core_id  The core identifier
  *
  * @return      result
  *     - 0      Success
  *     - Other  Fail
  */
-int clint_ipi_send(size_t hart_id);
+int clint_ipi_send(size_t core_id);
 
 /**
  * @brief       Clear local interprocessor interrupt
  *
- * @param[in]   hart_id  The hart identifier
+ * @param[in]   core_id  The core identifier
  *
  * @return      result
  *     - 1      An IPI was pending
  *     - 0      Non IPI was pending
  *     - -1     Fail
  */
-int clint_ipi_clear(size_t hart_id);
+int clint_ipi_clear(size_t core_id);
 
 #ifdef __cplusplus
 }

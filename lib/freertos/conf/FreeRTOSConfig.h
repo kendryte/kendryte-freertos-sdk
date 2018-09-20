@@ -85,7 +85,7 @@
 #define configUSE_DAEMON_TASK_STARTUP_HOOK		0
 
 /* memory */
-#define configMINIMAL_STACK_SIZE			( ( unsigned short ) 128 )
+#define configMINIMAL_STACK_SIZE			( ( unsigned short ) 1024 )
 #define configTOTAL_HEAP_SIZE				( ( size_t ) ( 1024 * 1024 ) )
 #define configSUPPORT_STATIC_ALLOCATION			0
 #define configSUPPORT_DYNAMIC_ALLOCATION		1

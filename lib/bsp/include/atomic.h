@@ -73,79 +73,33 @@ extern "C"
     {
         spinlock_t lock;
         int count;
-        int waiting;
-    } semaphore_t;
+        int core;
+    } corelock_t;
 
-    static inline void semaphore_signal(semaphore_t* semaphore, int i)
-    {
-        spinlock_lock(&(semaphore->lock));
-        semaphore->count += i;
-        spinlock_unlock(&(semaphore->lock));
-    }
-
-    static inline void semaphore_wait(semaphore_t* semaphore, int i)
-    {
-        atomic_add(&(semaphore->waiting), 1);
-        while (1)
-        {
-            spinlock_lock(&(semaphore->lock));
-            if (semaphore->count >= i)
-            {
-                semaphore->count -= i;
-                atomic_add(&(semaphore->waiting), -1);
-                spinlock_unlock(&(semaphore->lock));
-                break;
-            }
-            spinlock_unlock(&(semaphore->lock));
-        }
-    }
-
-    static inline int semaphore_count(semaphore_t* semaphore)
-    {
-        int res = 0;
-
-        spinlock_lock(&(semaphore->lock));
-        res = semaphore->count;
-        spinlock_unlock(&(semaphore->lock));
-        return res;
-    }
-
-    static inline int semaphore_waiting(semaphore_t* semaphore)
-    {
-        return atomic_read(&(semaphore->waiting));
-    }
-
-    typedef struct
-    {
-        spinlock_t lock;
-        int count;
-        int hart;
-    } hartlock_t;
-
-#define HARTLOCK_INIT          \
+#define CORELOCK_INIT          \
     {                          \
         .lock = SPINLOCK_INIT, \
         .count = 0,            \
-        .hart = -1             \
+        .core = -1             \
     }
 
-    static inline int hartlock_trylock(hartlock_t* lock)
+    static inline int corelock_trylock(corelock_t* lock)
     {
         int res = 0;
-        unsigned long hart;
+        unsigned long core;
 
         asm volatile("csrr %0, mhartid;"
-                     : "=r"(hart));
+                     : "=r"(core));
         spinlock_lock(&lock->lock);
 
         if (lock->count == 0)
         {
             /* First time get lock */
             lock->count++;
-            lock->hart = hart;
+            lock->core = core;
             res = 0;
         }
-        else if (lock->hart == hart)
+        else if (lock->core == core)
         {
             /* Same core get lock */
             lock->count++;
@@ -161,21 +115,21 @@ extern "C"
         return res;
     }
 
-    static inline void hartlock_lock(hartlock_t* lock)
+    static inline void corelock_lock(corelock_t* lock)
     {
-        unsigned long hart;
+        unsigned long core;
 
         asm volatile("csrr %0, mhartid;"
-                     : "=r"(hart));
+                     : "=r"(core));
         spinlock_lock(&lock->lock);
 
         if (lock->count == 0)
         {
             /* First time get lock */
             lock->count++;
-            lock->hart = hart;
+            lock->core = core;
         }
-        else if (lock->hart == hart)
+        else if (lock->core == core)
         {
             /* Same core get lock */
             lock->count++;
@@ -189,26 +143,26 @@ extern "C"
             {
                 while (atomic_read(&lock->count))
                     ;
-            } while (hartlock_trylock(lock));
+            } while (corelock_trylock(lock));
         }
         spinlock_unlock(&lock->lock);
     }
 
-    static inline void hartlock_unlock(hartlock_t* lock)
+    static inline void corelock_unlock(corelock_t* lock)
     {
-        unsigned long hart;
+        unsigned long core;
 
         asm volatile("csrr %0, mhartid;"
-                     : "=r"(hart));
+                     : "=r"(core));
         spinlock_lock(&lock->lock);
 
-        if (lock->hart == hart)
+        if (lock->core == core)
         {
             /* Same core release lock */
             lock->count--;
             if (lock->count <= 0)
             {
-                lock->hart = -1;
+                lock->core = -1;
                 lock->count = 0;
             }
         }
