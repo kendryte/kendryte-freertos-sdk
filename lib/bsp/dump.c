@@ -120,9 +120,9 @@ void dump_core(const char* reason, uintptr_t cause, uintptr_t epc, uintptr_t reg
         for (i = 0; i < 32 / 2; i++)
         {
             DUMP_PRINTF(
-                "freg[%02d](%s) = 0x%016lx(%f), freg[%02d](%s) = 0x%016lx(%f)\n",
-                i * 2, regf_usage[i * 2][0], fregs[i * 2], (float)fregs[i * 2],
-                i * 2 + 1, regf_usage[i * 2 + 1][0], fregs[i * 2 + 1], (float)fregs[i * 2 + 1]);
+                "freg[%02d](%s) = 0x%016lx, freg[%02d](%s) = 0x%016lx\n",
+                i * 2, regf_usage[i * 2][0], fregs[i * 2],
+                i * 2 + 1, regf_usage[i * 2 + 1][0], fregs[i * 2 + 1]);
         }
 
         hartlock_unlock(&s_dump_lock);

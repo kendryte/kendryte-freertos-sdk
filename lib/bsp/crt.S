@@ -13,10 +13,6 @@
 # limitations under the License.
 # include "encoding.h"
 
-# define LREG ld
-# define SREG sd
-# define LFREG fld
-# define SFREG fsd
 # define REGBYTES 8
 # define STKSHIFT 15
 
@@ -33,37 +29,37 @@ _start:
   la t0, trap_entry
   csrw mtvec, t0
   
-  li  x1, 0
-  li  x2, 0
-  li  x3, 0
-  li  x4, 0
-  li  x5, 0
-  li  x6, 0
-  li  x7, 0
-  li  x8, 0
-  li  x9, 0
-  li  x10,0
-  li  x11,0
-  li  x12,0
-  li  x13,0
-  li  x14,0
-  li  x15,0
-  li  x16,0
-  li  x17,0
-  li  x18,0
-  li  x19,0
-  li  x20,0
-  li  x21,0
-  li  x22,0
-  li  x23,0
-  li  x24,0
-  li  x25,0
-  li  x26,0
-  li  x27,0
-  li  x28,0
-  li  x29,0
-  li  x30,0
-  li  x31,0
+  li x1, 0
+  li x2, 0
+  li x3, 0
+  li x4, 0
+  li x5, 0
+  li x6, 0
+  li x7, 0
+  li x8, 0
+  li x9, 0
+  li x10,0
+  li x11,0
+  li x12,0
+  li x13,0
+  li x14,0
+  li x15,0
+  li x16,0
+  li x17,0
+  li x18,0
+  li x19,0
+  li x20,0
+  li x21,0
+  li x22,0
+  li x23,0
+  li x24,0
+  li x25,0
+  li x26,0
+  li x27,0
+  li x28,0
+  li x29,0
+  li x30,0
+  li x31,0
 
   li t0, MSTATUS_FS
   csrs mstatus, t0
@@ -123,7 +119,7 @@ _start:
   .align 2
 trap_entry:
   addi sp, sp, -REGBYTES
-  SREG t0, 0x0(sp)
+  sd t0, 0x0(sp)
   csrr t0, mcause
   bgez t0, .handle_other
   # Test soft interrupt
@@ -133,116 +129,116 @@ trap_entry:
   # Interupt is soft interrupt
   # Get event
   addi sp, sp, -REGBYTES
-  SREG t1, 0x0(sp)
+  sd t1, 0x0(sp)
   la   t0, g_core_sync_events
   csrr t1, mhartid
   slli t1, t1, 3
   add  t0, t0, t1
-  LREG t1, 0x0(sp)
+  ld t1, 0x0(sp)
   addi sp, sp, REGBYTES
   # Test ContextSwitch event
   ld   t0, 0x0(t0)
   addi t0, t0, -2 # CORE_SYNC_CONTEXT_SWITCH
   bnez t0, .handle_irq
 
-  LREG t0, 0x0(sp)
+  ld t0, 0x0(sp)
   addi sp, sp, REGBYTES
   # Do not use jal here
   j    xPortSysTickInt
   mret
 .handle_irq:
-  LREG t0, 0x0(sp)
+  ld t0, 0x0(sp)
   addi sp, sp, REGBYTES
-  addi sp, sp, -36*REGBYTES
+  addi sp, sp, -36 * REGBYTES
 
-  SREG ra, 0*REGBYTES(sp)
-  SREG t0, 1*REGBYTES(sp)
-  SREG t1, 2*REGBYTES(sp)
-  SREG t2, 3*REGBYTES(sp)
-  SREG a0, 4*REGBYTES(sp)
-  SREG a1, 5*REGBYTES(sp)
-  SREG a2, 6*REGBYTES(sp)
-  SREG a3, 7*REGBYTES(sp)
-  SREG a4, 8*REGBYTES(sp)
-  SREG a5, 9*REGBYTES(sp)
-  SREG a6, 10*REGBYTES(sp)
-  SREG a7, 11*REGBYTES(sp)
-  SREG t3, 12*REGBYTES(sp)
-  SREG t4, 13*REGBYTES(sp)
-  SREG t5, 14*REGBYTES(sp)
-  SREG t6, 15*REGBYTES(sp)
+  sd ra,  0 * REGBYTES(sp)
+  sd t0,  1 * REGBYTES(sp)
+  sd t1,  2 * REGBYTES(sp)
+  sd t2,  3 * REGBYTES(sp)
+  sd a0,  4 * REGBYTES(sp)
+  sd a1,  5 * REGBYTES(sp)
+  sd a2,  6 * REGBYTES(sp)
+  sd a3,  7 * REGBYTES(sp)
+  sd a4,  8 * REGBYTES(sp)
+  sd a5,  9 * REGBYTES(sp)
+  sd a6, 10 * REGBYTES(sp)
+  sd a7, 11 * REGBYTES(sp)
+  sd t3, 12 * REGBYTES(sp)
+  sd t4, 13 * REGBYTES(sp)
+  sd t5, 14 * REGBYTES(sp)
+  sd t6, 15 * REGBYTES(sp)
 
-  SFREG ft0, ( 0  + 16)*REGBYTES(sp)
-  SFREG ft1, ( 1  + 16)*REGBYTES(sp)
-  SFREG ft2, ( 2  + 16)*REGBYTES(sp)
-  SFREG ft3, ( 3  + 16)*REGBYTES(sp)
-  SFREG ft4, ( 4  + 16)*REGBYTES(sp)
-  SFREG ft5, ( 5  + 16)*REGBYTES(sp)
-  SFREG ft6, ( 6  + 16)*REGBYTES(sp)
-  SFREG ft7, ( 7  + 16)*REGBYTES(sp)
-  SFREG fa0, ( 8  + 16)*REGBYTES(sp)
-  SFREG fa1, ( 9  + 16)*REGBYTES(sp)
-  SFREG fa2, ( 10 + 16)*REGBYTES(sp)
-  SFREG fa3, ( 11 + 16)*REGBYTES(sp)
-  SFREG fa4, ( 12 + 16)*REGBYTES(sp)
-  SFREG fa5, ( 13 + 16)*REGBYTES(sp)
-  SFREG fa6, ( 14 + 16)*REGBYTES(sp)
-  SFREG fa7, ( 15 + 16)*REGBYTES(sp)
-  SFREG ft8, ( 16 + 16)*REGBYTES(sp)
-  SFREG ft9, ( 17 + 16)*REGBYTES(sp)
-  SFREG ft10,( 18 + 16)*REGBYTES(sp)
-  SFREG ft11,( 19 + 16)*REGBYTES(sp)
+  fsd ft0,  ( 0 + 16) * REGBYTES(sp)
+  fsd ft1,  ( 1 + 16) * REGBYTES(sp)
+  fsd ft2,  ( 2 + 16) * REGBYTES(sp)
+  fsd ft3,  ( 3 + 16) * REGBYTES(sp)
+  fsd ft4,  ( 4 + 16) * REGBYTES(sp)
+  fsd ft5,  ( 5 + 16) * REGBYTES(sp)
+  fsd ft6,  ( 6 + 16) * REGBYTES(sp)
+  fsd ft7,  ( 7 + 16) * REGBYTES(sp)
+  fsd fa0,  ( 8 + 16) * REGBYTES(sp)
+  fsd fa1,  ( 9 + 16) * REGBYTES(sp)
+  fsd fa2,  (10 + 16) * REGBYTES(sp)
+  fsd fa3,  (11 + 16) * REGBYTES(sp)
+  fsd fa4,  (12 + 16) * REGBYTES(sp)
+  fsd fa5,  (13 + 16) * REGBYTES(sp)
+  fsd fa6,  (14 + 16) * REGBYTES(sp)
+  fsd fa7,  (15 + 16) * REGBYTES(sp)
+  fsd ft8,  (16 + 16) * REGBYTES(sp)
+  fsd ft9,  (17 + 16) * REGBYTES(sp)
+  fsd ft10, (18 + 16) * REGBYTES(sp)
+  fsd ft11, (19 + 16) * REGBYTES(sp)
 
   csrr a0, mcause
   csrr a1, mepc
   jal handle_irq
 
-  LREG ra, 0*REGBYTES(sp)
-  LREG t0, 1*REGBYTES(sp)
-  LREG t1, 2*REGBYTES(sp)
-  LREG t2, 3*REGBYTES(sp)
-  LREG a0, 4*REGBYTES(sp)
-  LREG a1, 5*REGBYTES(sp)
-  LREG a2, 6*REGBYTES(sp)
-  LREG a3, 7*REGBYTES(sp)
-  LREG a4, 8*REGBYTES(sp)
-  LREG a5, 9*REGBYTES(sp)
-  LREG a6, 10*REGBYTES(sp)
-  LREG a7, 11*REGBYTES(sp)
-  LREG t3, 12*REGBYTES(sp)
-  LREG t4, 13*REGBYTES(sp)
-  LREG t5, 14*REGBYTES(sp)
-  LREG t6, 15*REGBYTES(sp)
+  ld ra,  0 * REGBYTES(sp)
+  ld t0,  1 * REGBYTES(sp)
+  ld t1,  2 * REGBYTES(sp)
+  ld t2,  3 * REGBYTES(sp)
+  ld a0,  4 * REGBYTES(sp)
+  ld a1,  5 * REGBYTES(sp)
+  ld a2,  6 * REGBYTES(sp)
+  ld a3,  7 * REGBYTES(sp)
+  ld a4,  8 * REGBYTES(sp)
+  ld a5,  9 * REGBYTES(sp)
+  ld a6, 10 * REGBYTES(sp)
+  ld a7, 11 * REGBYTES(sp)
+  ld t3, 12 * REGBYTES(sp)
+  ld t4, 13 * REGBYTES(sp)
+  ld t5, 14 * REGBYTES(sp)
+  ld t6, 15 * REGBYTES(sp)
 
-  LFREG ft0, ( 0  + 16)*REGBYTES(sp)
-  LFREG ft1, ( 1  + 16)*REGBYTES(sp)
-  LFREG ft2, ( 2  + 16)*REGBYTES(sp)
-  LFREG ft3, ( 3  + 16)*REGBYTES(sp)
-  LFREG ft4, ( 4  + 16)*REGBYTES(sp)
-  LFREG ft5, ( 5  + 16)*REGBYTES(sp)
-  LFREG ft6, ( 6  + 16)*REGBYTES(sp)
-  LFREG ft7, ( 7  + 16)*REGBYTES(sp)
-  LFREG fa0, ( 8  + 16)*REGBYTES(sp)
-  LFREG fa1, ( 9  + 16)*REGBYTES(sp)
-  LFREG fa2, ( 10 + 16)*REGBYTES(sp)
-  LFREG fa3, ( 11 + 16)*REGBYTES(sp)
-  LFREG fa4, ( 12 + 16)*REGBYTES(sp)
-  LFREG fa5, ( 13 + 16)*REGBYTES(sp)
-  LFREG fa6, ( 14 + 16)*REGBYTES(sp)
-  LFREG fa7, ( 15 + 16)*REGBYTES(sp)
-  LFREG ft8, ( 16 + 16)*REGBYTES(sp)
-  LFREG ft9, ( 17 + 16)*REGBYTES(sp)
-  LFREG ft10,( 18 + 16)*REGBYTES(sp)
-  LFREG ft11,( 19 + 16)*REGBYTES(sp)
+  fld ft0,  ( 0 + 16) * REGBYTES(sp)
+  fld ft1,  ( 1 + 16) * REGBYTES(sp)
+  fld ft2,  ( 2 + 16) * REGBYTES(sp)
+  fld ft3,  ( 3 + 16) * REGBYTES(sp)
+  fld ft4,  ( 4 + 16) * REGBYTES(sp)
+  fld ft5,  ( 5 + 16) * REGBYTES(sp)
+  fld ft6,  ( 6 + 16) * REGBYTES(sp)
+  fld ft7,  ( 7 + 16) * REGBYTES(sp)
+  fld fa0,  ( 8 + 16) * REGBYTES(sp)
+  fld fa1,  ( 9 + 16) * REGBYTES(sp)
+  fld fa2,  (10 + 16) * REGBYTES(sp)
+  fld fa3,  (11 + 16) * REGBYTES(sp)
+  fld fa4,  (12 + 16) * REGBYTES(sp)
+  fld fa5,  (13 + 16) * REGBYTES(sp)
+  fld fa6,  (14 + 16) * REGBYTES(sp)
+  fld fa7,  (15 + 16) * REGBYTES(sp)
+  fld ft8,  (16 + 16) * REGBYTES(sp)
+  fld ft9,  (17 + 16) * REGBYTES(sp)
+  fld ft10, (18 + 16) * REGBYTES(sp)
+  fld ft11, (19 + 16) * REGBYTES(sp)
 
-  addi sp, sp, 36*REGBYTES
+  addi sp, sp, 36 * REGBYTES
   mret
 .handle_other:
   csrr t0, mcause
   addi t0, t0, -CAUSE_USER_ECALL
   bltz t0, .handle_except
 .handle_syscall:
-  LREG t0, 0x0(sp)
+  ld t0, 0x0(sp)
   addi sp, sp, REGBYTES
 
   csrr a6, mepc
@@ -250,80 +246,80 @@ trap_entry:
   csrw mepc, a1
   mret
 .handle_except:
-  LREG t0, 0x0(sp)
+  ld t0, 0x0(sp)
   addi sp, sp, REGBYTES
-  addi sp, sp, -64*REGBYTES
+  addi sp, sp, -64 * REGBYTES
   
-  SREG x0, 0*REGBYTES(sp)
-  SREG x1, 1*REGBYTES(sp)
-  SREG x2, 2*REGBYTES(sp)
-  SREG x3, 3*REGBYTES(sp)
-  SREG x4, 4*REGBYTES(sp)
-  SREG x5, 5*REGBYTES(sp)
-  SREG x6, 6*REGBYTES(sp)
-  SREG x7, 7*REGBYTES(sp)
-  SREG x8, 8*REGBYTES(sp)
-  SREG x9, 9*REGBYTES(sp)
-  SREG x10, 10*REGBYTES(sp)
-  SREG x11, 11*REGBYTES(sp)
-  SREG x12, 12*REGBYTES(sp)
-  SREG x13, 13*REGBYTES(sp)
-  SREG x14, 14*REGBYTES(sp)
-  SREG x15, 15*REGBYTES(sp)
-  SREG x16, 16*REGBYTES(sp)
-  SREG x17, 17*REGBYTES(sp)
-  SREG x18, 18*REGBYTES(sp)
-  SREG x19, 19*REGBYTES(sp)
-  SREG x20, 20*REGBYTES(sp)
-  SREG x21, 21*REGBYTES(sp)
-  SREG x22, 22*REGBYTES(sp)
-  SREG x23, 23*REGBYTES(sp)
-  SREG x24, 24*REGBYTES(sp)
-  SREG x25, 25*REGBYTES(sp)
-  SREG x26, 26*REGBYTES(sp)
-  SREG x27, 27*REGBYTES(sp)
-  SREG x28, 28*REGBYTES(sp)
-  SREG x29, 29*REGBYTES(sp)
-  SREG x30, 30*REGBYTES(sp)
-  SREG x31, 31*REGBYTES(sp)
+  sd x0,   0 * REGBYTES(sp)
+  sd x1,   1 * REGBYTES(sp)
+  sd x2,   2 * REGBYTES(sp)
+  sd x3,   3 * REGBYTES(sp)
+  sd x4,   4 * REGBYTES(sp)
+  sd x5,   5 * REGBYTES(sp)
+  sd x6,   6 * REGBYTES(sp)
+  sd x7,   7 * REGBYTES(sp)
+  sd x8,   8 * REGBYTES(sp)
+  sd x9,   9 * REGBYTES(sp)
+  sd x10, 10 * REGBYTES(sp)
+  sd x11, 11 * REGBYTES(sp)
+  sd x12, 12 * REGBYTES(sp)
+  sd x13, 13 * REGBYTES(sp)
+  sd x14, 14 * REGBYTES(sp)
+  sd x15, 15 * REGBYTES(sp)
+  sd x16, 16 * REGBYTES(sp)
+  sd x17, 17 * REGBYTES(sp)
+  sd x18, 18 * REGBYTES(sp)
+  sd x19, 19 * REGBYTES(sp)
+  sd x20, 20 * REGBYTES(sp)
+  sd x21, 21 * REGBYTES(sp)
+  sd x22, 22 * REGBYTES(sp)
+  sd x23, 23 * REGBYTES(sp)
+  sd x24, 24 * REGBYTES(sp)
+  sd x25, 25 * REGBYTES(sp)
+  sd x26, 26 * REGBYTES(sp)
+  sd x27, 27 * REGBYTES(sp)
+  sd x28, 28 * REGBYTES(sp)
+  sd x29, 29 * REGBYTES(sp)
+  sd x30, 30 * REGBYTES(sp)
+  sd x31, 31 * REGBYTES(sp)
 
-  SFREG f0, ( 0  + 32)*REGBYTES(sp)
-  SFREG f1, ( 1  + 32)*REGBYTES(sp)
-  SFREG f2, ( 2  + 32)*REGBYTES(sp)
-  SFREG f3, ( 3  + 32)*REGBYTES(sp)
-  SFREG f4, ( 4  + 32)*REGBYTES(sp)
-  SFREG f5, ( 5  + 32)*REGBYTES(sp)
-  SFREG f6, ( 6  + 32)*REGBYTES(sp)
-  SFREG f7, ( 7  + 32)*REGBYTES(sp)
-  SFREG f8, ( 8  + 32)*REGBYTES(sp)
-  SFREG f9, ( 9  + 32)*REGBYTES(sp)
-  SFREG f10,( 10 + 32)*REGBYTES(sp)
-  SFREG f11,( 11 + 32)*REGBYTES(sp)
-  SFREG f12,( 12 + 32)*REGBYTES(sp)
-  SFREG f13,( 13 + 32)*REGBYTES(sp)
-  SFREG f14,( 14 + 32)*REGBYTES(sp)
-  SFREG f15,( 15 + 32)*REGBYTES(sp)
-  SFREG f16,( 16 + 32)*REGBYTES(sp)
-  SFREG f17,( 17 + 32)*REGBYTES(sp)
-  SFREG f18,( 18 + 32)*REGBYTES(sp)
-  SFREG f19,( 19 + 32)*REGBYTES(sp)
-  SFREG f20,( 20 + 32)*REGBYTES(sp)
-  SFREG f21,( 21 + 32)*REGBYTES(sp)
-  SFREG f22,( 22 + 32)*REGBYTES(sp)
-  SFREG f23,( 23 + 32)*REGBYTES(sp)
-  SFREG f24,( 24 + 32)*REGBYTES(sp)
-  SFREG f25,( 25 + 32)*REGBYTES(sp)
-  SFREG f26,( 26 + 32)*REGBYTES(sp)
-  SFREG f27,( 27 + 32)*REGBYTES(sp)
-  SFREG f28,( 28 + 32)*REGBYTES(sp)
-  SFREG f29,( 29 + 32)*REGBYTES(sp)
-  SFREG f30,( 30 + 32)*REGBYTES(sp)
-  SFREG f31,( 31 + 32)*REGBYTES(sp)
+  fsd f0,  ( 0 + 32) * REGBYTES(sp)
+  fsd f1,  ( 1 + 32) * REGBYTES(sp)
+  fsd f2,  ( 2 + 32) * REGBYTES(sp)
+  fsd f3,  ( 3 + 32) * REGBYTES(sp)
+  fsd f4,  ( 4 + 32) * REGBYTES(sp)
+  fsd f5,  ( 5 + 32) * REGBYTES(sp)
+  fsd f6,  ( 6 + 32) * REGBYTES(sp)
+  fsd f7,  ( 7 + 32) * REGBYTES(sp)
+  fsd f8,  ( 8 + 32) * REGBYTES(sp)
+  fsd f9,  ( 9 + 32) * REGBYTES(sp)
+  fsd f10, (10 + 32) * REGBYTES(sp)
+  fsd f11, (11 + 32) * REGBYTES(sp)
+  fsd f12, (12 + 32) * REGBYTES(sp)
+  fsd f13, (13 + 32) * REGBYTES(sp)
+  fsd f14, (14 + 32) * REGBYTES(sp)
+  fsd f15, (15 + 32) * REGBYTES(sp)
+  fsd f16, (16 + 32) * REGBYTES(sp)
+  fsd f17, (17 + 32) * REGBYTES(sp)
+  fsd f18, (18 + 32) * REGBYTES(sp)
+  fsd f19, (19 + 32) * REGBYTES(sp)
+  fsd f20, (20 + 32) * REGBYTES(sp)
+  fsd f21, (21 + 32) * REGBYTES(sp)
+  fsd f22, (22 + 32) * REGBYTES(sp)
+  fsd f23, (23 + 32) * REGBYTES(sp)
+  fsd f24, (24 + 32) * REGBYTES(sp)
+  fsd f25, (25 + 32) * REGBYTES(sp)
+  fsd f26, (26 + 32) * REGBYTES(sp)
+  fsd f27, (27 + 32) * REGBYTES(sp)
+  fsd f28, (28 + 32) * REGBYTES(sp)
+  fsd f29, (29 + 32) * REGBYTES(sp)
+  fsd f30, (30 + 32) * REGBYTES(sp)
+  fsd f31, (31 + 32) * REGBYTES(sp)
 
   csrr a0, mcause
   csrr a1, mepc
   mv a2, sp
-  add a3, sp, 32*REGBYTES
+  add a3, sp, 32 * REGBYTES
   jal handle_except
   csrw mepc, a0
   mret

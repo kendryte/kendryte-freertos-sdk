@@ -47,6 +47,7 @@
 #include <atomic.h>
 #include <core_sync.h>
 #include <stdlib.h>
+#include <string.h>
 #include <syslog.h>
 #include "FreeRTOS.h"
 #include "clint.h"
@@ -150,22 +151,16 @@ int vPortSetInterruptMask(void)
  */
 StackType_t* pxPortInitialiseStack(StackType_t* pxTopOfStack, TaskFunction_t pxCode, void* pvParameters)
 {
-    UBaseType_t gp;
-    __asm volatile("mv %0, gp" : "=r"(gp));
-
     /* Simulate the stack frame as it would be created by a context switch
 	interrupt. */
-    pxTopOfStack--;
-    *pxTopOfStack = (portSTACK_TYPE)pxCode; /* Start address */
-    pxTopOfStack -= 22;
-    *pxTopOfStack = (portSTACK_TYPE)pvParameters; /* Register a0 */
-    pxTopOfStack -= 6;
-    pxTopOfStack--;
-    *pxTopOfStack = gp;
-    pxTopOfStack--;
-    *pxTopOfStack = (StackType_t)(pxTopOfStack - 1);
-    pxTopOfStack--;
-    *pxTopOfStack = (portSTACK_TYPE)prvTaskExitError; /* Register ra */
+    pxTopOfStack -= 64;
+    memset(pxTopOfStack, 0, sizeof(StackType_t) * 64);
+
+    pxTopOfStack[0] = (portSTACK_TYPE)prvTaskExitError; /* Register ra */
+    pxTopOfStack[1] = (portSTACK_TYPE)pxTopOfStack;
+    pxTopOfStack[8] = (portSTACK_TYPE)pvParameters; /* Register a0 */
+    pxTopOfStack[30] = 0; /* Register fsr */
+    pxTopOfStack[31] = (portSTACK_TYPE)pxCode; /* Register mepc */
 
     return pxTopOfStack;
 }
