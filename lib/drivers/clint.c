@@ -43,21 +43,21 @@ int clint_ipi_disable(void)
     return 0;
 }
 
-int clint_ipi_send(size_t hart_id)
+int clint_ipi_send(size_t core_id)
 {
-    if (hart_id >= CLINT_NUM_HARTS)
+    if (core_id >= CLINT_NUM_HARTS)
         return -1;
-    clint->msip[hart_id].msip = 1;
+    clint->msip[core_id].msip = 1;
     return 0;
 }
 
-int clint_ipi_clear(size_t hart_id)
+int clint_ipi_clear(size_t core_id)
 {
-    if (hart_id >= CLINT_NUM_HARTS)
+    if (core_id >= CLINT_NUM_HARTS)
         return -1;
-    if (clint->msip[hart_id].msip)
+    if (clint->msip[core_id].msip)
     {
-        clint->msip[hart_id].msip = 0;
+        clint->msip[core_id].msip = 0;
         return 1;
     }
     return 0;

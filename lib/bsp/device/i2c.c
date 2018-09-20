@@ -294,6 +294,7 @@ static void on_i2c_irq(void* userdata)
     if (status & I2C_INTR_STAT_RD_REQ)
     {
         i2c->data_cmd = data->slave_handler.on_transmit();
+        dummy = i2c->clr_rd_req;
     }
 
     (void)dummy;

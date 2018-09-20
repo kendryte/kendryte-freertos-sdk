@@ -24,13 +24,13 @@
 static void plic_install(void* userdata)
 {
     int i = 0;
-    size_t hart_id;
+    size_t core_id;
 
-    for (hart_id = 0; hart_id < PLIC_NUM_HARTS; hart_id++)
+    for (core_id = 0; core_id < PLIC_NUM_HARTS; core_id++)
     {
-        /* Disable all interrupts for the current hart. */
+        /* Disable all interrupts for the current core. */
         for (i = 0; i < ((PLIC_NUM_SOURCES + 32u) / 32u); i++)
-            plic->target_enables.target[hart_id].enable[i] = 0;
+            plic->target_enables.target[core_id].enable[i] = 0;
     }
 
     /* Set priorities to zero. */
@@ -38,9 +38,9 @@ static void plic_install(void* userdata)
         plic->source_priorities.priority[i] = 0;
 
     /* Set the threshold to zero. */
-    for (hart_id = 0; hart_id < PLIC_NUM_HARTS; hart_id++)
+    for (core_id = 0; core_id < PLIC_NUM_HARTS; core_id++)
     {
-        plic->targets.target[hart_id].priority_threshold = 0;
+        plic->targets.target[core_id].priority_threshold = 0;
     }
 
     /* Enable machine external interrupts. */
@@ -80,13 +80,13 @@ static void plic_set_irq_priority(size_t irq, size_t priority, void* userdata)
 
 static void plic_complete_irq(uint32_t source)
 {
-    unsigned long hart_id = xPortGetProcessorId();
+    unsigned long core_id = uxPortGetProcessorId();
     /* Perform IRQ complete */
-    plic->targets.target[hart_id].claim_complete = source;
+    plic->targets.target[core_id].claim_complete = source;
 }
 
 /*Entry Point for PLIC Interrupt Handler*/
-uintptr_t handle_irq_m_ext(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
+void handle_irq_m_ext(uintptr_t cause, uintptr_t epc)
 {
     /**
      * After the highest-priority pending interrupt is claimed by a target
@@ -100,13 +100,13 @@ uintptr_t handle_irq_m_ext(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
      */
     if (read_csr(mip) & MIP_MEIP)
     {
-        /* Get current hart id */
-        uint64_t hart_id = read_csr(mhartid);
+        /* Get current core id */
+        uint64_t core_id = read_csr(mhartid);
         uint64_t ie_flag = read_csr(mie);
-        uint32_t int_num = plic->targets.target[hart_id].claim_complete;
-        uint32_t int_threshold = plic->targets.target[hart_id].priority_threshold;
+        uint32_t int_num = plic->targets.target[core_id].claim_complete;
+        uint32_t int_threshold = plic->targets.target[core_id].priority_threshold;
 
-        plic->targets.target[hart_id].priority_threshold = plic->source_priorities.priority[int_num];
+        plic->targets.target[core_id].priority_threshold = plic->source_priorities.priority[int_num];
         clear_csr(mie, MIP_MTIP | MIP_MSIP);
         set_csr(mstatus, MSTATUS_MIE);
         kernel_iface_pic_on_irq(int_num);
@@ -114,10 +114,8 @@ uintptr_t handle_irq_m_ext(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
         clear_csr(mstatus, MSTATUS_MIE);
         set_csr(mstatus, MSTATUS_MPIE | MSTATUS_MPP);
         write_csr(mie, ie_flag);
-        plic->targets.target[hart_id].priority_threshold = int_threshold;
+        plic->targets.target[core_id].priority_threshold = int_threshold;
     }
-
-    return epc;
 }
 
 const pic_driver_t g_pic_driver_plic0 = {{NULL, plic_install, plic_open, plic_close}, plic_set_irq_enable, plic_set_irq_priority};

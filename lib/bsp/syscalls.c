@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* Enable kernel-mode log API */
 #include <machine/syscall.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -25,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <syslog.h>
 #include "../freertos/device/devices.h"
 #include "atomic.h"
 #include "clint.h"
@@ -32,7 +32,6 @@
 #include "fpioa.h"
 #include "interrupt.h"
 #include "sysctl.h"
-#include "syslog.h"
 #include "uarths.h"
 
 /*
@@ -90,6 +89,20 @@
 #define UNUSED(x) (void)(x)
 #endif
 
+#define SYS_RET(epc_val, err_val) \
+syscall_ret_t ret =               \
+{                                 \
+    .err = err_val,               \
+    .epc = epc_val                \
+};                                \
+return ret;
+
+typedef struct _syscall_ret
+{
+    int err;
+    uintptr_t epc;
+} syscall_ret_t;
+
 static const char* TAG = "SYSCALL";
 
 extern char _heap_start[];
@@ -133,30 +146,30 @@ static size_t sys_brk(size_t pos)
 {
     uintptr_t res = 0;
     /*
-	 * brk() sets the end of the data segment to the value
-	 * specified by addr, when that value is reasonable, the system
-	 * has enough memory, and the process does not exceed its
-	 * maximum data size.
-	 *
-	 * sbrk() increments the program's data space by increment
-	 * bytes. Calling sbrk() with an increment of 0 can be used to
-	 * find the current location of the program break.
-	 *
-	 * uintptr_t brk(uintptr_t ptr);
-	 *
-	 * IN : regs[10] = ptr
-	 * OUT: regs[10] = ptr
-	 */
+     * brk() sets the end of the data segment to the value
+     * specified by addr, when that value is reasonable, the system
+     * has enough memory, and the process does not exceed its
+     * maximum data size.
+     *
+     * sbrk() increments the program's data space by increment
+     * bytes. Calling sbrk() with an increment of 0 can be used to
+     * find the current location of the program break.
+     *
+     * uintptr_t brk(uintptr_t ptr);
+     *
+     * IN : regs[10] = ptr
+     * OUT: regs[10] = ptr
+     */
 
-    /*
-	 * - First call: Initialization brk pointer. newlib will pass
-	 *   ptr = 0 when it is first called. In this case the address
-	 *   _heap_start will be return.
-	 *
-	 * - Call again: Adjust brk pointer. The ptr never equal with
-	 *   0. If ptr is below _heap_end, then allocate memory.
-	 *   Otherwise throw out of memory error, return -1.
-	 */
+     /*
+      * - First call: Initialization brk pointer. newlib will pass
+      *   ptr = 0 when it is first called. In this case the address
+      *   _heap_start will be return.
+      *
+      * - Call again: Adjust brk pointer. The ptr never equal with
+      *   0. If ptr is below _heap_end, then allocate memory.
+      *   Otherwise throw out of memory error, return -1.
+      */
 
     if (pos)
     {
@@ -186,13 +199,13 @@ static size_t sys_brk(size_t pos)
 static ssize_t sys_write(int file, const void* ptr, size_t len)
 {
     /*
-	 * Write to a file.
-	 *
-	 * ssize_t write(int file, const void* ptr, size_t len)
-	 *
-	 * IN : regs[10] = file, regs[11] = ptr, regs[12] = len
-	 * OUT: regs[10] = len
-	 */
+     * Write to a file.
+     *
+     * ssize_t write(int file, const void* ptr, size_t len)
+     *
+     * IN : regs[10] = file, regs[11] = ptr, regs[12] = len
+     * OUT: regs[10] = len
+     */
 
     ssize_t res = -EBADF;
     /* Get size to write */
@@ -213,7 +226,6 @@ static ssize_t sys_write(int file, const void* ptr, size_t len)
     {
         /* Not support yet */
         res = io_write(file, data, length);
-        ;
     }
 
     return res;
@@ -225,7 +237,6 @@ static int sys_open(const char* name, int flags, int mode)
     UNUSED(mode);
 
     uintptr_t ptr = io_open(name);
-    LOGD("SYSCALL", "%s: %lu\n", name, ptr);
     return ptr;
 }
 
@@ -234,18 +245,18 @@ static int sys_fstat(int file, struct stat* st)
     int res = -EBADF;
 
     /*
-	 * Status of an open file. The sys/stat.h header file required
-	 * is
-	 * distributed in the include subdirectory for this C library.
-	 *
-	 * int fstat(int file, struct stat* st)
-	 *
-	 * IN : regs[10] = file, regs[11] = st
-	 * OUT: regs[10] = Upon successful completion, 0 shall be
-	 * returned.
-	 * Otherwise, -1 shall be returned and errno set to indicate
-	 * the error.
-	 */
+     * Status of an open file. The sys/stat.h header file required
+     * is
+     * distributed in the include subdirectory for this C library.
+     *
+     * int fstat(int file, struct stat* st)
+     *
+     * IN : regs[10] = file, regs[11] = st
+     * OUT: regs[10] = Upon successful completion, 0 shall be
+     * returned.
+     * Otherwise, -1 shall be returned and errno set to indicate
+     * the error.
+     */
 
     UNUSED(file);
 
@@ -254,9 +265,9 @@ static int sys_fstat(int file, struct stat* st)
     /* Return the result */
     res = -ENOSYS;
     /*
-	 * Note: This value will return to syscall wrapper, syscall
-	 * wrapper will set errno to ENOSYS and return -1
-	 */
+     * Note: This value will return to syscall wrapper, syscall
+     * wrapper will set errno to ENOSYS and return -1
+     */
 
     return res;
 }
@@ -264,32 +275,32 @@ static int sys_fstat(int file, struct stat* st)
 static int sys_close(int file)
 {
     /*
-	 * Close a file.
-	 *
-	 * int close(int file)
-	 *
-	 * IN : regs[10] = file
-	 * OUT: regs[10] = Upon successful completion, 0 shall be
-	 * returned.
-	 * Otherwise, -1 shall be returned and errno set to indicate
-	 * the error.
-	 */
+     * Close a file.
+     *
+     * int close(int file)
+     *
+     * IN : regs[10] = file
+     * OUT: regs[10] = Upon successful completion, 0 shall be
+     * returned.
+     * Otherwise, -1 shall be returned and errno set to indicate
+     * the error.
+     */
     return io_close(file);
 }
 
 static int sys_gettimeofday(struct timeval* tp, void* tzp)
 {
     /*
-	 * Get the current time.  Only relatively correct.
-	 *
-	 * int gettimeofday(struct timeval* tp, void* tzp)
-	 *
-	 * IN : regs[10] = tp
-	 * OUT: regs[10] = Upon successful completion, 0 shall be
-	 * returned.
-	 * Otherwise, -1 shall be returned and errno set to indicate
-	 * the error.
-	 */
+     * Get the current time.  Only relatively correct.
+     *
+     * int gettimeofday(struct timeval* tp, void* tzp)
+     *
+     * IN : regs[10] = tp
+     * OUT: regs[10] = Upon successful completion, 0 shall be
+     * returned.
+     * Otherwise, -1 shall be returned and errno set to indicate
+     * the error.
+     */
     UNUSED(tzp);
 
     if (tp != NULL)
@@ -303,11 +314,8 @@ static int sys_gettimeofday(struct timeval* tp, void* tzp)
     return 0;
 }
 
-uintptr_t __attribute__((weak))
-handle_ecall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n)
 {
-    UNUSED(cause);
-    UNUSED(fregs);
     enum syscall_id_e
     {
         SYS_ID_NOSYS,
@@ -322,7 +330,7 @@ handle_ecall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs
         SYS_ID_MAX
     };
 
-    static uintptr_t (*const syscall_table[])(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n) = {
+    static uintptr_t(*const syscall_table[])(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n) = {
         [SYS_ID_NOSYS] = (void*)sys_nosys,
         [SYS_ID_SUCCESS] = (void*)sys_success,
         [SYS_ID_EXIT] = (void*)sys_exit,
@@ -385,243 +393,40 @@ handle_ecall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs
 #pragma GCC diagnostic warning "-Woverride-init"
 #endif
 
-    regs[10] = syscall_table[syscall_id_table[0xFF & regs[17]]](
-        regs[10], /* a0 */
-        regs[11], /* a1 */
-        regs[12], /* a2 */
-        regs[13], /* a3 */
-        regs[14], /* a4 */
-        regs[15], /* a5 */
-        regs[17] /* n */
-    );
+    int err = syscall_table[syscall_id_table[0xFF & n]](
+        a0, /* a0 */
+        a1, /* a1 */
+        a2, /* a2 */
+        a3, /* a3 */
+        a4, /* a4 */
+        a5, /* a5 */
+        n /* n */
+        );
 
-    return epc + ((*(unsigned short*)epc & 3) == 3 ? 4 : 2);
+    epc += ((*(unsigned short*)epc & 3) == 3 ? 4 : 2);
+    SYS_RET(epc, err);
 }
 
-uintptr_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_u(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+syscall_ret_t __attribute__((weak, alias("handle_ecall")))
+handle_ecall_u(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
 
-uintptr_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_h(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+syscall_ret_t __attribute__((weak, alias("handle_ecall")))
+handle_ecall_h(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
 
-uintptr_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_s(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+syscall_ret_t __attribute__((weak, alias("handle_ecall")))
+handle_ecall_s(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
 
-uintptr_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_m(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+syscall_ret_t __attribute__((weak, alias("handle_ecall")))
+handle_ecall_m(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
 
-uintptr_t __attribute__((weak))
-handle_misaligned_fetch(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+syscall_ret_t handle_syscall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n)
 {
-    dump_core("misaligned fetch", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
-}
-
-uintptr_t __attribute__((weak))
-handle_fault_fetch(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
-{
-    dump_core("fault fetch", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
-}
-
-uintptr_t __attribute__((weak))
-handle_illegal_instruction(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
-{
-    dump_core("illegal instruction", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
-}
-
-uintptr_t __attribute__((weak))
-handle_breakpoint(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
-{
-    dump_core("breakpoint", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
-}
-
-uintptr_t __attribute__((weak))
-handle_misaligned_load(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
-{
-    /* notice this function only support 16bit or 32bit instruction */
-
-    bool compressed = (*(unsigned short*)epc & 3) != 3;
-    bool fpu = 0; /*!< load to fpu ? */
-    uintptr_t addr = 0; /*!< src addr */
-    uint8_t src = 0; /*!< src register */
-    uint8_t dst = 0; /*!< dst register */
-    uint8_t len = 0; /*!< data length */
-    int offset = 0; /*!< addr offset to addr in reg */
-    bool unsigned_ = 0; /*!< unsigned */
-    uint64_t data_load = 0; /*!< real data load */
-    int i;
-
-    if (compressed)
-    {
-        /* compressed instruction should not get this fault. */
-        goto on_error;
-    }
-    else
-    {
-        uint32_t instruct = *(uint32_t*)epc;
-        uint8_t opcode = instruct & 0x7F;
-
-        dst = (instruct >> 7) & 0x1F;
-        len = (instruct >> 12) & 3;
-        unsigned_ = (instruct >> 14) & 1;
-        src = (instruct >> 15) & 0x1F;
-        offset = (instruct >> 20);
-        len = 1 << len;
-        switch (opcode)
-        {
-        case 3: /*!< load */
-            break;
-        case 7: /*!< fpu load */
-            fpu = 1;
-            break;
-        default:
-            goto on_error;
-        }
-    }
-
-    if (offset >> 11)
-        offset = -((offset & 0x3FF) + 1);
-
-    addr = (uint64_t)((uint64_t)regs[src] + offset);
-
-    for (i = 0; i < len; ++i)
-        data_load |= ((uint64_t) * ((uint8_t*)addr + i)) << (8 * i);
-
-    if (!unsigned_ & !fpu)
-    {
-        /* adjust sign */
-        switch (len)
-        {
-        case 1:
-            data_load = (uint64_t)(int64_t)((int8_t)data_load);
-            break;
-        case 2:
-            data_load = (uint64_t)(int64_t)((int16_t)data_load);
-            break;
-        case 4:
-            data_load = (uint64_t)(int64_t)((int32_t)data_load);
-            break;
-        }
-    }
-
-    if (fpu)
-        fregs[dst] = data_load;
-    else
-        regs[dst] = data_load;
-
-    LOGV(TAG, "misaligned load recovered at %08lx. len:%02d,addr:%08lx,reg:%02d,data:%016lx,signed:%1d,float:%1d", (uint64_t)epc, len, (uint64_t)addr, dst, data_load, !unsigned_, fpu);
-
-    return epc + (compressed ? 2 : 4);
-on_error:
-    dump_core("misaligned load", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
-}
-
-uintptr_t __attribute__((weak))
-handle_fault_load(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
-{
-    dump_core("fault load", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
-}
-
-uintptr_t __attribute__((weak))
-handle_misaligned_store(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
-{
-    /* notice this function only support 16bit or 32bit instruction */
-
-    bool compressed = (*(unsigned short*)epc & 3) != 3;
-    bool fpu = 0; /*!< load to fpu ? */
-    uintptr_t addr = 0; /*!< src addr */
-    uint8_t src = 0; /*!< src register */
-    uint8_t dst = 0; /*!< dst register */
-    uint8_t len = 0; /*!< data length */
-    int offset = 0; /*!< addr offset to addr in reg */
-    uint64_t data_store = 0; /*!< real data store */
-    int i;
-
-    if (compressed)
-    {
-        /* compressed instruction should not get this fault. */
-        goto on_error;
-    }
-    else
-    {
-        uint32_t instruct = *(uint32_t*)epc;
-        uint8_t opcode = instruct & 0x7F;
-
-        len = (instruct >> 12) & 7;
-        dst = (instruct >> 15) & 0x1F;
-        src = (instruct >> 20) & 0x1F;
-        offset = ((instruct >> 7) & 0x1F) | ((instruct >> 20) & 0xFE0);
-        len = 1 << len;
-        switch (opcode)
-        {
-        case 0x23: /*!< load */
-            break;
-        case 0x27: /*!< fpu store */
-            fpu = 1;
-            break;
-        default:
-            goto on_error;
-        }
-    }
-
-    if (offset >> 11)
-        offset = -((offset & 0x3FF) + 1);
-
-    addr = (uint64_t)((uint64_t)regs[dst] + offset);
-
-    if (fpu)
-        data_store = fregs[src];
-    else
-        data_store = regs[src];
-
-    for (i = 0; i < len; ++i)
-        *((uint8_t*)addr + i) = (data_store >> (i * 8)) & 0xFF;
-
-    LOGV(TAG, "misaligned store recovered at %08lx. len:%02d,addr:%08lx,reg:%02d,data:%016lx,float:%1d", (uint64_t)epc, len, (uint64_t)addr, src, data_store, fpu);
-
-    return epc + (compressed ? 2 : 4);
-on_error:
-    dump_core("misaligned store", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
-}
-
-uintptr_t __attribute__((weak))
-handle_fault_store(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
-{
-    dump_core("fault store", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
-}
-
-uintptr_t handle_syscall(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
-{
-
-    static uintptr_t (*const cause_table[])(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]) = {
-        [CAUSE_MISALIGNED_FETCH] = handle_misaligned_fetch,
-        [CAUSE_FAULT_FETCH] = handle_fault_fetch,
-        [CAUSE_ILLEGAL_INSTRUCTION] = handle_illegal_instruction,
-        [CAUSE_BREAKPOINT] = handle_breakpoint,
-        [CAUSE_MISALIGNED_LOAD] = handle_misaligned_load,
-        [CAUSE_FAULT_LOAD] = handle_fault_load,
-        [CAUSE_MISALIGNED_STORE] = handle_misaligned_store,
-        [CAUSE_FAULT_STORE] = handle_fault_store,
+    static syscall_ret_t(*const cause_table[])(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n) = {
         [CAUSE_USER_ECALL] = handle_ecall_u,
         [CAUSE_SUPERVISOR_ECALL] = handle_ecall_h,
         [CAUSE_HYPERVISOR_ECALL] = handle_ecall_s,
         [CAUSE_MACHINE_ECALL] = handle_ecall_m,
     };
 
-    return cause_table[cause](cause, epc, regs, fregs);
+    return cause_table[read_csr(mcause)](a0, a1, a2, a3, a4, a5, epc, n);
 }
