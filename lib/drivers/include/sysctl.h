@@ -1037,7 +1037,7 @@ uint32_t sysctl_spi0_dvp_data_set(uint8_t en);
  * @brief       Set io power mode
  *
  * @param[in]   power_bank          IO power bank
- * @param[in]   io_power_mode       Set power mode 3.3v or 1.8
+ * @param[in]   io_power_mode       Set power mode 3.3v or 1.8v
  *
  * @return      Result
  *     - 0      Success
