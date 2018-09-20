@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- /* Enable kernel-mode log API */
 #include <machine/syscall.h>
 #include <sys/stat.h>
 #include <sys/time.h>

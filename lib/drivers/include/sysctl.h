@@ -269,6 +269,12 @@ enum sysctl_reset_e
     SYSCTL_RESET_MAX = 31
 };
 
+typedef enum _io_power_mode
+{
+    POWER_V33,
+    POWER_V18
+} io_power_mode_t;
+
 /**
  * @brief       Git short commit id
  *
@@ -619,7 +625,8 @@ struct sysctl_clk_th6_t
 struct sysctl_misc_t
 {
     uint32_t debug_sel : 6;
-    uint32_t reserved0 : 5;
+    uint32_t reserved0 : 4;
+    uint32_t spi_dvp_data_enable : 1;
     uint32_t reserved1 : 21;
 } __attribute__((packed, aligned(4)));
 
@@ -731,6 +738,12 @@ struct sysctl_power_sel_t
     uint32_t power_mode_sel7 : 1;
     uint32_t reserved : 24;
 } __attribute__((packed, aligned(4)));
+
+typedef union _sysctl_power_sel_u
+{
+    struct sysctl_power_sel_t sel;
+    uint32_t data;
+} sysctl_power_sel_u_t;
 
 
 /**
@@ -1008,6 +1021,29 @@ int sysctl_dma_select(enum sysctl_dma_channel_e channel, enum sysctl_dma_select_
  *     - Other  Fail
  */
 uint32_t sysctl_pll_fast_enable_pll(void);
+
+/**
+ * @brief       Set SPI0_D0-D7 DVP_D0-D7 as spi and dvp data pin
+ *
+ * @param[in]   en     Enable or not
+ *
+ * @return      Result
+ *     - 0      Success
+ *     - Other  Fail
+ */
+uint32_t sysctl_spi0_dvp_data_set(uint8_t en);
+
+/**
+ * @brief       Set io power mode
+ *
+ * @param[in]   power_bank          IO power bank
+ * @param[in]   io_power_mode       Set power mode 3.3v or 1.8v
+ *
+ * @return      Result
+ *     - 0      Success
+ *     - Other  Fail
+ */
+uint32_t sysctl_power_mode_sel(uint8_t power_bank, io_power_mode_t io_power_mode);
 
 #ifdef __cplusplus
 }

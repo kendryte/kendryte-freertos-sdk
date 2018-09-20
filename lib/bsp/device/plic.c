@@ -86,7 +86,7 @@ static void plic_complete_irq(uint32_t source)
 }
 
 /*Entry Point for PLIC Interrupt Handler*/
-void handle_irq_m_ext(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
+void handle_irq_m_ext(uintptr_t cause, uintptr_t epc)
 {
     /**
      * After the highest-priority pending interrupt is claimed by a target
