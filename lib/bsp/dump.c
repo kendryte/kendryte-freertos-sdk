@@ -21,7 +21,7 @@
 
 #define DUMP_PRINTF printk
 
-static hartlock_t s_dump_lock = HARTLOCK_INIT;
+static corelock_t s_dump_lock = CORELOCK_INIT;
 
 void dump_core(const char* reason, uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
 {
@@ -97,7 +97,7 @@ void dump_core(const char* reason, uintptr_t cause, uintptr_t epc, uintptr_t reg
 
     if (CONFIG_LOG_LEVEL >= LOG_ERROR)
     {
-        hartlock_lock(&s_dump_lock);
+        corelock_lock(&s_dump_lock);
 
         const char unknown_reason[] = "unknown";
 
@@ -125,6 +125,6 @@ void dump_core(const char* reason, uintptr_t cause, uintptr_t epc, uintptr_t reg
                 i * 2 + 1, regf_usage[i * 2 + 1][0], fregs[i * 2 + 1]);
         }
 
-        hartlock_unlock(&s_dump_lock);
+        corelock_unlock(&s_dump_lock);
     }
 }

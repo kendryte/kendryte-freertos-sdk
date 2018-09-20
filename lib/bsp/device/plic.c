@@ -28,7 +28,7 @@ static void plic_install(void* userdata)
 
     for (core_id = 0; core_id < PLIC_NUM_HARTS; core_id++)
     {
-        /* Disable all interrupts for the current hart. */
+        /* Disable all interrupts for the current core. */
         for (i = 0; i < ((PLIC_NUM_SOURCES + 32u) / 32u); i++)
             plic->target_enables.target[core_id].enable[i] = 0;
     }
@@ -100,7 +100,7 @@ void handle_irq_m_ext(uintptr_t cause, uintptr_t epc, uintptr_t regs[32])
      */
     if (read_csr(mip) & MIP_MEIP)
     {
-        /* Get current hart id */
+        /* Get current core id */
         uint64_t core_id = read_csr(mhartid);
         uint64_t ie_flag = read_csr(mie);
         uint32_t int_num = plic->targets.target[core_id].claim_complete;

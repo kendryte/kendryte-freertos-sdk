@@ -62,7 +62,7 @@ a non zero value to ensure interrupts don't inadvertently become unmasked before
 the scheduler starts.  As it is stored as part of the task context it will
 automatically be set to 0 when the first task is started. */
 static UBaseType_t uxCriticalNesting[portNUM_PROCESSORS] = {[0 ... portNUM_PROCESSORS - 1] = 0xaaaaaaaa};
-PRIVILEGED_DATA static hartlock_t xHartLock = HARTLOCK_INIT;
+PRIVILEGED_DATA static corelock_t xCoreLock = CORELOCK_INIT;
 
 /* Contains context when starting scheduler, save all 31 registers */
 #ifdef __gracefulExit
@@ -175,12 +175,12 @@ void vPortSysTickHandler(void)
 void vPortEnterCritical(void)
 {
     vTaskEnterCritical();
-    hartlock_lock(&xHartLock);
+    corelock_lock(&xCoreLock);
 }
 
 void vPortExitCritical(void)
 {
-    hartlock_unlock(&xHartLock);
+    corelock_unlock(&xCoreLock);
     vTaskExitCritical();
 }
 
@@ -192,7 +192,7 @@ void vPortYield()
 void vPortFatal(const char* file, int line, const char* message)
 {
     portDISABLE_INTERRUPTS();
-    hartlock_lock(&xHartLock);
+    corelock_lock(&xCoreLock);
     LOGE("FreeRTOS", "(%s:%d) %s", file, line, message);
     exit(-1);
     while (1)

@@ -23,7 +23,7 @@ volatile struct uarths_t *const uarths = (volatile struct uarths_t *)UARTHS_BASE
 
 static inline int uart_putc(char c)
 {
-    /* Read hart id */
+    /* Read core id */
     unsigned long core_id = read_csr(mhartid);
     /* Set print data reg */
     volatile uint32_t *reg = (volatile uint32_t *)0x50440080UL;

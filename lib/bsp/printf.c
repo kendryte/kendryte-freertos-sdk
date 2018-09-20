@@ -636,7 +636,7 @@ int tfp_sprintf(char* str, const char* format, ...)
 #include "atomic.h"
 #include "uarths.h"
 
-static hartlock_t lock = HARTLOCK_INIT;
+static corelock_t lock = CORELOCK_INIT;
 
 static void uart_putf(void* unused, char c)
 {
@@ -650,10 +650,10 @@ int printk(const char* format, ...)
 
     va_start(ap, format);
     /* Begin protected code */
-    hartlock_lock(&lock);
+    corelock_lock(&lock);
     tfp_format(stdout_putp, uart_putf, format, ap);
     /* End protected code */
-    hartlock_unlock(&lock);
+    corelock_unlock(&lock);
     va_end(ap);
 
     return 0;
