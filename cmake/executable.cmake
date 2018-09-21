@@ -1,10 +1,3 @@
-
-message("CMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}")
-message("_TC_MAKE=${_TC_MAKE}")
-if (_TC_MAKE)
-    global_set(CMAKE_MAKE_PROGRAM "${_TC_MAKE}")
-endif()
-
 if (NOT BUILDING_SDK)
     if(EXISTS ${SDK_ROOT}/libkendryte.a)
         header_directories(${SDK_ROOT}/include)

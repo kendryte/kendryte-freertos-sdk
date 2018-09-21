@@ -21,3 +21,5 @@ You will get 2 key files, `hello_world` and `hello_world.bin`.
 2. If you want to flash it in UOG, using `hello_world.bin`, then using flash-tool(s) burn <ProjectName>.bin to your flash.
 
 This is very important, don't make a mistake in files.
+
+*If you don't like place code inside SDK, see `CMakeLists.txt.example.cmake`*
