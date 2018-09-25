@@ -1,0 +1,7 @@
+global_set(__CMAKE_C_COMPILER "${CMAKE_C_COMPILER}")
+global_set(__CMAKE_CXX_COMPILER "${CMAKE_CXX_COMPILER}")
+global_set(__CMAKE_LINKER "${CMAKE_LINKER}")
+global_set(__CMAKE_AR "${CMAKE_AR}")
+global_set(__CMAKE_OBJCOPY "${CMAKE_OBJCOPY}")
+global_set(__CMAKE_SIZE "${CMAKE_SIZE}")
+global_set(__CMAKE_OBJDUMP "${CMAKE_OBJDUMP}")
