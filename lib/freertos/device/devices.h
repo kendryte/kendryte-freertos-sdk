@@ -590,7 +590,7 @@ void wdt_set_enable(uintptr_t file, int enable);
  * @param[in]   file            The RTC device
  * @param[out]  datetime        The datatime
  */
-void rtc_get_datetime(uintptr_t file, datetime_t *datetime);
+void rtc_get_datetime(uintptr_t file, struct tm *datetime);
 
 /**
  * @brief       Set the datetime of a RTC device
@@ -598,7 +598,7 @@ void rtc_get_datetime(uintptr_t file, datetime_t *datetime);
  * @param[in]   file            The RTC device
  * @param[out]  datetime        The datatime to be set
  */
-void rtc_set_datetime(uintptr_t file, const datetime_t *datetime);
+void rtc_set_datetime(uintptr_t file, const struct tm *datetime);
 
 #ifdef __cplusplus
 }

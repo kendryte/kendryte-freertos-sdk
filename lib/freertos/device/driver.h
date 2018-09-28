@@ -19,6 +19,7 @@
 #include <semphr.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <time.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -377,7 +378,7 @@ typedef enum _wdt_response_mode
     WDT_RESP_INTERRUPT
 } wdt_response_mode_t;
 
-typedef int (*wdt_on_timeout_t)(void* userdata);
+typedef int (*wdt_on_timeout_t)(void *userdata);
 
 typedef struct tag_wdt_driver
 {
@@ -389,21 +390,11 @@ typedef struct tag_wdt_driver
     void (*set_enable)(int enable, void *userdata);
 } wdt_driver_t;
 
-typedef struct tag_datetime
-{
-    uint32_t year;
-    uint32_t month;
-    uint32_t day;
-    uint32_t hour;
-    uint32_t minute;
-    uint32_t second;
-} datetime_t;
-
 typedef struct tag_rtc_driver
 {
     driver_base_t base;
-    void (*get_datetime)(datetime_t* datetime, void* userdata);
-    void (*set_datetime)(const datetime_t* datetime, void* userdata);
+    void (*get_datetime)(struct tm *datetime, void *userdata);
+    void (*set_datetime)(const struct tm *datetime, void *userdata);
 } rtc_driver_t;
 
 typedef struct tag_custom_driver

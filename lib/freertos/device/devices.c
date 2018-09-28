@@ -588,13 +588,13 @@ void wdt_set_enable(uintptr_t file, int enable)
 
 /* RTC */
 
-void rtc_get_datetime(uintptr_t file, datetime_t* datetime)
+void rtc_get_datetime(uintptr_t file, struct tm *datetime)
 {
     COMMON_ENTRY(rtc, RTC);
     rtc->get_datetime(datetime, rtc->base.userdata);
 }
 
-void rtc_set_datetime(uintptr_t file, const datetime_t* datetime)
+void rtc_set_datetime(uintptr_t file, const struct tm *datetime)
 {
     COMMON_ENTRY(rtc, RTC);
     rtc->set_datetime(datetime, rtc->base.userdata);
