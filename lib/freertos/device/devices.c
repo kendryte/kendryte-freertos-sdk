@@ -264,45 +264,45 @@ int io_control(uintptr_t file, size_t control_code, const char* write_buffer, si
 
 /* UART */
 
-void uart_config(uintptr_t file, size_t baud_rate, size_t data_width, uart_stopbit stopbit, uart_parity parity)
+void uart_config(uintptr_t file, uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity)
 {
     COMMON_ENTRY(uart, UART);
-    uart->config(baud_rate, data_width, stopbit, parity, uart->base.userdata);
+    uart->config(baud_rate, databits, stopbits, parity, uart->base.userdata);
 }
 
 /* GPIO */
 
-size_t gpio_get_pin_count(uintptr_t file)
+uint32_t gpio_get_pin_count(uintptr_t file)
 {
     COMMON_ENTRY(gpio, GPIO);
     return gpio->pin_count;
 }
 
-void gpio_set_drive_mode(uintptr_t file, size_t pin, gpio_drive_mode mode)
+void gpio_set_drive_mode(uintptr_t file, uint32_t pin, gpio_drive_mode_t mode)
 {
     COMMON_ENTRY(gpio, GPIO);
     gpio->set_drive_mode(gpio->base.userdata, pin, mode);
 }
 
-void gpio_set_pin_edge(uintptr_t file, size_t pin, gpio_pin_edge edge)
+void gpio_set_pin_edge(uintptr_t file, uint32_t pin, gpio_pin_edge_t edge)
 {
     COMMON_ENTRY(gpio, GPIO);
     gpio->set_pin_edge(gpio->base.userdata, pin, edge);
 }
 
-void gpio_set_onchanged(uintptr_t file, size_t pin, gpio_onchanged callback, void* userdata)
+void gpio_set_on_changed(uintptr_t file, uint32_t pin, gpio_on_changed_t callback, void* userdata)
 {
     COMMON_ENTRY(gpio, GPIO);
-    gpio->set_onchanged(gpio->base.userdata, pin, callback, userdata);
+    gpio->set_on_changed(gpio->base.userdata, pin, callback, userdata);
 }
 
-gpio_pin_value gpio_get_pin_value(uintptr_t file, size_t pin)
+gpio_pin_value_t gpio_get_pin_value(uintptr_t file, uint32_t pin)
 {
     COMMON_ENTRY(gpio, GPIO);
     return gpio->get_pin_value(gpio->base.userdata, pin);
 }
 
-void gpio_set_pin_value(uintptr_t file, size_t pin, gpio_pin_value value)
+void gpio_set_pin_value(uintptr_t file, uint32_t pin, gpio_pin_value_t value)
 {
     COMMON_ENTRY(gpio, GPIO);
     gpio->set_pin_value(gpio->base.userdata, pin, value);
@@ -310,7 +310,7 @@ void gpio_set_pin_value(uintptr_t file, size_t pin, gpio_pin_value value)
 
 /* I2C */
 
-uintptr_t i2c_get_device(uintptr_t file, const char* name, size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode)
+uintptr_t i2c_get_device(uintptr_t file, const char* name, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode)
 {
     COMMON_ENTRY(i2c, I2C);
     i2c_device_driver_t* driver = i2c->get_device(slave_address, address_width, bus_speed_mode, i2c->base.userdata);
@@ -324,7 +324,7 @@ int i2c_dev_transfer_sequential(uintptr_t file, const char* write_buffer, size_t
     return i2c_device->transfer_sequential(write_buffer, write_len, read_buffer, read_len, i2c_device->base.userdata);
 }
 
-void i2c_config_as_slave(uintptr_t file, size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode, i2c_slave_handler* handler)
+void i2c_config_as_slave(uintptr_t file, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t* handler)
 {
     COMMON_ENTRY(i2c, I2C);
     i2c->config_as_slave(slave_address, address_width, bus_speed_mode, handler, i2c->base.userdata);
@@ -332,13 +332,13 @@ void i2c_config_as_slave(uintptr_t file, size_t slave_address, size_t address_wi
 
 /* I2S */
 
-void i2s_config_as_render(uintptr_t file, const audio_format_t* format, size_t delay_ms, i2s_align_mode align_mode, size_t channels_mask)
+void i2s_config_as_render(uintptr_t file, const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask)
 {
     COMMON_ENTRY(i2s, I2S);
     i2s->config_as_render(format, delay_ms, align_mode, channels_mask, i2s->base.userdata);
 }
 
-void i2s_config_as_capture(uintptr_t file, const audio_format_t* format, size_t delay_ms, i2s_align_mode align_mode, size_t channels_mask)
+void i2s_config_as_capture(uintptr_t file, const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask)
 {
     COMMON_ENTRY(i2s, I2S);
     i2s->config_as_capture(format, delay_ms, align_mode, channels_mask, i2s->base.userdata);
@@ -370,24 +370,24 @@ void i2s_stop(uintptr_t file)
 
 /* SPI */
 
-uintptr_t spi_get_device(uintptr_t file, const char* name, spi_mode mode, spi_frame_format frame_format, size_t chip_select_line, size_t data_bit_length)
+uintptr_t spi_get_device(uintptr_t file, const char* name, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
 {
     COMMON_ENTRY(spi, SPI);
-    spi_device_driver_t* driver = spi->get_device(mode, frame_format, chip_select_line, data_bit_length, spi->base.userdata);
+    spi_device_driver_t* driver = spi->get_device(mode, frame_format, chip_select_mask, data_bit_length, spi->base.userdata);
     driver_registry_t* reg = install_custom_driver_core(name, DRIVER_SPI_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
 
-void spi_dev_config(uintptr_t file, size_t instruction_length, size_t address_length, size_t wait_cycles, spi_addr_inst_trans_mode trans_mode)
+void spi_dev_config_non_standard(uintptr_t file, uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode)
 {
     COMMON_ENTRY(spi_device, SPI_DEVICE);
     spi_device->config(instruction_length, address_length, wait_cycles, trans_mode, spi_device->base.userdata);
 }
 
-double spi_dev_set_speed(uintptr_t file, double speed)
+double spi_dev_set_clock_rate(uintptr_t file, double clock_rate)
 {
     COMMON_ENTRY(spi_device, SPI_DEVICE);
-    return spi_device->set_speed(speed, spi_device->base.userdata);
+    return spi_device->set_clock_rate(clock_rate, spi_device->base.userdata);
 }
 
 int spi_dev_transfer_full_duplex(uintptr_t file, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len)
@@ -402,7 +402,7 @@ int spi_dev_transfer_sequential(uintptr_t file, const char* write_buffer, size_t
     return spi_device->transfer_sequential(write_buffer, write_len, read_buffer, read_len, spi_device->base.userdata);
 }
 
-void spi_dev_fill(uintptr_t file, size_t instruction, size_t address, uint32_t value, size_t count)
+void spi_dev_fill(uintptr_t file, uint32_t instruction, uint32_t address, uint32_t value, size_t count)
 {
     COMMON_ENTRY(spi_device, SPI_DEVICE);
     return spi_device->fill(instruction, address, value, count, spi_device->base.userdata);
@@ -410,7 +410,7 @@ void spi_dev_fill(uintptr_t file, size_t instruction, size_t address, uint32_t v
 
 /* DVP */
 
-void dvp_config(uintptr_t file, size_t width, size_t height, int auto_enable)
+void dvp_config(uintptr_t file, uint32_t width, uint32_t height, int auto_enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->config(width, height, auto_enable, dvp->base.userdata);
@@ -422,45 +422,45 @@ void dvp_enable_frame(uintptr_t file)
     dvp->enable_frame(dvp->base.userdata);
 }
 
-size_t dvp_get_output_num(uintptr_t file)
+uint32_t dvp_get_output_num(uintptr_t file)
 {
     COMMON_ENTRY(dvp, DVP);
     return dvp->output_num;
 }
 
-void dvp_set_signal(uintptr_t file, dvp_signal_type type, int value)
+void dvp_set_signal(uintptr_t file, dvp_signal_type_t type, int value)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_signal(type, value, dvp->base.userdata);
 }
 
-void dvp_set_output_enable(uintptr_t file, size_t index, int enable)
+void dvp_set_output_enable(uintptr_t file, uint32_t index, int enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_output_enable(index, enable, dvp->base.userdata);
 }
 
-void dvp_set_output_attributes(uintptr_t file, size_t index, video_format format, void* output_buffer)
+void dvp_set_output_attributes(uintptr_t file, uint32_t index, video_format_t format, void* output_buffer)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_output_attributes(index, format, output_buffer, dvp->base.userdata);
 }
 
-void dvp_set_frame_event_enable(uintptr_t file, video_frame_event event, int enable)
+void dvp_set_frame_event_enable(uintptr_t file, dvp_frame_event_t event, int enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_frame_event_enable(event, enable, dvp->base.userdata);
 }
 
-void dvp_set_on_frame_event(uintptr_t file, dvp_on_frame_event callback, void* callback_data)
+void dvp_set_on_frame_event(uintptr_t file, dvp_on_frame_event_t handler, void* userdata)
 {
     COMMON_ENTRY(dvp, DVP);
-    dvp->set_on_frame_event(callback, callback_data, dvp->base.userdata);
+    dvp->set_on_frame_event(handler, userdata, dvp->base.userdata);
 }
 
 /* SSCB */
 
-uintptr_t sccb_get_device(uintptr_t file, const char* name, size_t slave_address, size_t address_width)
+uintptr_t sccb_get_device(uintptr_t file, const char* name, uint32_t slave_address, uint32_t address_width)
 {
     COMMON_ENTRY(sccb, SCCB);
     sccb_device_driver_t* driver = sccb->get_device(slave_address, address_width, sccb->base.userdata);
@@ -517,10 +517,10 @@ size_t timer_set_interval(uintptr_t file, size_t nanoseconds)
     return timer->set_interval(nanoseconds, timer->base.userdata);
 }
 
-void timer_set_ontick(uintptr_t file, timer_ontick ontick, void* ontick_data)
+void timer_set_on_tick(uintptr_t file, timer_on_tick_t on_tick, void* ontick_data)
 {
     COMMON_ENTRY(timer, TIMER);
-    timer->set_ontick(ontick, ontick_data, timer->base.userdata);
+    timer->set_on_tick(on_tick, ontick_data, timer->base.userdata);
 }
 
 void timer_set_enable(uintptr_t file, int enable)
@@ -531,7 +531,7 @@ void timer_set_enable(uintptr_t file, int enable)
 
 /* PWM */
 
-size_t pwm_get_pin_count(uintptr_t file)
+uint32_t pwm_get_pin_count(uintptr_t file)
 {
     COMMON_ENTRY(pwm, PWM);
     return pwm->pin_count;
@@ -543,16 +543,47 @@ double pwm_set_frequency(uintptr_t file, double frequency)
     return pwm->set_frequency(frequency, pwm->base.userdata);
 }
 
-double pwm_set_active_duty_cycle_percentage(uintptr_t file, size_t pin, double duty_cycle_percentage)
+double pwm_set_active_duty_cycle_percentage(uintptr_t file, uint32_t pin, double duty_cycle_percentage)
 {
     COMMON_ENTRY(pwm, PWM);
     return pwm->set_active_duty_cycle_percentage(pin, duty_cycle_percentage, pwm->base.userdata);
 }
 
-void pwm_set_enable(uintptr_t file, size_t pin, int enable)
+void pwm_set_enable(uintptr_t file, uint32_t pin, int enable)
 {
     COMMON_ENTRY(pwm, PWM);
     pwm->set_enable(pin, enable, pwm->base.userdata);
+}
+
+/* WDT */
+void wdt_set_response_mode(uintptr_t file, wdt_response_mode_t mode)
+{
+    COMMON_ENTRY(wdt, WDT);
+    wdt->set_response_mode(mode, wdt->base.userdata);
+}
+
+size_t wdt_set_timeout(uintptr_t file, size_t nanoseconds)
+{
+    COMMON_ENTRY(wdt, WDT);
+    return wdt->set_timeout(nanoseconds, wdt->base.userdata);
+}
+
+void wdt_set_on_timeout(uintptr_t file, wdt_on_timeout_t handler, void *userdata)
+{
+    COMMON_ENTRY(wdt, WDT);
+    wdt->set_on_timeout(handler, userdata, wdt->base.userdata);
+}
+
+void wdt_restart_counter(uintptr_t file)
+{
+    COMMON_ENTRY(wdt, WDT);
+    wdt->restart_counter(wdt->base.userdata);
+}
+
+void wdt_set_enable(uintptr_t file, int enable)
+{
+    COMMON_ENTRY(wdt, WDT);
+    wdt->set_enable(enable, wdt->base.userdata);
 }
 
 /* RTC */

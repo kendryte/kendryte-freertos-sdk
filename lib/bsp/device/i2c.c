@@ -41,7 +41,7 @@ typedef struct
     struct
     {
         SemaphoreHandle_t free_mutex;
-        i2c_slave_handler slave_handler;
+        i2c_slave_handler_t slave_handler;
     };
 } i2c_data;
 
@@ -75,7 +75,7 @@ typedef struct
     i2c_data* i2c_data;
     size_t slave_address;
     size_t address_width;
-    i2c_bus_speed_mode bus_speed_mode;
+    i2c_bus_speed_mode_t bus_speed_mode;
 } i2c_dev_data;
 
 static void i2c_dev_install(void* userdata);
@@ -85,7 +85,7 @@ static int i2c_dev_read(char* buffer, size_t len, void* userdata);
 static int i2c_dev_write(const char* buffer, size_t len, void* userdata);
 static int i2c_dev_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata);
 
-static i2c_device_driver_t* i2c_get_device(size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode, void* userdata)
+static i2c_device_driver_t* i2c_get_device(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void* userdata)
 {
     i2c_device_driver_t* driver = (i2c_device_driver_t*)malloc(sizeof(i2c_device_driver_t));
     memset(driver, 0, sizeof(i2c_device_driver_t));
@@ -106,7 +106,7 @@ static i2c_device_driver_t* i2c_get_device(size_t slave_address, size_t address_
     return driver;
 }
 
-static void i2c_config_as_master(size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode, void* userdata)
+static void i2c_config_as_master(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void* userdata)
 {
     configASSERT(address_width == 7 || address_width == 10);
     COMMON_ENTRY;
@@ -118,7 +118,7 @@ static void i2c_config_as_master(size_t slave_address, size_t address_width, i2c
         speed_mode = 1;
         break;
     default:
-        configASSERT(!"I2C bus speed is not supported.");
+        configASSERT(!"I2C bus clock_rate is not supported.");
         break;
     }
 
@@ -300,7 +300,7 @@ static void on_i2c_irq(void* userdata)
     (void)dummy;
 }
 
-static void i2c_config_as_slave(size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode, i2c_slave_handler* handler, void* userdata)
+static void i2c_config_as_slave(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t* handler, void* userdata)
 {
     configASSERT(address_width == 7 || address_width == 10);
     COMMON_ENTRY;
@@ -312,7 +312,7 @@ static void i2c_config_as_slave(size_t slave_address, size_t address_width, i2c_
         speed_mode = 1;
         break;
     default:
-        configASSERT(!"I2C bus speed is not supported.");
+        configASSERT(!"I2C bus clock_rate is not supported.");
         break;
     }
 

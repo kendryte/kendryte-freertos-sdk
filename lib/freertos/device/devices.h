@@ -38,7 +38,7 @@ void install_drivers();
        - 0      Fail
        - other  The device handle
  */
-uintptr_t io_open(const char* name);
+uintptr_t io_open(const char *name);
 
 /**
  * @brief       Close a device
@@ -60,7 +60,7 @@ int io_close(uintptr_t file);
  *
  * @return      Actual bytes read
  */
-int io_read(uintptr_t file, char* buffer, size_t len);
+int io_read(uintptr_t file, char *buffer, size_t len);
 
 /**
  * @brief       Write to a device
@@ -73,7 +73,7 @@ int io_read(uintptr_t file, char* buffer, size_t len);
  *     - len    Success
  *     - other  Fail
  */
-int io_write(uintptr_t file, const char* buffer, size_t len);
+int io_write(uintptr_t file, const char *buffer, size_t len);
 
 /**
  * @brief       Send control info to a device
@@ -87,18 +87,18 @@ int io_write(uintptr_t file, const char* buffer, size_t len);
  *
  * @return      Actual bytes read
  */
-int io_control(uintptr_t file, size_t control_code, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len);
+int io_control(uintptr_t file, size_t control_code, const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len);
 
 /**
  * @brief       Configure a UART device
  *
  * @param[in]   file            The UART handle
  * @param[in]   baud_rate       The baud rate
- * @param[in]   data_width      The databits width
- * @param[in]   stopbit         The stopbit selection
+ * @param[in]   databits        The databits width (5-8)
+ * @param[in]   stopbits        The stopbits selection
  * @param[in]   parity          The parity selection
  */
-void uart_config(uintptr_t file, size_t baud_rate, size_t data_width, uart_stopbit stopbit, uart_parity parity);
+void uart_config(uintptr_t file, uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity);
 
 /**
  * @brief       Get the pin count of a GPIO controller
@@ -107,25 +107,25 @@ void uart_config(uintptr_t file, size_t baud_rate, size_t data_width, uart_stopb
  *
  * @return      The pin count
  */
-size_t gpio_get_pin_count(uintptr_t file);
+uint32_t gpio_get_pin_count(uintptr_t file);
 
 /**
  * @brief       Set the drive mode of a GPIO pin
  *
  * @param[in]   file        The GPIO controller handle
  * @param[in]   pin         The GPIO pin
- * @param[in]   stopbit     The drive mode selection
+ * @param[in]   mode        The drive mode selection
  */
-void gpio_set_drive_mode(uintptr_t file, size_t pin, gpio_drive_mode mode);
+void gpio_set_drive_mode(uintptr_t file, uint32_t pin, gpio_drive_mode_t mode);
 
 /**
  * @brief       Set the edge trigger mode of a GPIO pin
  *
  * @param[in]   file        The GPIO controller handle
  * @param[in]   pin         The GPIO pin
- * @param[in]   stopbit     The edge trigger mode selection
+ * @param[in]   edge        The edge trigger mode selection
  */
-void gpio_set_pin_edge(uintptr_t file, size_t pin, gpio_pin_edge edge);
+void gpio_set_pin_edge(uintptr_t file, uint32_t pin, gpio_pin_edge_t edge);
 
 /**
  * @brief       Set the changed handler of a GPIO pin
@@ -135,7 +135,7 @@ void gpio_set_pin_edge(uintptr_t file, size_t pin, gpio_pin_edge edge);
  * @param[in]   callback        The changed handler
  * @param[in]   userdata        The userdata of the handler
  */
-void gpio_set_onchanged(uintptr_t file, size_t pin, gpio_onchanged callback, void* userdata);
+void gpio_set_on_changed(uintptr_t file, uint32_t pin, gpio_on_changed_t callback, void *userdata);
 
 /**
  * @brief       Get the value of a GPIO pin
@@ -145,7 +145,7 @@ void gpio_set_onchanged(uintptr_t file, size_t pin, gpio_onchanged callback, voi
  *
  * @return      The value of the pin
  */
-gpio_pin_value gpio_get_pin_value(uintptr_t file, size_t pin);
+gpio_pin_value_t gpio_get_pin_value(uintptr_t file, uint32_t pin);
 
 /**
  * @brief       Set the value of a GPIO pin
@@ -154,7 +154,7 @@ gpio_pin_value gpio_get_pin_value(uintptr_t file, size_t pin);
  * @param[in]   pin         The GPIO pin
  * @param[in]   value       The value to be set
  */
-void gpio_set_pin_value(uintptr_t file, size_t pin, gpio_pin_value value);
+void gpio_set_pin_value(uintptr_t file, uint32_t pin, gpio_pin_value_t value);
 
 /**
  * @brief       Register and open a I2C device
@@ -163,11 +163,11 @@ void gpio_set_pin_value(uintptr_t file, size_t pin, gpio_pin_value value);
  * @param[in]   name                Specify the path to access the device
  * @param[in]   slave_address       The address of slave
  * @param[in]   address_width       The bits width of address
- * @param[in]   bus_speed_mode      The bus speed mode selection
+ * @param[in]   bus_speed_mode      The bus clock_rate mode selection
  *
  * @return      The I2C device handle
  */
-uintptr_t i2c_get_device(uintptr_t file, const char* name, size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode);
+uintptr_t i2c_get_device(uintptr_t file, const char *name, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode);
 
 /**
  * @brief       Write to then read from a I2C device
@@ -180,7 +180,7 @@ uintptr_t i2c_get_device(uintptr_t file, const char* name, size_t slave_address,
  *
  * @return      Actual bytes read
  */
-int i2c_dev_transfer_sequential(uintptr_t file, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len);
+int i2c_dev_transfer_sequential(uintptr_t file, const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len);
 
 /**
  * @brief       Configure a I2C controller with slave mode
@@ -188,10 +188,10 @@ int i2c_dev_transfer_sequential(uintptr_t file, const char* write_buffer, size_t
  * @param[in]   file                The I2C controller handle
  * @param[in]   slave_address       The address of slave
  * @param[in]   address_width       The bits width of address
- * @param[in]   bus_speed_mode      The bus speed mode selection
+ * @param[in]   bus_speed_mode      The bus clock_rate mode selection
  * @param[in]   handler             The slave handler
  */
-void i2c_config_as_slave(uintptr_t file, size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode, i2c_slave_handler* handler);
+void i2c_config_as_slave(uintptr_t file, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t *handler);
 
 /**
  * @brief       Configure a I2S controller with render mode
@@ -202,10 +202,10 @@ void i2c_config_as_slave(uintptr_t file, size_t slave_address, size_t address_wi
  * @param[in]   align_mode          The I2S align mode selection
  * @param[in]   channels_mask       The channels selection mask
  */
-void i2s_config_as_render(uintptr_t file, const audio_format_t* format, size_t delay_ms, i2s_align_mode align_mode, size_t channels_mask);
+void i2s_config_as_render(uintptr_t file, const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask);
 
 /**
- * @brief       Configure a I2S controller with render mode
+ * @brief       Configure a I2S controller with capture mode
  *
  * @param[in]   file                The I2S controller handle
  * @param[in]   format              The audio format
@@ -213,7 +213,7 @@ void i2s_config_as_render(uintptr_t file, const audio_format_t* format, size_t d
  * @param[in]   align_mode          The I2S align mode selection
  * @param[in]   channels_mask       The channels selection mask
  */
-void i2s_config_as_capture(uintptr_t file, const audio_format_t* format, size_t delay_ms, i2s_align_mode align_mode, size_t channels_mask);
+void i2s_config_as_capture(uintptr_t file, const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask);
 
 /**
  * @brief       Get the audio buffer of a I2S controller
@@ -222,7 +222,7 @@ void i2s_config_as_capture(uintptr_t file, const audio_format_t* format, size_t 
  * @param[out]  buffer      The address of audio buffer
  * @param[out]  frames      The available frames count in buffer
  */
-void i2s_get_buffer(uintptr_t file, char** buffer, size_t* frames);
+void i2s_get_buffer(uintptr_t file, char **buffer, size_t *frames);
 
 /**
  * @brief       Release the audio buffer of a I2S controller
@@ -253,33 +253,33 @@ void i2s_stop(uintptr_t file);
  * @param[in]   name                    Specify the path to access the device
  * @param[in]   mode                    The SPI mode selection
  * @param[in]   frame_format            The SPI frame format selection
- * @param[in]   chip_select_line        The CS mask
+ * @param[in]   chip_select_mask        The CS mask
  * @param[in]   data_bit_length         The length of data bits
  *
  * @return      The SPI device handle
  */
-uintptr_t spi_get_device(uintptr_t file, const char* name, spi_mode mode, spi_frame_format frame_format, size_t chip_select_line, size_t data_bit_length);
+uintptr_t spi_get_device(uintptr_t file, const char *name, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length);
 
 /**
  * @brief       Configure a SPI device with non-standard mode
  *
- * @param[in]   file                            The SPI device handle
- * @param[in]   instruction_length              The length of instruction
- * @param[in]   address_length                  The length of address
- * @param[in]   wait_cycles                     The wait cycles
- * @param[in]   spi_addr_inst_trans_mode        The transmition mode of address and instruction
+ * @param[in]   file                    The SPI device handle
+ * @param[in]   instruction_length      The length of instruction
+ * @param[in]   address_length          The length of address
+ * @param[in]   wait_cycles             The wait cycles
+ * @param[in]   trans_mode              The transmition mode of instruction and address
  */
-void spi_dev_config(uintptr_t file, size_t instruction_length, size_t address_length, size_t wait_cycles, spi_addr_inst_trans_mode trans_mode);
+void spi_dev_config_non_standard(uintptr_t file, uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode);
 
 /**
- * @brief       Set the speed of a SPI device
+ * @brief       Set the clock_rate of a SPI device
  *
- * @param[in]   file        The SPI device handle
- * @param[in]   speed       The desired speed in Hz
+ * @param[in]   file            The SPI device handle
+ * @param[in]   clock_rate      The desired clock rate in Hz
  *
- * @return      The actual speed after set
+ * @return      The actual clock rate after set
  */
-double spi_dev_set_speed(uintptr_t file, double speed);
+double spi_dev_set_clock_rate(uintptr_t file, double clock_rate);
 
 /**
  * @brief       Transfer data between a SPI device using full duplex
@@ -292,7 +292,7 @@ double spi_dev_set_speed(uintptr_t file, double speed);
  *
  * @return      Actual bytes read
  */
-int spi_dev_transfer_full_duplex(uintptr_t file, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len);
+int spi_dev_transfer_full_duplex(uintptr_t file, const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len);
 
 /**
  * @brief       Write to then read from a SPI device
@@ -305,7 +305,7 @@ int spi_dev_transfer_full_duplex(uintptr_t file, const char* write_buffer, size_
  *
  * @return      Actual bytes read
  */
-int spi_dev_transfer_sequential(uintptr_t file, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len);
+int spi_dev_transfer_sequential(uintptr_t file, const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len);
 
 /**
  * @brief       Fill a sequence of idential frame to a SPI device
@@ -317,7 +317,7 @@ int spi_dev_transfer_sequential(uintptr_t file, const char* write_buffer, size_t
  * @param[in]   value           The value
  * @param[in]   count           THe count of frames
  */
-void spi_dev_fill(uintptr_t file, size_t instruction, size_t address, uint32_t value, size_t count);
+void spi_dev_fill(uintptr_t file, uint32_t instruction, uint32_t address, uint32_t value, size_t count);
 
 /**
  * @brief       Configure a DVP device
@@ -327,7 +327,7 @@ void spi_dev_fill(uintptr_t file, size_t instruction, size_t address, uint32_t v
  * @param[in]   height          The frame height
  * @param[in]   auto_enable     Process frames automatically
  */
-void dvp_config(uintptr_t file, size_t width, size_t height, int auto_enable);
+void dvp_config(uintptr_t file, uint32_t width, uint32_t height, int auto_enable);
 
 /**
  * @brief       Enable to process of current frame
@@ -343,7 +343,7 @@ void dvp_enable_frame(uintptr_t file);
  *
  * @return      The count of outputs
  */
-size_t dvp_get_output_num(uintptr_t file);
+uint32_t dvp_get_output_num(uintptr_t file);
 
 /**
  * @brief       Set or unset a signal to a DVP device
@@ -352,7 +352,7 @@ size_t dvp_get_output_num(uintptr_t file);
  * @param[in]   type        The signal type
  * @param[in]   value       1 is set, 0 is unset
  */
-void dvp_set_signal(uintptr_t file, dvp_signal_type type, int value);
+void dvp_set_signal(uintptr_t file, dvp_signal_type_t type, int value);
 
 /**
  * @brief       Enable or disable a output of a DVP device
@@ -361,7 +361,7 @@ void dvp_set_signal(uintptr_t file, dvp_signal_type type, int value);
  * @param[in]   index       The output index
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void dvp_set_output_enable(uintptr_t file, size_t index, int enable);
+void dvp_set_output_enable(uintptr_t file, uint32_t index, int enable);
 
 /**
  * @brief       Set output attributes of a DVP device
@@ -371,7 +371,7 @@ void dvp_set_output_enable(uintptr_t file, size_t index, int enable);
  * @param[in]   format              The output format
  * @param[out]  output_buffer       The output buffer
  */
-void dvp_set_output_attributes(uintptr_t file, size_t index, video_format format, void* output_buffer);
+void dvp_set_output_attributes(uintptr_t file, uint32_t index, video_format_t format, void *output_buffer);
 
 /**
  * @brief       Enable or disable a frame event of a DVP device
@@ -380,16 +380,16 @@ void dvp_set_output_attributes(uintptr_t file, size_t index, video_format format
  * @param[in]   event       The frame event
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void dvp_set_frame_event_enable(uintptr_t file, video_frame_event event, int enable);
+void dvp_set_frame_event_enable(uintptr_t file, dvp_frame_event_t event, int enable);
 
 /**
  * @brief       Set the frame event handler of a DVP device
  *
- * @param[in]   file                The DVP device handle
- * @param[in]   callback            The event handler
- * @param[in]   callback_data       The userdata of the event handler
+ * @param[in]   file            The DVP device handle
+ * @param[in]   handler         The event handler
+ * @param[in]   userdata        The userdata of the event handler
  */
-void dvp_set_on_frame_event(uintptr_t file, dvp_on_frame_event callback, void* callback_data);
+void dvp_set_on_frame_event(uintptr_t file, dvp_on_frame_event_t handler, void *userdata);
 
 /**
  * @brief       Register and open a SCCB device
@@ -401,7 +401,7 @@ void dvp_set_on_frame_event(uintptr_t file, dvp_on_frame_event callback, void* c
  *
  * @return      The SCCB device handle
  */
-uintptr_t sccb_get_device(uintptr_t file, const char* name, size_t slave_address, size_t address_width);
+uintptr_t sccb_get_device(uintptr_t file, const char *name, uint32_t slave_address, uint32_t address_width);
 
 /**
  * @brief       Read a byte from a SCCB device
@@ -482,7 +482,7 @@ void sha256_str(const char* str, size_t length, uint8_t* hash);
  * @param[in]   file            The TIMER controller handle
  * @param[in]   nanoseconds     The desired interval in nanoseconds
  *
- * @return      The actual interval
+ * @return      The actual interval in nanoseconds
  */
 size_t timer_set_interval(uintptr_t file, size_t nanoseconds);
 
@@ -490,10 +490,10 @@ size_t timer_set_interval(uintptr_t file, size_t nanoseconds);
  * @brief       Set the tick handler of a TIMER device
  *
  * @param[in]   file            The TIMER controller handle
- * @param[in]   ontick          The tick handler
- * @param[in]   ontick_data     The userdata of the handler
+ * @param[in]   on_tick         The tick handler
+ * @param[in]   userdata        The userdata of the handler
  */
-void timer_set_ontick(uintptr_t file, timer_ontick ontick, void* ontick_data);
+void timer_set_on_tick(uintptr_t file, timer_on_tick_t on_tick, void *userdata);
 
 /**
  * @brief       Enable or disable a TIMER device
@@ -510,7 +510,7 @@ void timer_set_enable(uintptr_t file, int enable);
  *
  * @return      The pin count
  */
-size_t pwm_get_pin_count(uintptr_t file);
+uint32_t pwm_get_pin_count(uintptr_t file);
 
 /**
  * @brief       Set the frequency of a PWM controller
@@ -531,7 +531,7 @@ double pwm_set_frequency(uintptr_t file, double frequency);
  *
  * @return      The actual active duty cycle percentage after set
  */
-double pwm_set_active_duty_cycle_percentage(uintptr_t file, size_t pin, double duty_cycle_percentage);
+double pwm_set_active_duty_cycle_percentage(uintptr_t file, uint32_t pin, double duty_cycle_percentage);
 
 /**
  * @brief       Enable or disable a PWM pin
@@ -540,7 +540,49 @@ double pwm_set_active_duty_cycle_percentage(uintptr_t file, size_t pin, double d
  * @param[in]   pin         The PWM pin
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void pwm_set_enable(uintptr_t file, size_t pin, int enable);
+void pwm_set_enable(uintptr_t file, uint32_t pin, int enable);
+
+/**
+ * @brief       Set the response mode of a WDT device
+ *
+ * @param[in]   file        The WDT device handle
+ * @param[in]   mode        The response mode
+ */
+void wdt_set_response_mode(uintptr_t file, wdt_response_mode_t mode);
+
+/**
+ * @brief       Set the timeout of a WDT device
+ *
+ * @param[in]   file            The WDT device handle
+ * @param[in]   nanoseconds     The desired timeout in nanoseconds
+ *
+ * @return      The actual timeout in nanoseconds
+ */
+size_t wdt_set_timeout(uintptr_t file, size_t nanoseconds);
+
+/**
+ * @brief       Set the timeout handler of a WDT device
+ *
+ * @param[in]   file        The WDT device handle
+ * @param[in]   handler     The timeout handler
+ * @param[in]   userdata    The userdata of the handler
+ */
+void wdt_set_on_timeout(uintptr_t file, wdt_on_timeout_t handler, void *userdata);
+
+/**
+ * @brief       Restart the counter a WDT device
+ *
+ * @param[in]   file        The WDT device handle
+ */
+void wdt_restart_counter(uintptr_t file);
+
+/**
+ * @brief       Enable or disable a WDT device
+ *
+ * @param[in]   file        The WDT device handle
+ * @param[in]   enable      1 is enable, 0 is disable
+ */
+void wdt_set_enable(uintptr_t file, int enable);
 
 /**
  * @brief       Get the datetime of a RTC device
@@ -548,7 +590,7 @@ void pwm_set_enable(uintptr_t file, size_t pin, int enable);
  * @param[in]   file            The RTC device
  * @param[out]  datetime        The datatime
  */
-void rtc_get_datetime(uintptr_t file, datetime_t* datetime);
+void rtc_get_datetime(uintptr_t file, datetime_t *datetime);
 
 /**
  * @brief       Set the datetime of a RTC device
@@ -556,7 +598,7 @@ void rtc_get_datetime(uintptr_t file, datetime_t* datetime);
  * @param[in]   file            The RTC device
  * @param[out]  datetime        The datatime to be set
  */
-void rtc_set_datetime(uintptr_t file, const datetime_t* datetime);
+void rtc_set_datetime(uintptr_t file, const datetime_t *datetime);
 
 #ifdef __cplusplus
 }

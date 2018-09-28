@@ -115,39 +115,39 @@ extern "C" {
  * | 30     | IRQN_DMA3_INTERRUPT      | DMA channel3 interrupt             |
  * | 31     | IRQN_DMA4_INTERRUPT      | DMA channel4 interrupt             |
  * | 32     | IRQN_DMA5_INTERRUPT      | DMA channel5 interrupt             |
- * | 33     | IRQN_UARTHS_INTERRUPT    | Hi-speed UART0 interrupt           |
- * | 34     | IRQN_GPIOHS0_INTERRUPT   | Hi-speed GPIO0 interrupt           |
- * | 35     | IRQN_GPIOHS1_INTERRUPT   | Hi-speed GPIO1 interrupt           |
- * | 36     | IRQN_GPIOHS2_INTERRUPT   | Hi-speed GPIO2 interrupt           |
- * | 37     | IRQN_GPIOHS3_INTERRUPT   | Hi-speed GPIO3 interrupt           |
- * | 38     | IRQN_GPIOHS4_INTERRUPT   | Hi-speed GPIO4 interrupt           |
- * | 39     | IRQN_GPIOHS5_INTERRUPT   | Hi-speed GPIO5 interrupt           |
- * | 40     | IRQN_GPIOHS6_INTERRUPT   | Hi-speed GPIO6 interrupt           |
- * | 41     | IRQN_GPIOHS7_INTERRUPT   | Hi-speed GPIO7 interrupt           |
- * | 42     | IRQN_GPIOHS8_INTERRUPT   | Hi-speed GPIO8 interrupt           |
- * | 43     | IRQN_GPIOHS9_INTERRUPT   | Hi-speed GPIO9 interrupt           |
- * | 44     | IRQN_GPIOHS10_INTERRUPT  | Hi-speed GPIO10 interrupt          |
- * | 45     | IRQN_GPIOHS11_INTERRUPT  | Hi-speed GPIO11 interrupt          |
- * | 46     | IRQN_GPIOHS12_INTERRUPT  | Hi-speed GPIO12 interrupt          |
- * | 47     | IRQN_GPIOHS13_INTERRUPT  | Hi-speed GPIO13 interrupt          |
- * | 48     | IRQN_GPIOHS14_INTERRUPT  | Hi-speed GPIO14 interrupt          |
- * | 49     | IRQN_GPIOHS15_INTERRUPT  | Hi-speed GPIO15 interrupt          |
- * | 50     | IRQN_GPIOHS16_INTERRUPT  | Hi-speed GPIO16 interrupt          |
- * | 51     | IRQN_GPIOHS17_INTERRUPT  | Hi-speed GPIO17 interrupt          |
- * | 52     | IRQN_GPIOHS18_INTERRUPT  | Hi-speed GPIO18 interrupt          |
- * | 53     | IRQN_GPIOHS19_INTERRUPT  | Hi-speed GPIO19 interrupt          |
- * | 54     | IRQN_GPIOHS20_INTERRUPT  | Hi-speed GPIO20 interrupt          |
- * | 55     | IRQN_GPIOHS21_INTERRUPT  | Hi-speed GPIO21 interrupt          |
- * | 56     | IRQN_GPIOHS22_INTERRUPT  | Hi-speed GPIO22 interrupt          |
- * | 57     | IRQN_GPIOHS23_INTERRUPT  | Hi-speed GPIO23 interrupt          |
- * | 58     | IRQN_GPIOHS24_INTERRUPT  | Hi-speed GPIO24 interrupt          |
- * | 59     | IRQN_GPIOHS25_INTERRUPT  | Hi-speed GPIO25 interrupt          |
- * | 60     | IRQN_GPIOHS26_INTERRUPT  | Hi-speed GPIO26 interrupt          |
- * | 61     | IRQN_GPIOHS27_INTERRUPT  | Hi-speed GPIO27 interrupt          |
- * | 62     | IRQN_GPIOHS28_INTERRUPT  | Hi-speed GPIO28 interrupt          |
- * | 63     | IRQN_GPIOHS29_INTERRUPT  | Hi-speed GPIO29 interrupt          |
- * | 64     | IRQN_GPIOHS30_INTERRUPT  | Hi-speed GPIO30 interrupt          |
- * | 65     | IRQN_GPIOHS31_INTERRUPT  | Hi-speed GPIO31 interrupt          |
+ * | 33     | IRQN_UARTHS_INTERRUPT    | Hi-clock_rate UART0 interrupt           |
+ * | 34     | IRQN_GPIOHS0_INTERRUPT   | Hi-clock_rate GPIO0 interrupt           |
+ * | 35     | IRQN_GPIOHS1_INTERRUPT   | Hi-clock_rate GPIO1 interrupt           |
+ * | 36     | IRQN_GPIOHS2_INTERRUPT   | Hi-clock_rate GPIO2 interrupt           |
+ * | 37     | IRQN_GPIOHS3_INTERRUPT   | Hi-clock_rate GPIO3 interrupt           |
+ * | 38     | IRQN_GPIOHS4_INTERRUPT   | Hi-clock_rate GPIO4 interrupt           |
+ * | 39     | IRQN_GPIOHS5_INTERRUPT   | Hi-clock_rate GPIO5 interrupt           |
+ * | 40     | IRQN_GPIOHS6_INTERRUPT   | Hi-clock_rate GPIO6 interrupt           |
+ * | 41     | IRQN_GPIOHS7_INTERRUPT   | Hi-clock_rate GPIO7 interrupt           |
+ * | 42     | IRQN_GPIOHS8_INTERRUPT   | Hi-clock_rate GPIO8 interrupt           |
+ * | 43     | IRQN_GPIOHS9_INTERRUPT   | Hi-clock_rate GPIO9 interrupt           |
+ * | 44     | IRQN_GPIOHS10_INTERRUPT  | Hi-clock_rate GPIO10 interrupt          |
+ * | 45     | IRQN_GPIOHS11_INTERRUPT  | Hi-clock_rate GPIO11 interrupt          |
+ * | 46     | IRQN_GPIOHS12_INTERRUPT  | Hi-clock_rate GPIO12 interrupt          |
+ * | 47     | IRQN_GPIOHS13_INTERRUPT  | Hi-clock_rate GPIO13 interrupt          |
+ * | 48     | IRQN_GPIOHS14_INTERRUPT  | Hi-clock_rate GPIO14 interrupt          |
+ * | 49     | IRQN_GPIOHS15_INTERRUPT  | Hi-clock_rate GPIO15 interrupt          |
+ * | 50     | IRQN_GPIOHS16_INTERRUPT  | Hi-clock_rate GPIO16 interrupt          |
+ * | 51     | IRQN_GPIOHS17_INTERRUPT  | Hi-clock_rate GPIO17 interrupt          |
+ * | 52     | IRQN_GPIOHS18_INTERRUPT  | Hi-clock_rate GPIO18 interrupt          |
+ * | 53     | IRQN_GPIOHS19_INTERRUPT  | Hi-clock_rate GPIO19 interrupt          |
+ * | 54     | IRQN_GPIOHS20_INTERRUPT  | Hi-clock_rate GPIO20 interrupt          |
+ * | 55     | IRQN_GPIOHS21_INTERRUPT  | Hi-clock_rate GPIO21 interrupt          |
+ * | 56     | IRQN_GPIOHS22_INTERRUPT  | Hi-clock_rate GPIO22 interrupt          |
+ * | 57     | IRQN_GPIOHS23_INTERRUPT  | Hi-clock_rate GPIO23 interrupt          |
+ * | 58     | IRQN_GPIOHS24_INTERRUPT  | Hi-clock_rate GPIO24 interrupt          |
+ * | 59     | IRQN_GPIOHS25_INTERRUPT  | Hi-clock_rate GPIO25 interrupt          |
+ * | 60     | IRQN_GPIOHS26_INTERRUPT  | Hi-clock_rate GPIO26 interrupt          |
+ * | 61     | IRQN_GPIOHS27_INTERRUPT  | Hi-clock_rate GPIO27 interrupt          |
+ * | 62     | IRQN_GPIOHS28_INTERRUPT  | Hi-clock_rate GPIO28 interrupt          |
+ * | 63     | IRQN_GPIOHS29_INTERRUPT  | Hi-clock_rate GPIO29 interrupt          |
+ * | 64     | IRQN_GPIOHS30_INTERRUPT  | Hi-clock_rate GPIO30 interrupt          |
+ * | 65     | IRQN_GPIOHS31_INTERRUPT  | Hi-clock_rate GPIO31 interrupt          |
  *
  */
 /* clang-format off */
@@ -186,39 +186,39 @@ typedef enum plic_irq_t
     IRQN_DMA3_INTERRUPT      = 30, /*!< DMA channel3 interrupt */
     IRQN_DMA4_INTERRUPT      = 31, /*!< DMA channel4 interrupt */
     IRQN_DMA5_INTERRUPT      = 32, /*!< DMA channel5 interrupt */
-    IRQN_UARTHS_INTERRUPT    = 33, /*!< Hi-speed UART0 interrupt */
-    IRQN_GPIOHS0_INTERRUPT   = 34, /*!< Hi-speed GPIO0 interrupt */
-    IRQN_GPIOHS1_INTERRUPT   = 35, /*!< Hi-speed GPIO1 interrupt */
-    IRQN_GPIOHS2_INTERRUPT   = 36, /*!< Hi-speed GPIO2 interrupt */
-    IRQN_GPIOHS3_INTERRUPT   = 37, /*!< Hi-speed GPIO3 interrupt */
-    IRQN_GPIOHS4_INTERRUPT   = 38, /*!< Hi-speed GPIO4 interrupt */
-    IRQN_GPIOHS5_INTERRUPT   = 39, /*!< Hi-speed GPIO5 interrupt */
-    IRQN_GPIOHS6_INTERRUPT   = 40, /*!< Hi-speed GPIO6 interrupt */
-    IRQN_GPIOHS7_INTERRUPT   = 41, /*!< Hi-speed GPIO7 interrupt */
-    IRQN_GPIOHS8_INTERRUPT   = 42, /*!< Hi-speed GPIO8 interrupt */
-    IRQN_GPIOHS9_INTERRUPT   = 43, /*!< Hi-speed GPIO9 interrupt */
-    IRQN_GPIOHS10_INTERRUPT  = 44, /*!< Hi-speed GPIO10 interrupt */
-    IRQN_GPIOHS11_INTERRUPT  = 45, /*!< Hi-speed GPIO11 interrupt */
-    IRQN_GPIOHS12_INTERRUPT  = 46, /*!< Hi-speed GPIO12 interrupt */
-    IRQN_GPIOHS13_INTERRUPT  = 47, /*!< Hi-speed GPIO13 interrupt */
-    IRQN_GPIOHS14_INTERRUPT  = 48, /*!< Hi-speed GPIO14 interrupt */
-    IRQN_GPIOHS15_INTERRUPT  = 49, /*!< Hi-speed GPIO15 interrupt */
-    IRQN_GPIOHS16_INTERRUPT  = 50, /*!< Hi-speed GPIO16 interrupt */
-    IRQN_GPIOHS17_INTERRUPT  = 51, /*!< Hi-speed GPIO17 interrupt */
-    IRQN_GPIOHS18_INTERRUPT  = 52, /*!< Hi-speed GPIO18 interrupt */
-    IRQN_GPIOHS19_INTERRUPT  = 53, /*!< Hi-speed GPIO19 interrupt */
-    IRQN_GPIOHS20_INTERRUPT  = 54, /*!< Hi-speed GPIO20 interrupt */
-    IRQN_GPIOHS21_INTERRUPT  = 55, /*!< Hi-speed GPIO21 interrupt */
-    IRQN_GPIOHS22_INTERRUPT  = 56, /*!< Hi-speed GPIO22 interrupt */
-    IRQN_GPIOHS23_INTERRUPT  = 57, /*!< Hi-speed GPIO23 interrupt */
-    IRQN_GPIOHS24_INTERRUPT  = 58, /*!< Hi-speed GPIO24 interrupt */
-    IRQN_GPIOHS25_INTERRUPT  = 59, /*!< Hi-speed GPIO25 interrupt */
-    IRQN_GPIOHS26_INTERRUPT  = 60, /*!< Hi-speed GPIO26 interrupt */
-    IRQN_GPIOHS27_INTERRUPT  = 61, /*!< Hi-speed GPIO27 interrupt */
-    IRQN_GPIOHS28_INTERRUPT  = 62, /*!< Hi-speed GPIO28 interrupt */
-    IRQN_GPIOHS29_INTERRUPT  = 63, /*!< Hi-speed GPIO29 interrupt */
-    IRQN_GPIOHS30_INTERRUPT  = 64, /*!< Hi-speed GPIO30 interrupt */
-    IRQN_GPIOHS31_INTERRUPT  = 65, /*!< Hi-speed GPIO31 interrupt */
+    IRQN_UARTHS_INTERRUPT    = 33, /*!< Hi-clock_rate UART0 interrupt */
+    IRQN_GPIOHS0_INTERRUPT   = 34, /*!< Hi-clock_rate GPIO0 interrupt */
+    IRQN_GPIOHS1_INTERRUPT   = 35, /*!< Hi-clock_rate GPIO1 interrupt */
+    IRQN_GPIOHS2_INTERRUPT   = 36, /*!< Hi-clock_rate GPIO2 interrupt */
+    IRQN_GPIOHS3_INTERRUPT   = 37, /*!< Hi-clock_rate GPIO3 interrupt */
+    IRQN_GPIOHS4_INTERRUPT   = 38, /*!< Hi-clock_rate GPIO4 interrupt */
+    IRQN_GPIOHS5_INTERRUPT   = 39, /*!< Hi-clock_rate GPIO5 interrupt */
+    IRQN_GPIOHS6_INTERRUPT   = 40, /*!< Hi-clock_rate GPIO6 interrupt */
+    IRQN_GPIOHS7_INTERRUPT   = 41, /*!< Hi-clock_rate GPIO7 interrupt */
+    IRQN_GPIOHS8_INTERRUPT   = 42, /*!< Hi-clock_rate GPIO8 interrupt */
+    IRQN_GPIOHS9_INTERRUPT   = 43, /*!< Hi-clock_rate GPIO9 interrupt */
+    IRQN_GPIOHS10_INTERRUPT  = 44, /*!< Hi-clock_rate GPIO10 interrupt */
+    IRQN_GPIOHS11_INTERRUPT  = 45, /*!< Hi-clock_rate GPIO11 interrupt */
+    IRQN_GPIOHS12_INTERRUPT  = 46, /*!< Hi-clock_rate GPIO12 interrupt */
+    IRQN_GPIOHS13_INTERRUPT  = 47, /*!< Hi-clock_rate GPIO13 interrupt */
+    IRQN_GPIOHS14_INTERRUPT  = 48, /*!< Hi-clock_rate GPIO14 interrupt */
+    IRQN_GPIOHS15_INTERRUPT  = 49, /*!< Hi-clock_rate GPIO15 interrupt */
+    IRQN_GPIOHS16_INTERRUPT  = 50, /*!< Hi-clock_rate GPIO16 interrupt */
+    IRQN_GPIOHS17_INTERRUPT  = 51, /*!< Hi-clock_rate GPIO17 interrupt */
+    IRQN_GPIOHS18_INTERRUPT  = 52, /*!< Hi-clock_rate GPIO18 interrupt */
+    IRQN_GPIOHS19_INTERRUPT  = 53, /*!< Hi-clock_rate GPIO19 interrupt */
+    IRQN_GPIOHS20_INTERRUPT  = 54, /*!< Hi-clock_rate GPIO20 interrupt */
+    IRQN_GPIOHS21_INTERRUPT  = 55, /*!< Hi-clock_rate GPIO21 interrupt */
+    IRQN_GPIOHS22_INTERRUPT  = 56, /*!< Hi-clock_rate GPIO22 interrupt */
+    IRQN_GPIOHS23_INTERRUPT  = 57, /*!< Hi-clock_rate GPIO23 interrupt */
+    IRQN_GPIOHS24_INTERRUPT  = 58, /*!< Hi-clock_rate GPIO24 interrupt */
+    IRQN_GPIOHS25_INTERRUPT  = 59, /*!< Hi-clock_rate GPIO25 interrupt */
+    IRQN_GPIOHS26_INTERRUPT  = 60, /*!< Hi-clock_rate GPIO26 interrupt */
+    IRQN_GPIOHS27_INTERRUPT  = 61, /*!< Hi-clock_rate GPIO27 interrupt */
+    IRQN_GPIOHS28_INTERRUPT  = 62, /*!< Hi-clock_rate GPIO28 interrupt */
+    IRQN_GPIOHS29_INTERRUPT  = 63, /*!< Hi-clock_rate GPIO29 interrupt */
+    IRQN_GPIOHS30_INTERRUPT  = 64, /*!< Hi-clock_rate GPIO30 interrupt */
+    IRQN_GPIOHS31_INTERRUPT  = 65, /*!< Hi-clock_rate GPIO31 interrupt */
     IRQN_MAX
 } plic_irq_t;
 /* clang-format on */

@@ -24,14 +24,14 @@
 
 #define COMMON_ENTRY                                                         \
     gpio_data* data = (gpio_data*)userdata;                                  \
-    volatile gpio_t* gpio = (volatile gpio_t*)data->base_addr; \
+    volatile gpio_t* gpio = (volatile gpio_t*)data->base_addr;               \
     configASSERT(pin < data->pin_count);                                     \
     (void)data;                                                              \
     (void)gpio;
 
 typedef struct
 {
-    size_t pin_count;
+    uint32_t pin_count;
     uintptr_t base_addr;
 } gpio_data;
 
@@ -52,7 +52,7 @@ static void gpio_close(void* userdata)
 {
 }
 
-static void gpio_set_drive_mode(void* userdata, size_t pin, gpio_drive_mode mode)
+static void gpio_set_drive_mode(void* userdata, uint32_t pin, gpio_drive_mode_t mode)
 {
     COMMON_ENTRY;
     int io_number = fpioa_get_io_by_func(FUNC_GPIO0 + pin);
@@ -80,26 +80,27 @@ static void gpio_set_drive_mode(void* userdata, size_t pin, gpio_drive_mode mode
         dir = 1;
         break;
     default:
-        configASSERT(!"GPIO drive mode is not supported.") break;
+        configASSERT(!"GPIO drive mode is not supported.");
+        break;
     }
 
     fpioa_set_io_pull(io_number, pull);
     set_bit_idx(gpio->direction.u32, pin, dir);
 }
 
-static void gpio_set_pin_edge(void* userdata, size_t pin, gpio_pin_edge edge)
+static void gpio_set_pin_edge(void* userdata, uint32_t pin, gpio_pin_edge_t edge)
 {
     COMMON_ENTRY;
-    configASSERT(!"Not supported.")
+    configASSERT(!"Not supported.");
 }
 
-static void gpio_set_onchanged(void* userdata, size_t pin, gpio_onchanged callback, void* callback_data)
+static void gpio_set_on_changed(void* userdata, uint32_t pin, gpio_on_changed_t callback, void* callback_data)
 {
     COMMON_ENTRY;
-    configASSERT(!"Not supported.")
+    configASSERT(!"Not supported.");
 }
 
-static gpio_pin_value gpio_get_pin_value(void* userdata, size_t pin)
+static gpio_pin_value_t gpio_get_pin_value(void* userdata, uint32_t pin)
 {
     COMMON_ENTRY;
 
@@ -108,7 +109,7 @@ static gpio_pin_value gpio_get_pin_value(void* userdata, size_t pin)
     return get_bit_idx(reg, pin);
 }
 
-static void gpio_set_pin_value(void* userdata, size_t pin, gpio_pin_value value)
+static void gpio_set_pin_value(void* userdata, uint32_t pin, gpio_pin_value_t value)
 {
     COMMON_ENTRY;
 
@@ -120,4 +121,4 @@ static void gpio_set_pin_value(void* userdata, size_t pin, gpio_pin_value value)
 
 static gpio_data dev0_data = {8, GPIO_BASE_ADDR};
 
-const gpio_driver_t g_gpio_driver_gpio0 = {{&dev0_data, gpio_install, gpio_open, gpio_close}, 8, gpio_set_drive_mode, gpio_set_pin_edge, gpio_set_onchanged, gpio_set_pin_value, gpio_get_pin_value};
+const gpio_driver_t g_gpio_driver_gpio0 = {{&dev0_data, gpio_install, gpio_open, gpio_close}, 8, gpio_set_drive_mode, gpio_set_pin_edge, gpio_set_on_changed, gpio_set_pin_value, gpio_get_pin_value};

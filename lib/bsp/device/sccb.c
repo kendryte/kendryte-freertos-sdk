@@ -68,8 +68,8 @@ static void sccb_close(void* userdata)
 typedef struct
 {
     sccb_data* sccb_data;
-    size_t slaveAddress;
-    size_t address_width;
+    uint32_t slaveAddress;
+    uint32_t address_width;
 } sccb_dev_data;
 
 static void sccb_dev_install(void* userdata);
@@ -78,7 +78,7 @@ static void sccb_dev_close(void* userdata);
 static uint8_t sccb_dev_read_byte(uint16_t reg_address, void* userdata);
 static void sccb_dev_write_byte(uint16_t reg_address, uint8_t value, void* userdata);
 
-static sccb_device_driver_t* sccb_get_device(size_t slaveAddress, size_t address_width, void* userdata)
+static sccb_device_driver_t* sccb_get_device(uint32_t slaveAddress, uint32_t address_width, void* userdata)
 {
     configASSERT(address_width == 8 || address_width == 16);
 

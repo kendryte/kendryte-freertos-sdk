@@ -165,7 +165,7 @@ static void extract_params(const audio_format_t* format, enum word_select_cycles
     }
 }
 
-static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, i2s_align_mode align_mode, size_t channels_mask, void* userdata)
+static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -270,7 +270,7 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
     data->dma_in_use_buffer = -1;
 }
 
-static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms, i2s_align_mode align_mode, size_t channels_mask, void* userdata)
+static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void* userdata)
 {
     COMMON_ENTRY;
 
