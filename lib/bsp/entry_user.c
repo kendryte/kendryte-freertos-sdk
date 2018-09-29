@@ -64,7 +64,7 @@ void _init_bsp(int core_id, int number_of_cores)
         /* Setup clocks */
         setup_clocks();
         /* Init UART */
-        uart_init();
+        uarths_init();
     }
 
     exit(os_entry(core_id, number_of_cores, main));

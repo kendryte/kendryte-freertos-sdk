@@ -118,7 +118,7 @@ void __attribute__((noreturn)) sys_exit(int code)
     /* Write stop bit and write back */
     *reg = (*reg) | 0x80000000UL;
     /* Send 0 to uart */
-    uart_putchar(0);
+    uarths_putchar(0);
     while (1)
         continue;
 }
@@ -131,7 +131,7 @@ static int sys_nosys(long a0, long a1, long a2, long a3, long a4, long a5, unsig
 
     LOGE(TAG, "Unsupported syscall %ld: a0=%lx, a1=%lx, a2=%lx!\n", n, a0, a1, a2);
     /* Send 0 to uart */
-    uart_putchar(0);
+    uarths_putchar(0);
     while (1)
         continue;
     return -ENOSYS;
@@ -217,7 +217,7 @@ static ssize_t sys_write(int file, const void* ptr, size_t len)
     {
         /* Write data */
         while (length-- > 0 && *data != 0)
-            uart_putchar(*(data++));
+            uarths_putchar(*(data++));
 
         /* Return the actual size written */
         res = len;

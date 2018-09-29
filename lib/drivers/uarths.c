@@ -51,7 +51,7 @@ static inline int uart_putc(char c)
     return 0;
 }
 
-int uart_getc(void)
+int uarths_getc(void)
 {
     /* while not empty */
     struct uarths_rxdata_t recv = uarths->rxdata;
@@ -62,12 +62,12 @@ int uart_getc(void)
         return recv.data;
 }
 
-int uart_putchar(char c)
+int uarths_putchar(char c)
 {
     return uart_putc(c);
 }
 
-int uart_puts(const char *s)
+int uarths_puts(const char *s)
 {
     while (*s)
         if (uart_putc(*s++) != 0)
@@ -75,7 +75,7 @@ int uart_puts(const char *s)
     return 0;
 }
 
-int uart_init()
+int uarths_init()
 {
     uint32_t freq = sysctl_clock_get_freq(SYSCTL_CLOCK_CPU);
     uint16_t div = freq / 115200 - 1;
