@@ -52,7 +52,7 @@ static void gpio_close(void* userdata)
 {
 }
 
-static void gpio_set_drive_mode(void* userdata, uint32_t pin, gpio_drive_mode_t mode)
+static void gpio_set_drive_mode(uint32_t pin, gpio_drive_mode_t mode, void* userdata)
 {
     COMMON_ENTRY;
     int io_number = fpioa_get_io_by_func(FUNC_GPIO0 + pin);
@@ -88,19 +88,19 @@ static void gpio_set_drive_mode(void* userdata, uint32_t pin, gpio_drive_mode_t 
     set_bit_idx(gpio->direction.u32, pin, dir);
 }
 
-static void gpio_set_pin_edge(void* userdata, uint32_t pin, gpio_pin_edge_t edge)
+static void gpio_set_pin_edge(uint32_t pin, gpio_pin_edge_t edge, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(!"Not supported.");
 }
 
-static void gpio_set_on_changed(void* userdata, uint32_t pin, gpio_on_changed_t callback, void* callback_data)
+static void gpio_set_on_changed(uint32_t pin, gpio_on_changed_t callback, void* callback_data, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(!"Not supported.");
 }
 
-static gpio_pin_value_t gpio_get_pin_value(void* userdata, uint32_t pin)
+static gpio_pin_value_t gpio_get_pin_value(uint32_t pin, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -109,7 +109,7 @@ static gpio_pin_value_t gpio_get_pin_value(void* userdata, uint32_t pin)
     return get_bit_idx(reg, pin);
 }
 
-static void gpio_set_pin_value(void* userdata, uint32_t pin, gpio_pin_value_t value)
+static void gpio_set_pin_value(uint32_t pin, gpio_pin_value_t value, void* userdata)
 {
     COMMON_ENTRY;
 

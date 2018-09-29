@@ -18,11 +18,10 @@
 #include <fpioa.h>
 #include <stdlib.h>
 #include <task.h>
-#include "device/devices.h"
-#include "device/hal.h"
-#include "portable/portmacro.h"
+#include <device_priv.h>
 #include <stdio.h>
 #include <core_sync.h>
+#include "portable/portmacro.h"
 
 typedef struct
 {

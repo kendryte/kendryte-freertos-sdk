@@ -25,11 +25,6 @@ extern "C"
 #endif
 
 /**
- * @brief       Install all drivers
- */
-void install_drivers();
-
-/**
  * @brief       Open a device
  *
  * @param[in]   name        The device path
@@ -56,11 +51,11 @@ int io_close(handle_t file);
  *
  * @param[in[   file        The device handle
  * @param[out]  buffer      The destination buffer
- * @param[in]   len     Maximum bytes to read
+ * @param[in]   len         Maximum bytes to read
  *
  * @return      Actual bytes read
  */
-int io_read(handle_t file, char *buffer, size_t len);
+int io_read(handle_t file, uint8_t *buffer, size_t len);
 
 /**
  * @brief       Write to a device
@@ -73,7 +68,7 @@ int io_read(handle_t file, char *buffer, size_t len);
  *     - len    Success
  *     - other  Fail
  */
-int io_write(handle_t file, const char *buffer, size_t len);
+int io_write(handle_t file, const uint8_t *buffer, size_t len);
 
 /**
  * @brief       Send control info to a device
@@ -87,7 +82,7 @@ int io_write(handle_t file, const char *buffer, size_t len);
  *
  * @return      Actual bytes read
  */
-int io_control(handle_t file, uint32_t control_code, const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len);
+int io_control(handle_t file, uint32_t control_code, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len);
 
 /**
  * @brief       Configure a UART device
@@ -180,7 +175,7 @@ handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address,
  *
  * @return      Actual bytes read
  */
-int i2c_dev_transfer_sequential(handle_t file, const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len);
+int i2c_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len);
 
 /**
  * @brief       Configure a I2C controller with slave mode
@@ -222,7 +217,7 @@ void i2s_config_as_capture(handle_t file, const audio_format_t *format, size_t d
  * @param[out]  buffer      The address of audio buffer
  * @param[out]  frames      The available frames count in buffer
  */
-void i2s_get_buffer(handle_t file, char **buffer, size_t *frames);
+void i2s_get_buffer(handle_t file, uint8_t **buffer, size_t *frames);
 
 /**
  * @brief       Release the audio buffer of a I2S controller
@@ -292,7 +287,7 @@ double spi_dev_set_clock_rate(handle_t file, double clock_rate);
  *
  * @return      Actual bytes read
  */
-int spi_dev_transfer_full_duplex(handle_t file, const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len);
+int spi_dev_transfer_full_duplex(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len);
 
 /**
  * @brief       Write to then read from a SPI device
@@ -305,7 +300,7 @@ int spi_dev_transfer_full_duplex(handle_t file, const char *write_buffer, size_t
  *
  * @return      Actual bytes read
  */
-int spi_dev_transfer_sequential(handle_t file, const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len);
+int spi_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len);
 
 /**
  * @brief       Fill a sequence of idential frame to a SPI device
@@ -431,7 +426,7 @@ void sccb_dev_write_byte(handle_t file, uint16_t reg_address, uint8_t value);
  * @param[in]   input           The input data
  * @param[out]  output          The output data
  */
-void fft_complex_uint16(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t* input, uint16_t* output);
+void fft_complex_uint16(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t *input, uint16_t *output);
 
 /**
 * @brief       Do aes decrypt
@@ -448,7 +443,7 @@ void fft_complex_uint16(fft_point point, fft_direction direction, uint32_t shift
 * @param[out]  aes_out_data     The output data
 * @param[out]  tag              The gcm output tag
 */
-void aes_decrypt(aes_parameter* aes_param);
+void aes_decrypt(const aes_parameter *aes_param);
 
 /**
  * @brief       Do aes encrypt
@@ -465,7 +460,7 @@ void aes_decrypt(aes_parameter* aes_param);
  * @param[out]  aes_out_data        The output data
  * @param[out]  tag                 The output tag
  */
-void aes_encrypt(aes_parameter* aes_param);
+void aes_encrypt(const aes_parameter *aes_param);
 
 /**
  * @brief       Do sha256
@@ -474,7 +469,7 @@ void aes_encrypt(aes_parameter* aes_param);
  * @param[in]   length      The string length
  * @param[out]  hash        The sha256 result
  */
-void sha256_str(const char* str, size_t length, uint8_t* hash);
+void sha256_str(const char *str, size_t length, uint8_t *hash);
 
 /**
  * @brief       Set the interval of a TIMER device

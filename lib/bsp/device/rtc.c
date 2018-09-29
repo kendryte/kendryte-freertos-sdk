@@ -39,9 +39,9 @@
 #include <stdio.h>
 #include <sysctl.h>
 
-#define COMMON_ENTRY                            \
-    rtc_data* data = (rtc_data*)userdata;       \
-    rtc_t* rtc = (rtc_t*)data->base_addr;       \
+#define COMMON_ENTRY                                            \
+    rtc_data* data = (rtc_data*)userdata;                       \
+    volatile rtc_t* rtc = (volatile rtc_t*)data->base_addr;     \
     (void)rtc;
 
 typedef struct
@@ -54,10 +54,10 @@ static int rtc_in_range(int value, int min, int max);
 static int rtc_get_wday(int year, int month, int day);
 static int rtc_year_is_leap(int year);
 static int rtc_get_yday(int year, int month, int day);
-static int rtc_timer_set_mode(rtc_t* rtc, rtc_timer_mode_e timer_mode);
-static int rtc_protect_set(rtc_t* rtc, int enable);
-static int rtc_timer_set_clock_frequency(rtc_t* rtc, unsigned int frequency);
-static int rtc_timer_set_clock_count_value(rtc_t* rtc, unsigned int count);
+static int rtc_timer_set_mode(volatile rtc_t* rtc, rtc_timer_mode_e timer_mode);
+static int rtc_protect_set(volatile rtc_t* rtc, int enable);
+static int rtc_timer_set_clock_frequency(volatile rtc_t* rtc, unsigned int frequency);
+static int rtc_timer_set_clock_count_value(volatile rtc_t* rtc, unsigned int count);
 
 static void rtc_install(void* userdata)
 {
@@ -222,7 +222,7 @@ static int rtc_get_yday(int year, int month, int day)
     return days[leap][month] + day;
 }
 
-static int rtc_timer_set_mode(rtc_t* rtc, rtc_timer_mode_e timer_mode)
+static int rtc_timer_set_mode(volatile rtc_t* rtc, rtc_timer_mode_e timer_mode)
 {
     struct rtc_register_ctrl_t register_ctrl = rtc->register_ctrl;
 
@@ -251,7 +251,7 @@ static int rtc_timer_set_mode(rtc_t* rtc, rtc_timer_mode_e timer_mode)
     return 0;
 }
 
-static int rtc_protect_set(rtc_t* rtc, int enable)
+static int rtc_protect_set(volatile rtc_t* rtc, int enable)
 {
     struct rtc_register_ctrl_t register_ctrl = rtc->register_ctrl;
 
@@ -308,7 +308,7 @@ static int rtc_protect_set(rtc_t* rtc, int enable)
     return 0;
 }
 
-static int rtc_timer_set_clock_frequency(rtc_t* rtc, unsigned int frequency)
+static int rtc_timer_set_clock_frequency(volatile rtc_t* rtc, unsigned int frequency)
 {
     struct rtc_initial_count_t initial_count;
 
@@ -317,7 +317,7 @@ static int rtc_timer_set_clock_frequency(rtc_t* rtc, unsigned int frequency)
     return 0;
 }
 
-static int rtc_timer_set_clock_count_value(rtc_t* rtc, unsigned int count)
+static int rtc_timer_set_clock_count_value(volatile rtc_t* rtc, unsigned int count)
 {
     struct rtc_current_count_t current_count;
 

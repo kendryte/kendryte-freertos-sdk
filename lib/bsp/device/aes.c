@@ -3,9 +3,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,9 +26,9 @@
 
 #define AES_USE_DMA 1
 #define AES_BASE_ADDR (0x50450000)
-#define COMMON_ENTRY                                                      \
-    aes_dev_data* data = (aes_dev_data*)userdata;                         \
-    volatile aes_t* aes = (volatile aes_t*)data->base_addr; \
+#define COMMON_ENTRY                                               \
+    aes_dev_data *data = (aes_dev_data *)userdata;                 \
+    volatile aes_t *aes = (volatile aes_t *)data->base_addr;       \
     (void)aes;
 
 typedef struct
@@ -42,7 +42,7 @@ typedef struct
     };
 } aes_dev_data;
 
-static void aes_install(void* userdata)
+static void aes_install(void *userdata)
 {
     COMMON_ENTRY;
     sysctl_clock_enable(SYSCTL_CLOCK_AES);
@@ -50,40 +50,40 @@ static void aes_install(void* userdata)
     data->free_mutex = xSemaphoreCreateMutex();
 }
 
-static int aes_open(void* userdata)
+static int aes_open(void *userdata)
 {
     return 1;
 }
 
-static void aes_close(void* userdata)
+static void aes_close(void *userdata)
 {
 }
 
-static void entry_exclusive(aes_dev_data* data)
+static void entry_exclusive(aes_dev_data *data)
 {
     configASSERT(xSemaphoreTake(data->free_mutex, portMAX_DELAY) == pdTRUE);
 }
 
-static void exit_exclusive(aes_dev_data* data)
+static void exit_exclusive(aes_dev_data *data)
 {
     xSemaphoreGive(data->free_mutex);
 }
 
-static int os_aes_write_aad(uint32_t aad_data, void* userdata)
+static int os_aes_write_aad(uint32_t aad_data, void *userdata)
 {
     COMMON_ENTRY;
     aes->aes_aad_data = aad_data;
     return 0;
 }
 
-static int os_aes_write_text(uint32_t text_data, void* userdata)
+static int os_aes_write_text(uint32_t text_data, void *userdata)
 {
     COMMON_ENTRY;
     aes->aes_text_data = text_data;
     return 0;
 }
 
-static int os_aes_write_tag(uint32_t* tag, void* userdata)
+static int os_aes_write_tag(uint32_t *tag, void *userdata)
 {
     COMMON_ENTRY;
     aes->gcm_in_tag[0] = tag[3];
@@ -93,40 +93,40 @@ static int os_aes_write_tag(uint32_t* tag, void* userdata)
     return 0;
 }
 
-static int os_get_data_in_flag(void* userdata)
+static int os_get_data_in_flag(void *userdata)
 {
     COMMON_ENTRY;
     /* data can in flag 1: data ready 0: data not ready */
     return aes->data_in_flag;
 }
 
-static int os_get_data_out_flag(void* userdata)
+static int os_get_data_out_flag(void *userdata)
 {
     COMMON_ENTRY;
     /* data can output flag 1: data ready 0: data not ready */
     return aes->data_out_flag;
 }
 
-static int os_get_tag_in_flag(void* userdata)
+static int os_get_tag_in_flag(void *userdata)
 {
     COMMON_ENTRY;
     /* data can output flag 1: data ready 0: data not ready */
     return aes->tag_in_flag;
 }
 
-static uint32_t os_read_out_data(void* userdata)
+static uint32_t os_read_out_data(void *userdata)
 {
     COMMON_ENTRY;
     return aes->aes_out_data;
 }
 
-static int os_aes_check_tag(void* userdata)
+static int os_aes_check_tag(void *userdata)
 {
     COMMON_ENTRY;
     return aes->tag_chk;
 }
 
-static int os_aes_get_tag(uint8_t* l_tag, void* userdata)
+static int os_aes_get_tag(uint8_t *l_tag, void *userdata)
 {
     COMMON_ENTRY;
     uint32_t u32tag;
@@ -158,14 +158,14 @@ static int os_aes_get_tag(uint8_t* l_tag, void* userdata)
     return 1;
 }
 
-static int os_aes_clear_chk_tag(void* userdata)
+static int os_aes_clear_chk_tag(void *userdata)
 {
     COMMON_ENTRY;
     aes->tag_clear = 0;
     return 0;
 }
 
-static int os_check_tag(uint32_t* aes_gcm_tag, void* userdata)
+static int os_check_tag(uint32_t *aes_gcm_tag, void *userdata)
 {
     while (!os_get_tag_in_flag(userdata))
         ;
@@ -184,9 +184,9 @@ static int os_check_tag(uint32_t* aes_gcm_tag, void* userdata)
     }
 }
 
-static int os_aes_init(uint8_t* key_addr, uint8_t key_length, uint8_t* aes_iv,
-    uint8_t iv_length, uint8_t* aes_aad, aes_cipher_mod cipher_mod, aes_encrypt_sel encrypt_sel,
-    uint32_t add_size, uint32_t data_size, void* userdata)
+static int os_aes_init(uint8_t *key_addr, uint8_t key_length, uint8_t *aes_iv,
+    uint8_t iv_length, uint8_t *aes_aad, aes_cipher_mod cipher_mod, aes_encrypt_sel encrypt_sel,
+    uint32_t add_size, uint32_t data_size, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -203,9 +203,9 @@ static int os_aes_init(uint8_t* key_addr, uint8_t key_length, uint8_t* aes_iv,
     for (i = 0; i < num; i++)
     {
         if (i < 4)
-            aes->aes_key[i] = *((uint32_t*)(&key_addr[key_length - (4 * i) - 4]));
+            aes->aes_key[i] = *((uint32_t *)(&key_addr[key_length - (4 * i) - 4]));
         else
-            aes->aes_key_ext[i - 4] = *((uint32_t*)(&key_addr[key_length - (4 * i) - 4]));
+            aes->aes_key_ext[i - 4] = *((uint32_t *)(&key_addr[key_length - (4 * i) - 4]));
     }
     remainder = key_length % 4;
     if (remainder)
@@ -228,15 +228,15 @@ static int os_aes_init(uint8_t* key_addr, uint8_t key_length, uint8_t* aes_iv,
             break;
         }
         if (num < 4)
-            aes->aes_key[num] = *((uint32_t*)(&u8data[0]));
+            aes->aes_key[num] = *((uint32_t *)(&u8data[0]));
         else
-            aes->aes_key_ext[num - 4] = *((uint32_t*)(&u8data[0]));
+            aes->aes_key_ext[num - 4] = *((uint32_t *)(&u8data[0]));
     }
 
     /* write iv Low byte alignment */
     num = iv_length / 4;
     for (i = 0; i < num; i++)
-        aes->aes_iv[i] = *((uint32_t*)(&aes_iv[iv_length - (4 * i) - 4]));
+        aes->aes_iv[i] = *((uint32_t *)(&aes_iv[iv_length - (4 * i) - 4]));
     remainder = iv_length % 4;
     if (remainder)
     {
@@ -257,14 +257,14 @@ static int os_aes_init(uint8_t* key_addr, uint8_t key_length, uint8_t* aes_iv,
         default:
             break;
         }
-        aes->aes_iv[num] = *((uint32_t*)(&u8data[0]));
+        aes->aes_iv[num] = *((uint32_t *)(&u8data[0]));
     }
     aes->mode_ctl.kmode = key_length / 8 - 2; /* 00:AES_128 01:AES_192 10:AES_256 11:RESERVED */
     aes->mode_ctl.cipher_mode = cipher_mod;
 
     /*
-     * [1:0],set the first bit and second bit 00:ecb; 01:cbc;
-     * 10,11：AES_CIPHER_GCM
+      *[1:0],set the first bit and second bit 00:ecb; 01:cbc;
+      *10,11：AES_CIPHER_GCM
      */
     aes->encrypt_sel = encrypt_sel;
     aes->gb_aad_end_adr = add_size - 1;
@@ -277,12 +277,12 @@ static int os_aes_init(uint8_t* key_addr, uint8_t key_length, uint8_t* aes_iv,
         num = add_size / 4;
         for (i = 0; i < num; i++)
         {
-            u32data = *((uint32_t*)(aes_aad + i * 4));
+            u32data = *((uint32_t *)(aes_aad + i * 4));
             while (!os_get_data_in_flag(userdata))
                 ;
             os_aes_write_aad(u32data, userdata);
         }
-        cnt = 4 * num;
+        cnt = 4  *num;
         remainder = add_size % 4;
         if (remainder)
         {
@@ -303,7 +303,7 @@ static int os_aes_init(uint8_t* key_addr, uint8_t key_length, uint8_t* aes_iv,
             default:
                 return 0;
             }
-            u32data = *((uint32_t*)(&u8data[0]));
+            u32data = *((uint32_t *)(&u8data[0]));
             while (!os_get_data_in_flag(userdata))
                 ;
             os_aes_write_aad(u32data, userdata);
@@ -313,11 +313,11 @@ static int os_aes_init(uint8_t* key_addr, uint8_t key_length, uint8_t* aes_iv,
     return 1;
 }
 
-static int aes_process_less_80_bytes(uint8_t* aes_in_data,
-    uint8_t* aes_out_data,
+static int aes_process_less_80_bytes(uint8_t *aes_in_data,
+    uint8_t *aes_out_data,
     uint32_t data_size,
     aes_cipher_mod cipher_mod,
-    void* userdata)
+    void *userdata)
 {
     int padding_size;
     int num, i, remainder, cnt;
@@ -331,12 +331,12 @@ static int aes_process_less_80_bytes(uint8_t* aes_in_data,
     num = data_size / 4;
     for (i = 0; i < num; i++)
     {
-        u32data = *((uint32_t*)(&aes_in_data[i * 4]));
+        u32data = *((uint32_t *)(&aes_in_data[i * 4]));
         while (!os_get_data_in_flag(userdata))
             ;
         os_aes_write_text(u32data, userdata);
     }
-    cnt = 4 * num;
+    cnt = 4  *num;
     remainder = data_size % 4;
     if (remainder)
     {
@@ -357,7 +357,7 @@ static int aes_process_less_80_bytes(uint8_t* aes_in_data,
         default:
             return 0;
         }
-        u32data = *((uint32_t*)(&u8data[0]));
+        u32data = *((uint32_t *)(&u8data[0]));
         while (!os_get_data_in_flag(userdata))
             ;
         os_aes_write_text(u32data, userdata);
@@ -383,7 +383,7 @@ static int aes_process_less_80_bytes(uint8_t* aes_in_data,
     {
         while (!os_get_data_out_flag(userdata))
             ;
-        *((uint32_t*)(&aes_out_data[i * 4])) = os_read_out_data(userdata);
+        *((uint32_t *)(&aes_out_data[i * 4])) = os_read_out_data(userdata);
     }
 
     if ((cipher_mod == AES_CIPHER_GCM) && (remainder))
@@ -391,7 +391,7 @@ static int aes_process_less_80_bytes(uint8_t* aes_in_data,
         while (!os_get_data_out_flag(userdata))
             ;
 
-        *((uint32_t*)(&u8data[0])) = os_read_out_data(userdata);
+        *((uint32_t *)(&u8data[0])) = os_read_out_data(userdata);
         switch (remainder)
         {
         case 1:
@@ -414,11 +414,11 @@ static int aes_process_less_80_bytes(uint8_t* aes_in_data,
     return 1;
 }
 
-static int os_aes_process(uint8_t* aes_in_data,
-    uint8_t* aes_out_data,
+static int os_aes_process(uint8_t *aes_in_data,
+    uint8_t *aes_out_data,
     uint32_t data_size,
     aes_cipher_mod cipher_mod,
-    void* userdata)
+    void *userdata)
 {
 
     uint32_t i, temp_size;
@@ -435,7 +435,7 @@ static int os_aes_process(uint8_t* aes_in_data,
     return 1;
 }
 
-static void aes_decrypt(aes_parameter* aes_param, void* userdata)
+static void aes_decrypt(const aes_parameter *aes_param, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(aes_param->key_length == AES_128 || aes_param->key_length == AES_192 || aes_param->key_length == AES_256);
@@ -451,8 +451,8 @@ static void aes_decrypt(aes_parameter* aes_param, void* userdata)
     }
 
 #if (AES_USE_DMA == 1)
-    uint8_t* padding_buffer = NULL;
-    padding_buffer = (uint8_t*)malloc(padding_size * sizeof(uint8_t));
+    uint8_t *padding_buffer = NULL;
+    padding_buffer = (uint8_t *)malloc(padding_size * sizeof(uint8_t));
     memset(padding_buffer, 0, padding_size);
     memcpy(padding_buffer, aes_param->aes_in_data, aes_param->data_size);
 
@@ -487,7 +487,7 @@ static void aes_decrypt(aes_parameter* aes_param, void* userdata)
     exit_exclusive(data);
 }
 
-static void aes_encrypt(aes_parameter* aes_param, void* userdata)
+static void aes_encrypt(const aes_parameter *aes_param, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(aes_param->key_length == AES_128 || aes_param->key_length == AES_192 || aes_param->key_length == AES_256);
@@ -498,12 +498,12 @@ static void aes_encrypt(aes_parameter* aes_param, void* userdata)
 
     int padding_size = aes_param->data_size;
 #if (AES_USE_DMA == 1)
-    uint8_t* padding_buffer = NULL;
+    uint8_t *padding_buffer = NULL;
     if (aes_param->cipher_mod == AES_CIPHER_CBC || aes_param->cipher_mod == AES_CIPHER_ECB)
     {
         padding_size = ((padding_size + 15) / 16) * 16;
     }
-    padding_buffer = (uint8_t*)malloc(padding_size * sizeof(uint8_t));
+    padding_buffer = (uint8_t *)malloc(padding_size * sizeof(uint8_t));
     memset(padding_buffer, 0, padding_size);
     memcpy(padding_buffer, aes_param->aes_in_data, aes_param->data_size);
 

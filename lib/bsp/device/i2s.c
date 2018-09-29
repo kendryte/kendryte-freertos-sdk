@@ -44,7 +44,7 @@ typedef struct
     struct
     {
         i2s_transmit transmit;
-        char* buffer;
+        uint8_t* buffer;
         size_t buffer_frames;
         size_t buffer_size;
         size_t block_align;
@@ -262,7 +262,7 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
     configASSERT(data->buffer_frames >= 100);
     free(data->buffer);
     data->buffer_size = data->block_align * data->buffer_frames;
-    data->buffer = (char*)malloc(data->buffer_size * BUFFER_COUNT);
+    data->buffer = (uint8_t*)malloc(data->buffer_size * BUFFER_COUNT);
     data->buffer_ptr = 0;
     data->next_free_buffer = 0;
     data->stop_signal = 0;
@@ -369,7 +369,7 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
     configASSERT(data->buffer_frames >= 100);
     free(data->buffer);
     data->buffer_size = data->block_align * data->buffer_frames;
-    data->buffer = (char*)malloc(data->buffer_size * BUFFER_COUNT);
+    data->buffer = (uint8_t*)malloc(data->buffer_size * BUFFER_COUNT);
     data->buffer_ptr = 0;
     data->next_free_buffer = 0;
     data->stop_signal = 0;
@@ -377,7 +377,7 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
     data->dma_in_use_buffer = 0;
 }
 
-static void i2s_get_buffer(char** buffer, size_t* frames, void* userdata)
+static void i2s_get_buffer(uint8_t** buffer, size_t* frames, void* userdata)
 {
     COMMON_ENTRY;
 

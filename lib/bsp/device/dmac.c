@@ -27,9 +27,9 @@
 
 /* DMAC */
 
-#define COMMON_ENTRY                        \
-    dmac_data* data = (dmac_data*)userdata; \
-    volatile struct dmac_t* dmac = (volatile struct dmac_t*)data->base_addr;
+#define COMMON_ENTRY                          \
+    dmac_data *data = (dmac_data *)userdata;  \
+    volatile dmac_t *dmac = (volatile dmac_t *)data->base_addr;
 
 typedef struct
 {
@@ -125,7 +125,7 @@ const dmac_driver_t g_dmac_driver_dmac0 = {{&dev0_data, dmac_install, dmac_open,
 #define C_COMMON_ENTRY                                                                                    \
     dma_data* data = (dma_data*)userdata;                                                                 \
     dmac_data* dmacdata = data->dmac_data;                                                                \
-    volatile struct dmac_t* dmac = (volatile struct dmac_t*)dmacdata->base_addr;                          \
+    volatile dmac_t* dmac = (volatile dmac_t*)dmacdata->base_addr;                                        \
     (void)dmac;                                                                                           \
     volatile struct dmac_channel_t* dma = (volatile struct dmac_channel_t*)dmac->channel + data->channel; \
     (void)dma;

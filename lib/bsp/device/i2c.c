@@ -81,9 +81,9 @@ typedef struct
 static void i2c_dev_install(void* userdata);
 static int i2c_dev_open(void* userdata);
 static void i2c_dev_close(void* userdata);
-static int i2c_dev_read(char* buffer, size_t len, void* userdata);
-static int i2c_dev_write(const char* buffer, size_t len, void* userdata);
-static int i2c_dev_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata);
+static int i2c_dev_read(uint8_t* buffer, size_t len, void* userdata);
+static int i2c_dev_write(const uint8_t* buffer, size_t len, void* userdata);
+static int i2c_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata);
 
 static i2c_device_driver_t* i2c_get_device(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void* userdata)
 {
@@ -136,7 +136,7 @@ static void i2c_config_as_master(uint32_t slave_address, uint32_t address_width,
     i2c->enable = I2C_ENABLE_ENABLE;
 }
 
-static int i2c_read(char* buffer, size_t len, void* userdata)
+static int i2c_read(uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -168,7 +168,7 @@ static int i2c_read(char* buffer, size_t len, void* userdata)
     return read;
 }
 
-static int i2c_write(const char* buffer, size_t len, void* userdata)
+static int i2c_write(const uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -186,7 +186,7 @@ static int i2c_write(const char* buffer, size_t len, void* userdata)
     return len;
 }
 
-static int i2c_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int i2c_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -243,7 +243,7 @@ static void i2c_dev_close(void* userdata)
 {
 }
 
-static int i2c_dev_read(char* buffer, size_t len, void* userdata)
+static int i2c_dev_read(uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -252,7 +252,7 @@ static int i2c_dev_read(char* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static int i2c_dev_write(const char* buffer, size_t len, void* userdata)
+static int i2c_dev_write(const uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -261,7 +261,7 @@ static int i2c_dev_write(const char* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static int i2c_dev_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int i2c_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);

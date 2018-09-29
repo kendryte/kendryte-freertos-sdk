@@ -34,7 +34,7 @@ typedef struct
     size_t head;
     size_t tail;
     size_t length;
-    char ring_buffer[RINGBUFF_LEN];
+    uint8_t ring_buffer[RINGBUFF_LEN];
 } ringbuffer_t;
 
 typedef struct
@@ -60,7 +60,7 @@ static int write_ringbuff(uint8_t rdata, void* userdata)
     return 0;
 }
 
-static int read_ringbuff(char* rData, size_t len, void* userdata)
+static int read_ringbuff(uint8_t* rData, size_t len, void* userdata)
 {
     COMMON_ENTRY;
     ringbuffer_t* ring_buff = data->recv_buf;
@@ -172,12 +172,12 @@ static int uart_putc(volatile uart_t* uart, char c)
     return 0;
 }
 
-static int uart_read(char* buffer, size_t len, void* userdata)
+static int uart_read(uint8_t* buffer, size_t len, void* userdata)
 {
     return read_ringbuff(buffer, len, userdata);
 }
 
-static int uart_write(const char* buffer, size_t len, void* userdata)
+static int uart_write(const uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_ENTRY;
 

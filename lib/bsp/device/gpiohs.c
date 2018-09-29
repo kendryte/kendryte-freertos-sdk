@@ -81,7 +81,7 @@ static void gpiohs_close(void* userdata)
 {
 }
 
-static void gpiohs_set_drive_mode(void* userdata, uint32_t pin, gpio_drive_mode_t mode)
+static void gpiohs_set_drive_mode(uint32_t pin, gpio_drive_mode_t mode, void* userdata)
 {
     COMMON_ENTRY;
     int io_number = fpioa_get_io_by_func(FUNC_GPIOHS0 + pin);
@@ -119,7 +119,7 @@ static void gpiohs_set_drive_mode(void* userdata, uint32_t pin, gpio_drive_mode_
     set_bit_idx(reg, pin, 1);
 }
 
-void gpiohs_set_pin_edge(void* userdata, uint32_t pin, gpio_pin_edge_t edge)
+void gpiohs_set_pin_edge(uint32_t pin, gpio_pin_edge_t edge, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -198,20 +198,20 @@ static void gpiohs_pin_on_change_isr(void* userdata)
         ctx->callback(ctx->pin, ctx->userdata);
 }
 
-void gpiohs_set_on_changed(void* userdata, uint32_t pin, gpio_on_changed_t callback, void* callback_data)
+void gpiohs_set_on_changed(uint32_t pin, gpio_on_changed_t callback, void* callback_data, void* userdata)
 {
     COMMON_ENTRY;
     data->pin_context[pin].userdata = callback_data;
     data->pin_context[pin].callback = callback;
 }
 
-gpio_pin_value_t gpiohs_get_pin_value(void* userdata, uint32_t pin)
+gpio_pin_value_t gpiohs_get_pin_value(uint32_t pin, void* userdata)
 {
     COMMON_ENTRY;
     return get_bit_idx(gpiohs->input_val.u32, pin);
 }
 
-void gpiohs_set_pin_value(void* userdata, uint32_t pin, gpio_pin_value_t value)
+void gpiohs_set_pin_value(uint32_t pin, gpio_pin_value_t value, void* userdata)
 {
     COMMON_ENTRY;
     set_bit_idx(gpiohs->output_val.u32, pin, value);

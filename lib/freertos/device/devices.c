@@ -14,15 +14,17 @@
  */
 #include <FreeRTOS.h>
 #include <atomic.h>
+#include <device_priv.h>
+#include <devices.h>
+#include <driver.h>
+#include <hal.h>
+#include <plic.h>
 #include <semphr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysctl.h>
 #include <uarths.h>
-#include "devices.h"
-#include "driver.h"
-#include "hal.h"
 
 #define MAX_HANDLES 256
 #define HANDLE_OFFSET 256
@@ -31,10 +33,10 @@
 #define DEFINE_INSTALL_DRIVER(type)                     \
     static void install_##type##_drivers()              \
     {                                                   \
-        driver_registry_t* head = g_##type##_drivers;   \
+        driver_registry_t *head = g_##type##_drivers;   \
         while (head->name)                              \
         {                                               \
-            const driver_base_t* driver = head->driver; \
+            const driver_base_t *driver = head->driver; \
             driver->install(driver->userdata);          \
             head++;                                     \
         }                                               \
@@ -42,10 +44,10 @@
 
 typedef struct
 {
-    driver_registry_t* driver_reg;
+    driver_registry_t *driver_reg;
 } _file;
 
-static _file* handles_[MAX_HANDLES] = {0};
+static _file *handles_[MAX_HANDLES] = {0};
 static driver_registry_t g_custom_drivers[MAX_CUSTOM_DRIVERS] = {0};
 
 uintptr_t fft_file_;
@@ -56,14 +58,14 @@ DEFINE_INSTALL_DRIVER(hal);
 DEFINE_INSTALL_DRIVER(dma);
 DEFINE_INSTALL_DRIVER(system);
 
-driver_registry_t* find_free_driver(driver_registry_t* registry, const char* name)
+driver_registry_t * find_free_driver(driver_registry_t *registry, const char *name)
 {
-    driver_registry_t* head = registry;
+    driver_registry_t *head = registry;
     while (head->name)
     {
         if (strcmp(name, head->name) == 0)
         {
-            driver_base_t* driver = (driver_base_t*)head->driver;
+            driver_base_t *driver = (driver_base_t*)head->driver;
             if (driver->open(driver->userdata))
                 return head;
             else
@@ -76,10 +78,10 @@ driver_registry_t* find_free_driver(driver_registry_t* registry, const char* nam
     return NULL;
 }
 
-static driver_registry_t* install_custom_driver_core(const char* name, driver_type type, const void* driver)
+static driver_registry_t * install_custom_driver_core(const char *name, driver_type type, const void *driver)
 {
     size_t i = 0;
-    driver_registry_t* head = g_custom_drivers;
+    driver_registry_t *head = g_custom_drivers;
     for (i = 0; i < MAX_CUSTOM_DRIVERS; i++, head++)
     {
         if (!head->name)
@@ -104,11 +106,11 @@ void install_drivers()
     sha256_file_ = io_open("/dev/sha256");
 }
 
-static _file* io_alloc_file(driver_registry_t* driver_reg)
+static _file * io_alloc_file(driver_registry_t *driver_reg)
 {
     if (driver_reg)
     {
-        _file* file = (_file*)malloc(sizeof(_file));
+        _file *file = (_file *)malloc(sizeof(_file));
         if (!file)
             return NULL;
         file->driver_reg = driver_reg;
@@ -118,10 +120,10 @@ static _file* io_alloc_file(driver_registry_t* driver_reg)
     return NULL;
 }
 
-static _file* io_open_reg(driver_registry_t* registry, const char* name, _file** file)
+static _file *io_open_reg(driver_registry_t *registry, const char *name, _file **file)
 {
-    driver_registry_t* driver_reg = find_free_driver(registry, name);
-    _file* ret = io_alloc_file(driver_reg);
+    driver_registry_t *driver_reg = find_free_driver(registry, name);
+    _file *ret = io_alloc_file(driver_reg);
     *file = ret;
     return ret;
 }
@@ -131,29 +133,29 @@ static _file* io_open_reg(driver_registry_t* registry, const char* name, _file**
 #define DEFINE_READ_PROXY(tl, tu)                                                  \
     if (rfile->driver_reg->type == DRIVER_##tu)                                    \
     {                                                                              \
-        const tl##_driver_t* tl = (const tl##_driver_t*)rfile->driver_reg->driver; \
+        const tl##_driver_t *tl = (const tl##_driver_t*)rfile->driver_reg->driver; \
         return tl->read(buffer, len, tl->base.userdata);                           \
     }
 
 #define DEFINE_WRITE_PROXY(tl, tu)                                                 \
     if (rfile->driver_reg->type == DRIVER_##tu)                                    \
     {                                                                              \
-        const tl##_driver_t* tl = (const tl##_driver_t*)rfile->driver_reg->driver; \
+        const tl##_driver_t *tl = (const tl##_driver_t*)rfile->driver_reg->driver; \
         return tl->write(buffer, len, tl->base.userdata);                          \
     }
 
 #define DEFINE_CONTROL_PROXY(tl, tu)                                                                            \
     if (rfile->driver_reg->type == DRIVER_##tu)                                                                 \
     {                                                                                                           \
-        const tl##_driver_t* tl = (const tl##_driver_t*)rfile->driver_reg->driver;                              \
+        const tl##_driver_t *tl = (const tl##_driver_t*)rfile->driver_reg->driver;                              \
         return tl->io_control(control_code, write_buffer, write_len, read_buffer, read_len, tl->base.userdata); \
     }
 
 static void dma_add_free();
 
-int io_read(handle_t file, char* buffer, size_t len)
+int io_read(handle_t file, uint8_t *buffer, size_t len)
 {
-    _file* rfile = (_file*)handles_[file - HANDLE_OFFSET];
+    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     /* clang-format off */
     DEFINE_READ_PROXY(uart, UART)
     else DEFINE_READ_PROXY(i2c_device, I2C_DEVICE)
@@ -165,21 +167,21 @@ int io_read(handle_t file, char* buffer, size_t len)
     /* clang-format on */
 }
 
-static void io_free(_file* file)
+static void io_free(_file *file)
 {
     if (file)
     {
         if (file->driver_reg->type == DRIVER_DMA)
             dma_add_free();
 
-        driver_base_t* driver = (driver_base_t*)file->driver_reg->driver;
+        driver_base_t *driver = (driver_base_t *)file->driver_reg->driver;
         driver->close(driver->userdata);
 
         free(file);
     }
 }
 
-static handle_t io_alloc_handle(_file* file)
+static handle_t io_alloc_handle(_file *file)
 {
     if (file)
     {
@@ -200,9 +202,9 @@ static handle_t io_alloc_handle(_file* file)
     return 0;
 }
 
-handle_t io_open(const char* name)
+handle_t io_open(const char *name)
 {
-    _file* file = 0;
+    _file *file = 0;
     if (io_open_reg(g_system_drivers, name, &file))
     {
     }
@@ -220,7 +222,7 @@ int io_close(handle_t file)
 {
     if (file)
     {
-        _file* rfile = (_file*)handles_[file - HANDLE_OFFSET];
+        _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
         io_free(rfile);
         atomic_set(handles_ + file - HANDLE_OFFSET, 0);
     }
@@ -228,9 +230,9 @@ int io_close(handle_t file)
     return 0;
 }
 
-int io_write(handle_t file, const char* buffer, size_t len)
+int io_write(handle_t file, const uint8_t *buffer, size_t len)
 {
-    _file* rfile = (_file*)handles_[file - HANDLE_OFFSET];
+    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     /* clang-format off */
     DEFINE_WRITE_PROXY(uart, UART)
     else DEFINE_WRITE_PROXY(i2c_device, I2C_DEVICE)
@@ -242,9 +244,9 @@ int io_write(handle_t file, const char* buffer, size_t len)
     /* clang-format on */
 }
 
-int io_control(handle_t file, uint32_t control_code, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len)
+int io_control(handle_t file, uint32_t control_code, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
 {
-    _file* rfile = (_file*)handles_[file - HANDLE_OFFSET];
+    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     DEFINE_CONTROL_PROXY(custom, CUSTOM)
 
     return -1;
@@ -252,15 +254,15 @@ int io_control(handle_t file, uint32_t control_code, const char* write_buffer, s
 
 /* Device IO Implementation Helper Macros */
 
-#define COMMON_ENTRY(tl, tu)                               \
-    _file* rfile = (_file*)handles_[file - HANDLE_OFFSET]; \
-    configASSERT(rfile->driver_reg->type == DRIVER_##tu);  \
-    const tl##_driver_t* tl = (const tl##_driver_t*)rfile->driver_reg->driver;
+#define COMMON_ENTRY(tl, tu)                                \
+    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
+    configASSERT(rfile->driver_reg->type == DRIVER_##tu);   \
+    const tl##_driver_t *tl = (const tl##_driver_t *)rfile->driver_reg->driver;
 
-#define COMMON_ENTRY_FILE(file, tl, tu)                    \
-    _file* rfile = (_file*)handles_[file - HANDLE_OFFSET]; \
-    configASSERT(rfile->driver_reg->type == DRIVER_##tu);  \
-    const tl##_driver_t* tl = (const tl##_driver_t*)rfile->driver_reg->driver;
+#define COMMON_ENTRY_FILE(file, tl, tu)                     \
+    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
+    configASSERT(rfile->driver_reg->type == DRIVER_##tu);   \
+    const tl##_driver_t *tl = (const tl##_driver_t *)rfile->driver_reg->driver;
 
 /* UART */
 
@@ -281,50 +283,50 @@ uint32_t gpio_get_pin_count(handle_t file)
 void gpio_set_drive_mode(handle_t file, uint32_t pin, gpio_drive_mode_t mode)
 {
     COMMON_ENTRY(gpio, GPIO);
-    gpio->set_drive_mode(gpio->base.userdata, pin, mode);
+    gpio->set_drive_mode(pin, mode, gpio->base.userdata);
 }
 
 void gpio_set_pin_edge(handle_t file, uint32_t pin, gpio_pin_edge_t edge)
 {
     COMMON_ENTRY(gpio, GPIO);
-    gpio->set_pin_edge(gpio->base.userdata, pin, edge);
+    gpio->set_pin_edge(pin, edge, gpio->base.userdata);
 }
 
-void gpio_set_on_changed(handle_t file, uint32_t pin, gpio_on_changed_t callback, void* userdata)
+void gpio_set_on_changed(handle_t file, uint32_t pin, gpio_on_changed_t callback, void *userdata)
 {
     COMMON_ENTRY(gpio, GPIO);
-    gpio->set_on_changed(gpio->base.userdata, pin, callback, userdata);
+    gpio->set_on_changed(pin, callback, userdata, gpio->base.userdata);
 }
 
 gpio_pin_value_t gpio_get_pin_value(handle_t file, uint32_t pin)
 {
     COMMON_ENTRY(gpio, GPIO);
-    return gpio->get_pin_value(gpio->base.userdata, pin);
+    return gpio->get_pin_value(pin, gpio->base.userdata);
 }
 
 void gpio_set_pin_value(handle_t file, uint32_t pin, gpio_pin_value_t value)
 {
     COMMON_ENTRY(gpio, GPIO);
-    gpio->set_pin_value(gpio->base.userdata, pin, value);
+    gpio->set_pin_value(pin, value, gpio->base.userdata);
 }
 
 /* I2C */
 
-handle_t i2c_get_device(handle_t file, const char* name, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode)
+handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode)
 {
     COMMON_ENTRY(i2c, I2C);
-    i2c_device_driver_t* driver = i2c->get_device(slave_address, address_width, bus_speed_mode, i2c->base.userdata);
-    driver_registry_t* reg = install_custom_driver_core(name, DRIVER_I2C_DEVICE, driver);
+    i2c_device_driver_t *driver = i2c->get_device(slave_address, address_width, bus_speed_mode, i2c->base.userdata);
+    driver_registry_t *reg = install_custom_driver_core(name, DRIVER_I2C_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
 
-int i2c_dev_transfer_sequential(handle_t file, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len)
+int i2c_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
 {
     COMMON_ENTRY(i2c_device, I2C_DEVICE);
     return i2c_device->transfer_sequential(write_buffer, write_len, read_buffer, read_len, i2c_device->base.userdata);
 }
 
-void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t* handler)
+void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t *handler)
 {
     COMMON_ENTRY(i2c, I2C);
     i2c->config_as_slave(slave_address, address_width, bus_speed_mode, handler, i2c->base.userdata);
@@ -332,19 +334,19 @@ void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address
 
 /* I2S */
 
-void i2s_config_as_render(handle_t file, const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask)
+void i2s_config_as_render(handle_t file, const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask)
 {
     COMMON_ENTRY(i2s, I2S);
     i2s->config_as_render(format, delay_ms, align_mode, channels_mask, i2s->base.userdata);
 }
 
-void i2s_config_as_capture(handle_t file, const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask)
+void i2s_config_as_capture(handle_t file, const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask)
 {
     COMMON_ENTRY(i2s, I2S);
     i2s->config_as_capture(format, delay_ms, align_mode, channels_mask, i2s->base.userdata);
 }
 
-void i2s_get_buffer(handle_t file, char** buffer, size_t* frames)
+void i2s_get_buffer(handle_t file, uint8_t* *buffer, size_t *frames)
 {
     COMMON_ENTRY(i2s, I2S);
     i2s->get_buffer(buffer, frames, i2s->base.userdata);
@@ -370,11 +372,11 @@ void i2s_stop(handle_t file)
 
 /* SPI */
 
-handle_t spi_get_device(handle_t file, const char* name, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
+handle_t spi_get_device(handle_t file, const char *name, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
 {
     COMMON_ENTRY(spi, SPI);
-    spi_device_driver_t* driver = spi->get_device(mode, frame_format, chip_select_mask, data_bit_length, spi->base.userdata);
-    driver_registry_t* reg = install_custom_driver_core(name, DRIVER_SPI_DEVICE, driver);
+    spi_device_driver_t *driver = spi->get_device(mode, frame_format, chip_select_mask, data_bit_length, spi->base.userdata);
+    driver_registry_t *reg = install_custom_driver_core(name, DRIVER_SPI_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
 
@@ -390,13 +392,13 @@ double spi_dev_set_clock_rate(handle_t file, double clock_rate)
     return spi_device->set_clock_rate(clock_rate, spi_device->base.userdata);
 }
 
-int spi_dev_transfer_full_duplex(handle_t file, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len)
+int spi_dev_transfer_full_duplex(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
 {
     COMMON_ENTRY(spi_device, SPI_DEVICE);
     return spi_device->transfer_full_duplex(write_buffer, write_len, read_buffer, read_len, spi_device->base.userdata);
 }
 
-int spi_dev_transfer_sequential(handle_t file, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len)
+int spi_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
 {
     COMMON_ENTRY(spi_device, SPI_DEVICE);
     return spi_device->transfer_sequential(write_buffer, write_len, read_buffer, read_len, spi_device->base.userdata);
@@ -440,7 +442,7 @@ void dvp_set_output_enable(handle_t file, uint32_t index, int enable)
     dvp->set_output_enable(index, enable, dvp->base.userdata);
 }
 
-void dvp_set_output_attributes(handle_t file, uint32_t index, video_format_t format, void* output_buffer)
+void dvp_set_output_attributes(handle_t file, uint32_t index, video_format_t format, void *output_buffer)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_output_attributes(index, format, output_buffer, dvp->base.userdata);
@@ -452,7 +454,7 @@ void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, int enab
     dvp->set_frame_event_enable(event, enable, dvp->base.userdata);
 }
 
-void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void* userdata)
+void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void *userdata)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_on_frame_event(handler, userdata, dvp->base.userdata);
@@ -460,11 +462,11 @@ void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void* u
 
 /* SSCB */
 
-handle_t sccb_get_device(handle_t file, const char* name, uint32_t slave_address, uint32_t address_width)
+handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width)
 {
     COMMON_ENTRY(sccb, SCCB);
-    sccb_device_driver_t* driver = sccb->get_device(slave_address, address_width, sccb->base.userdata);
-    driver_registry_t* reg = install_custom_driver_core(name, DRIVER_SCCB_DEVICE, driver);
+    sccb_device_driver_t *driver = sccb->get_device(slave_address, address_width, sccb->base.userdata);
+    driver_registry_t *reg = install_custom_driver_core(name, DRIVER_SCCB_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
 
@@ -482,7 +484,7 @@ void sccb_dev_write_byte(handle_t file, uint16_t reg_address, uint8_t value)
 
 /* FFT */
 
-void fft_complex_uint16(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t* input, uint16_t* output)
+void fft_complex_uint16(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t *input, uint16_t *output)
 {
     COMMON_ENTRY_FILE(fft_file_, fft, FFT);
     fft->complex_uint16(point, direction, shifts_mask, input, output, fft->base.userdata);
@@ -490,12 +492,12 @@ void fft_complex_uint16(fft_point point, fft_direction direction, uint32_t shift
 
 /* AES */
 
-void aes_decrypt(aes_parameter* aes_param)
+void aes_decrypt(const aes_parameter *aes_param)
 {
     COMMON_ENTRY_FILE(aes_file_, aes, AES);
     aes->decrypt(aes_param, aes->base.userdata);
 }
-void aes_encrypt(aes_parameter* aes_param)
+void aes_encrypt(const aes_parameter *aes_param)
 {
     COMMON_ENTRY_FILE(aes_file_, aes, AES);
     aes->encrypt(aes_param, aes->base.userdata);
@@ -503,7 +505,7 @@ void aes_encrypt(aes_parameter* aes_param)
 
 /* SHA */
 
-void sha256_str(const char* str, size_t length, uint8_t* hash)
+void sha256_str(const char *str, size_t length, uint8_t *hash)
 {
     COMMON_ENTRY_FILE(sha256_file_, sha256, SHA256);
     sha256->sha_str(str, length, hash, sha256->base.userdata);
@@ -517,7 +519,7 @@ size_t timer_set_interval(handle_t file, size_t nanoseconds)
     return timer->set_interval(nanoseconds, timer->base.userdata);
 }
 
-void timer_set_on_tick(handle_t file, timer_on_tick_t on_tick, void* ontick_data)
+void timer_set_on_tick(handle_t file, timer_on_tick_t on_tick, void *ontick_data)
 {
     COMMON_ENTRY(timer, TIMER);
     timer->set_on_tick(on_tick, ontick_data, timer->base.userdata);
@@ -606,8 +608,8 @@ static uintptr_t pic_file_;
 
 typedef struct
 {
-    pic_irq_handler_t pic_callbacks[MAX_IRQN];
-    void* callback_userdata[MAX_IRQN];
+    pic_irq_handler_t pic_callbacks[IRQN_MAX];
+    void *callback_userdata[IRQN_MAX];
 } pic_context_t;
 
 static pic_context_t pic_context_;
@@ -616,7 +618,7 @@ static SemaphoreHandle_t dma_free_;
 static void init_dma_system()
 {
     size_t count = 0;
-    driver_registry_t* head = g_dma_drivers;
+    driver_registry_t *head = g_dma_drivers;
     while (head->name)
     {
         count++;
@@ -650,7 +652,7 @@ void pic_set_irq_priority(uint32_t irq, uint32_t priority)
     pic->set_irq_priority(irq, priority, pic->base.userdata);
 }
 
-void pic_set_irq_handler(uint32_t irq, pic_irq_handler_t handler, void* userdata)
+void pic_set_irq_handler(uint32_t irq, pic_irq_handler_t handler, void *userdata)
 {
     atomic_set(pic_context_.callback_userdata + irq, userdata);
     pic_context_.pic_callbacks[irq] = handler;
@@ -672,7 +674,7 @@ handle_t dma_open_free()
     driver_registry_t *head = g_dma_drivers, *driver_reg = NULL;
     while (head->name)
     {
-        driver_base_t* driver = (driver_base_t*)head->driver;
+        driver_base_t *driver = (driver_base_t*)head->driver;
         if (driver->open(driver->userdata))
         {
             driver_reg = head;
@@ -703,13 +705,13 @@ void dma_set_request_source(handle_t file, uint32_t request)
     dma->set_select_request(request, dma->base.userdata);
 }
 
-void dma_transmit_async(handle_t file, const volatile void* src, volatile void* dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event)
+void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event)
 {
     COMMON_ENTRY(dma, DMA);
     dma->transmit_async(src, dest, src_inc, dest_inc, element_size, count, burst_size, completion_event, dma->base.userdata);
 }
 
-void dma_transmit(handle_t file, const volatile void* src, volatile void* dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size)
+void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size)
 {
     SemaphoreHandle_t event = xSemaphoreCreateBinary();
     dma_transmit_async(file, src, dest, src_inc, dest_inc, element_size, count, burst_size, event);
@@ -718,7 +720,7 @@ void dma_transmit(handle_t file, const volatile void* src, volatile void* dest, 
     vSemaphoreDelete(event);
 }
 
-void dma_loop_async(handle_t file, const volatile void** srcs, size_t src_num, volatile void** dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void* stage_completion_handler_data, SemaphoreHandle_t completion_event, int* stop_signal)
+void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal)
 {
     COMMON_ENTRY(dma, DMA);
     dma->loop_async(srcs, src_num, dests, dest_num, src_inc, dest_inc, element_size, count, burst_size, stage_completion_handler, stage_completion_handler_data, completion_event, stop_signal, dma->base.userdata);
@@ -726,7 +728,7 @@ void dma_loop_async(handle_t file, const volatile void** srcs, size_t src_num, v
 
 /* Custom Driver */
 
-void system_install_custom_driver(const char* name, const custom_driver_t* driver)
+void system_install_custom_driver(const char *name, const custom_driver_t *driver)
 {
     install_custom_driver_core(name, DRIVER_CUSTOM, driver);
 }
@@ -739,7 +741,7 @@ uint32_t system_set_cpu_frequency(uint32_t frequency)
 
     sysctl_pll_disable(SYSCTL_PLL0);
     sysctl_pll_enable(SYSCTL_PLL0);
-    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, SYSCTL_SOURCE_IN0, frequency * 2);
+    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, SYSCTL_SOURCE_IN0, frequency  *2);
 
     while (sysctl_pll_is_lock(SYSCTL_PLL0) == 0)
         sysctl_pll_clear_slip(SYSCTL_PLL0);

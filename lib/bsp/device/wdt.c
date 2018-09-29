@@ -39,9 +39,9 @@
 #include <sysctl.h>
 #include <wdt.h>
 
-#define COMMON_ENTRY                                                            \
-    wdt_data* data = (wdt_data*)userdata;                                       \
-    volatile struct wdt_t* wdt = (volatile struct wdt_t*)data->base_addr;       \
+#define COMMON_ENTRY                                              \
+    wdt_data* data = (wdt_data*)userdata;                         \
+    volatile wdt_t* wdt = (volatile wdt_t*)data->base_addr;       \
     (void)wdt;
 
 typedef struct

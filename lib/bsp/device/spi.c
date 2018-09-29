@@ -99,12 +99,12 @@ typedef struct
 static void spi_dev_install(void* userdata);
 static int spi_dev_open(void* userdata);
 static void spi_dev_close(void* userdata);
-static int spi_dev_read(char* buffer, size_t len, void* userdata);
-static int spi_dev_write(const char* buffer, size_t len, void* userdata);
+static int spi_dev_read(uint8_t* buffer, size_t len, void* userdata);
+static int spi_dev_write(const uint8_t* buffer, size_t len, void* userdata);
 static void spi_dev_config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode, void* userdata);
 static double spi_dev_set_clock_rate(double clock_rate, void* userdata);
-static int spi_dev_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata);
-static int spi_dev_transfer_full_duplex(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata);
+static int spi_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata);
+static int spi_dev_transfer_full_duplex(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata);
 static void spi_dev_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count, void* userdata);
 
 static spi_device_driver_t* spi_get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length, void* userdata)
@@ -245,13 +245,13 @@ static void spi_config(uint32_t instruction_length, uint32_t address_length, uin
     data->addr_width = get_inst_addr_width(address_length);
 }
 
-static void write_inst_addr(volatile uint32_t* dr, const char** buffer, size_t width)
+static void write_inst_addr(volatile uint32_t* dr, const uint8_t** buffer, size_t width)
 {
     configASSERT(width <= 4);
     if (width)
     {
         uint32_t cmd = 0;
-        char* pcmd = (char*)&cmd;
+        uint8_t* pcmd = (uint8_t*)&cmd;
         size_t i;
         for (i = 0; i < width; i++)
         {
@@ -263,7 +263,7 @@ static void write_inst_addr(volatile uint32_t* dr, const char** buffer, size_t w
     }
 }
 
-static int spi_read(char* buffer, size_t len, void* userdata)
+static int spi_read(uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -271,7 +271,7 @@ static int spi_read(char* buffer, size_t len, void* userdata)
     uintptr_t dma_read = dma_open_free();
     dma_set_request_source(dma_read, data->dma_req_base);
 
-    char* ori_buffer = buffer;
+    uint8_t* ori_buffer = buffer;
 
     set_bit_mask(&spi->ctrlr0, TMOD_MASK, TMOD_VALUE(2));
     spi->ctrlr1 = frames - 1;
@@ -282,8 +282,8 @@ static int spi_read(char* buffer, size_t len, void* userdata)
 
     dma_transmit_async(dma_read, &spi->dr[0], ori_buffer, 0, 1, data->buffer_width, frames, 1, event_read);
 
-    write_inst_addr(spi->dr, (const char**)&buffer, data->inst_width);
-    write_inst_addr(spi->dr, (const char**)&buffer, data->addr_width);
+    write_inst_addr(spi->dr, (const uint8_t**)&buffer, data->inst_width);
+    write_inst_addr(spi->dr, (const uint8_t**)&buffer, data->addr_width);
     spi->ser = data->chip_select_mask;
 
     configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
@@ -296,7 +296,7 @@ static int spi_read(char* buffer, size_t len, void* userdata)
     return len;
 }
 
-static int spi_write(const char* buffer, size_t len, void* userdata)
+static int spi_write(const uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -338,9 +338,9 @@ void spi_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t cou
     spi->dmacr = 0x2;
     spi->ssienr = 0x01;
 
-    const char* buffer = (const char*)&instruction;
+    const uint8_t* buffer = (const uint8_t*)&instruction;
     write_inst_addr(spi->dr, &buffer, data->inst_width);
-    buffer = (const char*)&address;
+    buffer = (const uint8_t*)&address;
     write_inst_addr(spi->dr, &buffer, data->addr_width);
 
     SemaphoreHandle_t event_write = xSemaphoreCreateBinary();
@@ -358,7 +358,7 @@ void spi_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t cou
     spi->dmacr = 0x00;
 }
 
-static int spi_read_write(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int spi_read_write(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(data->frame_format == SPI_FF_STANDARD);
@@ -395,7 +395,7 @@ static int spi_read_write(const char* write_buffer, size_t write_len, char* read
     return read_len;
 }
 
-static int spi_transfer_full_duplex(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int spi_transfer_full_duplex(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(data->frame_format == SPI_FF_STANDARD);
@@ -403,7 +403,7 @@ static int spi_transfer_full_duplex(const char* write_buffer, size_t write_len, 
     return spi_read_write(write_buffer, write_len, read_buffer, read_len, userdata);
 }
 
-static int spi_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int spi_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(data->frame_format == SPI_FF_STANDARD);
@@ -439,7 +439,7 @@ static void spi_dev_close(void* userdata)
 {
 }
 
-static int spi_dev_read(char* buffer, size_t len, void* userdata)
+static int spi_dev_read(uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -448,7 +448,7 @@ static int spi_dev_read(char* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static int spi_dev_write(const char* buffer, size_t len, void* userdata)
+static int spi_dev_write(const uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -477,7 +477,7 @@ static double spi_dev_set_clock_rate(double clock_rate, void* userdata)
     return clk / div;
 }
 
-static int spi_dev_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int spi_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -486,7 +486,7 @@ static int spi_dev_transfer_sequential(const char* write_buffer, size_t write_le
     return ret;
 }
 
-static int spi_dev_transfer_full_duplex(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int spi_dev_transfer_full_duplex(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);

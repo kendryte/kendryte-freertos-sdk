@@ -1303,7 +1303,7 @@ struct dmac_channel_t
     uint64_t reserved2[12];
 } __attribute__((packed, aligned(8)));
 
-struct dmac_t
+typedef struct _dmac
 {
     /* (0x00) DMAC ID Rgister */
     uint64_t id;
@@ -1328,7 +1328,7 @@ struct dmac_t
     uint64_t reset;
     uint64_t reserved2[20];
     struct dmac_channel_t channel[DMAC_CHANNEL_COUNT];
-} __attribute__((packed, aligned(8)));
+} __attribute__((packed, aligned(8))) dmac_t;
 
 struct dmac_channel_config_t
 {

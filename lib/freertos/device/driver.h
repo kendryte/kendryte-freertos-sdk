@@ -32,8 +32,8 @@ typedef struct _driver_base
 {
     void *userdata;
     void (*install)(void *userdata);
-    int (*open)(void* userdata);
-    void (*close)(void* userdata);
+    int (*open)(void *userdata);
+    void (*close)(void *userdata);
 } driver_base_t;
 
 typedef enum
@@ -86,8 +86,8 @@ typedef struct tag_uart_driver
 {
     driver_base_t base;
     void (*config)(uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity, void *userdata);
-    int (*read)(char *buffer, size_t len, void *userdata);
-    int (*write)(const char *buffer, size_t len, void *userdata);
+    int (*read)(uint8_t *buffer, size_t len, void *userdata);
+    int (*write)(const uint8_t *buffer, size_t len, void *userdata);
 } uart_driver_t;
 
 typedef enum _gpio_drive_mode
@@ -118,11 +118,11 @@ typedef struct tag_gpio_driver
 {
     driver_base_t base;
     uint32_t pin_count;
-    void (*set_drive_mode)(void *userdata, uint32_t pin, gpio_drive_mode_t mode);
-    void (*set_pin_edge)(void *userdata, uint32_t pin, gpio_pin_edge_t edge);
-    void (*set_on_changed)(void *userdata, uint32_t pin, gpio_on_changed_t callback, void *callback_data);
-    void (*set_pin_value)(void *userdata, uint32_t pin, gpio_pin_value_t value);
-    gpio_pin_value_t (*get_pin_value)(void *userdata, uint32_t pin);
+    void (*set_drive_mode)(uint32_t pin, gpio_drive_mode_t mode, void *userdata);
+    void (*set_pin_edge)(uint32_t pin, gpio_pin_edge_t edge, void *userdata);
+    void (*set_on_changed)(uint32_t pin, gpio_on_changed_t callback, void *callback_data, void *userdata);
+    void (*set_pin_value)(uint32_t pin, gpio_pin_value_t value, void *userdata);
+    gpio_pin_value_t (*get_pin_value)(uint32_t pin, void *userdata);
 } gpio_driver_t;
 
 typedef enum
@@ -133,9 +133,9 @@ typedef enum
 typedef struct tag_i2c_device_driver
 {
     driver_base_t base;
-    int (*read)(char *buffer, size_t len, void *userdata);
-    int (*write)(const char *buffer, size_t len, void *userdata);
-    int (*transfer_sequential)(const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len, void *userdata);
+    int (*read)(uint8_t *buffer, size_t len, void *userdata);
+    int (*write)(const uint8_t *buffer, size_t len, void *userdata);
+    int (*transfer_sequential)(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
 } i2c_device_driver_t;
 
 typedef enum _i2c_event
@@ -184,7 +184,7 @@ typedef struct tag_i2s_driver
     driver_base_t base;
     void (*config_as_render)(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata);
     void (*config_as_capture)(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata);
-    void (*get_buffer)(char **buffer, size_t *frames, void *userdata);
+    void (*get_buffer)(uint8_t **buffer, size_t *frames, void *userdata);
     void (*release_buffer)(size_t frames, void *userdata);
     void (*start)(void *userdata);
     void (*stop)(void *userdata);
@@ -218,10 +218,10 @@ typedef struct tag_spi_device_driver
     driver_base_t base;
     void (*config)(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode, void *userdata);
     double (*set_clock_rate)(double clock_rate, void *userdata);
-    int (*read)(char *buffer, size_t len, void *userdata);
-    int (*write)(const char *buffer, size_t len, void *userdata);
-    int (*transfer_full_duplex)(const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len, void *userdata);
-    int (*transfer_sequential)(const char *write_buffer, size_t write_len, char *read_buffer, size_t read_len, void *userdata);
+    int (*read)(uint8_t *buffer, size_t len, void *userdata);
+    int (*write)(const uint8_t *buffer, size_t len, void *userdata);
+    int (*transfer_full_duplex)(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
+    int (*transfer_sequential)(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
     void (*fill)(uint32_t instruction, uint32_t address, uint32_t value, size_t count, void *userdata);
 } spi_device_driver_t;
 
@@ -249,32 +249,32 @@ typedef enum _dvp_signal_type
     DVP_SIG_RESET
 } dvp_signal_type_t;
 
-typedef void (*dvp_on_frame_event_t)(dvp_frame_event_t event, void* userdata);
+typedef void (*dvp_on_frame_event_t)(dvp_frame_event_t event, void *userdata);
 
 typedef struct tag_dvp_driver
 {
     driver_base_t base;
     uint32_t output_num;
-    void (*config)(uint32_t width, uint32_t height, int auto_enable, void* userdata);
+    void (*config)(uint32_t width, uint32_t height, int auto_enable, void *userdata);
     void (*enable_frame)(void* userdata);
-    void (*set_signal)(dvp_signal_type_t type, int value, void* userdata);
-    void (*set_output_enable)(uint32_t index, int enable, void* userdata);
-    void (*set_output_attributes)(uint32_t index, video_format_t format, void* output_buffer, void* userdata);
-    void (*set_frame_event_enable)(dvp_frame_event_t event, int enable, void* userdata);
-    void (*set_on_frame_event)(dvp_on_frame_event_t callback, void* callback_data, void* userdata);
+    void (*set_signal)(dvp_signal_type_t type, int value, void *userdata);
+    void (*set_output_enable)(uint32_t index, int enable, void *userdata);
+    void (*set_output_attributes)(uint32_t index, video_format_t format, void *output_buffer, void *userdata);
+    void (*set_frame_event_enable)(dvp_frame_event_t event, int enable, void *userdata);
+    void (*set_on_frame_event)(dvp_on_frame_event_t callback, void *callback_data, void *userdata);
 } dvp_driver_t;
 
 typedef struct tag_sccb_device_driver
 {
     driver_base_t base;
-    uint8_t(*read_byte)(uint16_t reg_address, void* userdata);
-    void(*write_byte)(uint16_t reg_address, uint8_t value, void* userdata);
+    uint8_t(*read_byte)(uint16_t reg_address, void *userdata);
+    void(*write_byte)(uint16_t reg_address, uint8_t value, void *userdata);
 } sccb_device_driver_t;
 
 typedef struct tag_sccb_driver
 {
     driver_base_t base;
-    sccb_device_driver_t* (*get_device)(uint32_t slave_address, uint32_t address_width, void* userdata);
+    sccb_device_driver_t* (*get_device)(uint32_t slave_address, uint32_t address_width, void *userdata);
 } sccb_driver_t;
 
 typedef struct
@@ -302,7 +302,7 @@ typedef enum
 typedef struct tag_fft_driver
 {
     driver_base_t base;
-    void (*complex_uint16)(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t* input, uint16_t* output, void* userdata);
+    void (*complex_uint16)(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t *input, uint16_t *output, void *userdata);
 } fft_driver_t;
 
 typedef enum
@@ -343,14 +343,14 @@ typedef struct tag_aes_parameter
 typedef struct tag_aes_driver
 {
     driver_base_t base;
-    void (*decrypt)(aes_parameter* aes_param, void* userdata);
-    void (*encrypt)(aes_parameter* aes_param, void* userdata);
+    void (*decrypt)(const aes_parameter *aes_param, void *userdata);
+    void (*encrypt)(const aes_parameter *aes_param, void *userdata);
 } aes_driver_t;
 
 typedef struct tag_sha256_driver
 {
     driver_base_t base;
-    void (*sha_str)(const char* str, size_t length, uint8_t* hash, void* userdata);
+    void (*sha_str)(const char *str, size_t length, uint8_t *hash, void *userdata);
 } sha256_driver_t;
 
 typedef void (*timer_on_tick_t)(void* userdata);
@@ -358,18 +358,18 @@ typedef void (*timer_on_tick_t)(void* userdata);
 typedef struct tag_timer_driver
 {
     driver_base_t base;
-    size_t (*set_interval)(size_t nanoseconds, void* userdata);
-    void (*set_on_tick)(timer_on_tick_t on_tick, void* ontick_data, void* userdata);
-    void (*set_enable)(int enable, void* userdata);
+    size_t (*set_interval)(size_t nanoseconds, void *userdata);
+    void (*set_on_tick)(timer_on_tick_t on_tick, void *ontick_data, void *userdata);
+    void (*set_enable)(int enable, void *userdata);
 } timer_driver_t;
 
 typedef struct tag_pwm_driver
 {
     driver_base_t base;
     uint32_t pin_count;
-    double (*set_frequency)(double frequency, void* userdata);
-    double (*set_active_duty_cycle_percentage)(uint32_t pin, double duty_cycle_percentage, void* userdata);
-    void (*set_enable)(uint32_t pin, int enable, void* userdata);
+    double (*set_frequency)(double frequency, void *userdata);
+    double (*set_active_duty_cycle_percentage)(uint32_t pin, double duty_cycle_percentage, void *userdata);
+    void (*set_enable)(uint32_t pin, int enable, void *userdata);
 } pwm_driver_t;
 
 typedef enum _wdt_response_mode
@@ -400,19 +400,19 @@ typedef struct tag_rtc_driver
 typedef struct _custom_driver
 {
     driver_base_t base;
-    int (*io_control)(uint32_t control_code, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata);
+    int (*io_control)(uint32_t control_code, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
 } custom_driver_t;
 
 /* ===== internal drivers ======*/
 
-typedef void (*pic_irq_handler_t)(void* userdata);
+typedef void (*pic_irq_handler_t)(void *userdata);
 void kernel_iface_pic_on_irq(uint32_t irq);
 
 typedef struct tag_pic_driver
 {
     driver_base_t base;
-    void (*set_irq_enable)(uint32_t irq, int enable, void* userdata);
-    void (*set_irq_priority)(uint32_t irq, uint32_t priority, void* userdata);
+    void (*set_irq_enable)(uint32_t irq, int enable, void *userdata);
+    void (*set_irq_priority)(uint32_t irq, uint32_t priority, void *userdata);
 } pic_driver_t;
 
 typedef struct tag_dmac_driver
@@ -420,15 +420,15 @@ typedef struct tag_dmac_driver
     driver_base_t base;
 } dmac_driver_t;
 
-typedef void (*dma_stage_completion_handler_t)(void* userdata);
+typedef void (*dma_stage_completion_handler_t)(void *userdata);
 
 typedef struct tag_dma_driver
 {
     driver_base_t base;
-    void (*set_select_request)(uint32_t request, void* userdata);
-    void (*config)(uint32_t priority, void* userdata);
-    void (*transmit_async)(const volatile void* src, volatile void* dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void* userdata);
-    void (*loop_async)(const volatile void** srcs, size_t src_num, volatile void** dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void* stage_completion_handler_data, SemaphoreHandle_t completion_event, int* stop_signal, void* userdata);
+    void (*set_select_request)(uint32_t request, void *userdata);
+    void (*config)(uint32_t priority, void *userdata);
+    void (*transmit_async)(const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata);
+    void (*loop_async)(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata);
 } dma_driver_t;
 
 extern driver_registry_t g_hal_drivers[];

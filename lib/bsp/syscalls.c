@@ -211,7 +211,7 @@ static ssize_t sys_write(int file, const void* ptr, size_t len)
     /* Get size to write */
     register size_t length = len;
     /* Get data pointer */
-    register char* data = (char*)ptr;
+    register uint8_t* data = (uint8_t*)ptr;
 
     if (STDOUT_FILENO == file || STDERR_FILENO == file)
     {

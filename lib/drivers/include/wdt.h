@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 /* clang-format off */
-struct wdt_t
+typedef struct _wdt
 {
     /* WDT Control Register                     (0x00) */
     volatile uint32_t cr;
@@ -58,7 +58,7 @@ struct wdt_t
     volatile uint32_t comp_version;
     /* WDT Component Type Register              (0xfc) */
     volatile uint32_t comp_type;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) wdt_t;
 
 
 #define WDT_RESET_ALL                                       0x00000000U
