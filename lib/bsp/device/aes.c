@@ -3,9 +3,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -263,8 +263,8 @@ static int os_aes_init(uint8_t *key_addr, uint8_t key_length, uint8_t *aes_iv,
     aes->mode_ctl.cipher_mode = cipher_mod;
 
     /*
-      *[1:0],set the first bit and second bit 00:ecb; 01:cbc;
-      *10,11：AES_CIPHER_GCM
+     * [1:0],set the first bit and second bit 00:ecb; 01:cbc;
+     * 10,11：AES_CIPHER_GCM
      */
     aes->encrypt_sel = encrypt_sel;
     aes->gb_aad_end_adr = add_size - 1;
@@ -282,7 +282,7 @@ static int os_aes_init(uint8_t *key_addr, uint8_t key_length, uint8_t *aes_iv,
                 ;
             os_aes_write_aad(u32data, userdata);
         }
-        cnt = 4  *num;
+        cnt = 4 * num;
         remainder = add_size % 4;
         if (remainder)
         {
@@ -336,7 +336,7 @@ static int aes_process_less_80_bytes(uint8_t *aes_in_data,
             ;
         os_aes_write_text(u32data, userdata);
     }
-    cnt = 4  *num;
+    cnt = 4 * num;
     remainder = data_size % 4;
     if (remainder)
     {

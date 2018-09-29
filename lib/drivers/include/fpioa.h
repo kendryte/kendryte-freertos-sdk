@@ -72,44 +72,44 @@ extern "C" {
  * | 15        | SPI0_SS3         | SPI0 Chip Select 3                |
  * | 16        | SPI0_ARB         | SPI0 Arbitration                  |
  * | 17        | SPI0_SCLK        | SPI0 Serial Clock                 |
- * | 18        | UARTHS_RX        | UART High clock_rate Receiver          |
- * | 19        | UARTHS_TX        | UART High clock_rate Transmitter       |
+ * | 18        | UARTHS_RX        | UART High speed Receiver          |
+ * | 19        | UARTHS_TX        | UART High speed Transmitter       |
  * | 20        | CLK_IN1          | Clock Input 1                     |
  * | 21        | CLK_IN2          | Clock Input 2                     |
  * | 22        | CLK_SPI1         | Clock SPI1                        |
  * | 23        | CLK_I2C1         | Clock I2C1                        |
- * | 24        | GPIOHS0          | GPIO High clock_rate 0                 |
- * | 25        | GPIOHS1          | GPIO High clock_rate 1                 |
- * | 26        | GPIOHS2          | GPIO High clock_rate 2                 |
- * | 27        | GPIOHS3          | GPIO High clock_rate 3                 |
- * | 28        | GPIOHS4          | GPIO High clock_rate 4                 |
- * | 29        | GPIOHS5          | GPIO High clock_rate 5                 |
- * | 30        | GPIOHS6          | GPIO High clock_rate 6                 |
- * | 31        | GPIOHS7          | GPIO High clock_rate 7                 |
- * | 32        | GPIOHS8          | GPIO High clock_rate 8                 |
- * | 33        | GPIOHS9          | GPIO High clock_rate 9                 |
- * | 34        | GPIOHS10         | GPIO High clock_rate 10                |
- * | 35        | GPIOHS11         | GPIO High clock_rate 11                |
- * | 36        | GPIOHS12         | GPIO High clock_rate 12                |
- * | 37        | GPIOHS13         | GPIO High clock_rate 13                |
- * | 38        | GPIOHS14         | GPIO High clock_rate 14                |
- * | 39        | GPIOHS15         | GPIO High clock_rate 15                |
- * | 40        | GPIOHS16         | GPIO High clock_rate 16                |
- * | 41        | GPIOHS17         | GPIO High clock_rate 17                |
- * | 42        | GPIOHS18         | GPIO High clock_rate 18                |
- * | 43        | GPIOHS19         | GPIO High clock_rate 19                |
- * | 44        | GPIOHS20         | GPIO High clock_rate 20                |
- * | 45        | GPIOHS21         | GPIO High clock_rate 21                |
- * | 46        | GPIOHS22         | GPIO High clock_rate 22                |
- * | 47        | GPIOHS23         | GPIO High clock_rate 23                |
- * | 48        | GPIOHS24         | GPIO High clock_rate 24                |
- * | 49        | GPIOHS25         | GPIO High clock_rate 25                |
- * | 50        | GPIOHS26         | GPIO High clock_rate 26                |
- * | 51        | GPIOHS27         | GPIO High clock_rate 27                |
- * | 52        | GPIOHS28         | GPIO High clock_rate 28                |
- * | 53        | GPIOHS29         | GPIO High clock_rate 29                |
- * | 54        | GPIOHS30         | GPIO High clock_rate 30                |
- * | 55        | GPIOHS31         | GPIO High clock_rate 31                |
+ * | 24        | GPIOHS0          | GPIO High speed 0                 |
+ * | 25        | GPIOHS1          | GPIO High speed 1                 |
+ * | 26        | GPIOHS2          | GPIO High speed 2                 |
+ * | 27        | GPIOHS3          | GPIO High speed 3                 |
+ * | 28        | GPIOHS4          | GPIO High speed 4                 |
+ * | 29        | GPIOHS5          | GPIO High speed 5                 |
+ * | 30        | GPIOHS6          | GPIO High speed 6                 |
+ * | 31        | GPIOHS7          | GPIO High speed 7                 |
+ * | 32        | GPIOHS8          | GPIO High speed 8                 |
+ * | 33        | GPIOHS9          | GPIO High speed 9                 |
+ * | 34        | GPIOHS10         | GPIO High speed 10                |
+ * | 35        | GPIOHS11         | GPIO High speed 11                |
+ * | 36        | GPIOHS12         | GPIO High speed 12                |
+ * | 37        | GPIOHS13         | GPIO High speed 13                |
+ * | 38        | GPIOHS14         | GPIO High speed 14                |
+ * | 39        | GPIOHS15         | GPIO High speed 15                |
+ * | 40        | GPIOHS16         | GPIO High speed 16                |
+ * | 41        | GPIOHS17         | GPIO High speed 17                |
+ * | 42        | GPIOHS18         | GPIO High speed 18                |
+ * | 43        | GPIOHS19         | GPIO High speed 19                |
+ * | 44        | GPIOHS20         | GPIO High speed 20                |
+ * | 45        | GPIOHS21         | GPIO High speed 21                |
+ * | 46        | GPIOHS22         | GPIO High speed 22                |
+ * | 47        | GPIOHS23         | GPIO High speed 23                |
+ * | 48        | GPIOHS24         | GPIO High speed 24                |
+ * | 49        | GPIOHS25         | GPIO High speed 25                |
+ * | 50        | GPIOHS26         | GPIO High speed 26                |
+ * | 51        | GPIOHS27         | GPIO High speed 27                |
+ * | 52        | GPIOHS28         | GPIO High speed 28                |
+ * | 53        | GPIOHS29         | GPIO High speed 29                |
+ * | 54        | GPIOHS30         | GPIO High speed 30                |
+ * | 55        | GPIOHS31         | GPIO High speed 31                |
  * | 56        | GPIO0            | GPIO pin 0                        |
  * | 57        | GPIO1            | GPIO pin 1                        |
  * | 58        | GPIO2            | GPIO pin 2                        |
@@ -337,44 +337,44 @@ enum fpioa_function_e
     FUNC_SPI0_SS3         = 15, /*!< SPI0 Chip Select 3 */
     FUNC_SPI0_ARB         = 16, /*!< SPI0 Arbitration */
     FUNC_SPI0_SCLK        = 17, /*!< SPI0 Serial Clock */
-    FUNC_UARTHS_RX        = 18, /*!< UART High clock_rate Receiver */
-    FUNC_UARTHS_TX        = 19, /*!< UART High clock_rate Transmitter */
+    FUNC_UARTHS_RX        = 18, /*!< UART High speed Receiver */
+    FUNC_UARTHS_TX        = 19, /*!< UART High speed Transmitter */
     FUNC_CLK_IN1          = 20, /*!< Clock Input 1 */
     FUNC_CLK_IN2          = 21, /*!< Clock Input 2 */
     FUNC_CLK_SPI1         = 22, /*!< Clock SPI1 */
     FUNC_CLK_I2C1         = 23, /*!< Clock I2C1 */
-    FUNC_GPIOHS0          = 24, /*!< GPIO High clock_rate 0 */
-    FUNC_GPIOHS1          = 25, /*!< GPIO High clock_rate 1 */
-    FUNC_GPIOHS2          = 26, /*!< GPIO High clock_rate 2 */
-    FUNC_GPIOHS3          = 27, /*!< GPIO High clock_rate 3 */
-    FUNC_GPIOHS4          = 28, /*!< GPIO High clock_rate 4 */
-    FUNC_GPIOHS5          = 29, /*!< GPIO High clock_rate 5 */
-    FUNC_GPIOHS6          = 30, /*!< GPIO High clock_rate 6 */
-    FUNC_GPIOHS7          = 31, /*!< GPIO High clock_rate 7 */
-    FUNC_GPIOHS8          = 32, /*!< GPIO High clock_rate 8 */
-    FUNC_GPIOHS9          = 33, /*!< GPIO High clock_rate 9 */
-    FUNC_GPIOHS10         = 34, /*!< GPIO High clock_rate 10 */
-    FUNC_GPIOHS11         = 35, /*!< GPIO High clock_rate 11 */
-    FUNC_GPIOHS12         = 36, /*!< GPIO High clock_rate 12 */
-    FUNC_GPIOHS13         = 37, /*!< GPIO High clock_rate 13 */
-    FUNC_GPIOHS14         = 38, /*!< GPIO High clock_rate 14 */
-    FUNC_GPIOHS15         = 39, /*!< GPIO High clock_rate 15 */
-    FUNC_GPIOHS16         = 40, /*!< GPIO High clock_rate 16 */
-    FUNC_GPIOHS17         = 41, /*!< GPIO High clock_rate 17 */
-    FUNC_GPIOHS18         = 42, /*!< GPIO High clock_rate 18 */
-    FUNC_GPIOHS19         = 43, /*!< GPIO High clock_rate 19 */
-    FUNC_GPIOHS20         = 44, /*!< GPIO High clock_rate 20 */
-    FUNC_GPIOHS21         = 45, /*!< GPIO High clock_rate 21 */
-    FUNC_GPIOHS22         = 46, /*!< GPIO High clock_rate 22 */
-    FUNC_GPIOHS23         = 47, /*!< GPIO High clock_rate 23 */
-    FUNC_GPIOHS24         = 48, /*!< GPIO High clock_rate 24 */
-    FUNC_GPIOHS25         = 49, /*!< GPIO High clock_rate 25 */
-    FUNC_GPIOHS26         = 50, /*!< GPIO High clock_rate 26 */
-    FUNC_GPIOHS27         = 51, /*!< GPIO High clock_rate 27 */
-    FUNC_GPIOHS28         = 52, /*!< GPIO High clock_rate 28 */
-    FUNC_GPIOHS29         = 53, /*!< GPIO High clock_rate 29 */
-    FUNC_GPIOHS30         = 54, /*!< GPIO High clock_rate 30 */
-    FUNC_GPIOHS31         = 55, /*!< GPIO High clock_rate 31 */
+    FUNC_GPIOHS0          = 24, /*!< GPIO High speed 0 */
+    FUNC_GPIOHS1          = 25, /*!< GPIO High speed 1 */
+    FUNC_GPIOHS2          = 26, /*!< GPIO High speed 2 */
+    FUNC_GPIOHS3          = 27, /*!< GPIO High speed 3 */
+    FUNC_GPIOHS4          = 28, /*!< GPIO High speed 4 */
+    FUNC_GPIOHS5          = 29, /*!< GPIO High speed 5 */
+    FUNC_GPIOHS6          = 30, /*!< GPIO High speed 6 */
+    FUNC_GPIOHS7          = 31, /*!< GPIO High speed 7 */
+    FUNC_GPIOHS8          = 32, /*!< GPIO High speed 8 */
+    FUNC_GPIOHS9          = 33, /*!< GPIO High speed 9 */
+    FUNC_GPIOHS10         = 34, /*!< GPIO High speed 10 */
+    FUNC_GPIOHS11         = 35, /*!< GPIO High speed 11 */
+    FUNC_GPIOHS12         = 36, /*!< GPIO High speed 12 */
+    FUNC_GPIOHS13         = 37, /*!< GPIO High speed 13 */
+    FUNC_GPIOHS14         = 38, /*!< GPIO High speed 14 */
+    FUNC_GPIOHS15         = 39, /*!< GPIO High speed 15 */
+    FUNC_GPIOHS16         = 40, /*!< GPIO High speed 16 */
+    FUNC_GPIOHS17         = 41, /*!< GPIO High speed 17 */
+    FUNC_GPIOHS18         = 42, /*!< GPIO High speed 18 */
+    FUNC_GPIOHS19         = 43, /*!< GPIO High speed 19 */
+    FUNC_GPIOHS20         = 44, /*!< GPIO High speed 20 */
+    FUNC_GPIOHS21         = 45, /*!< GPIO High speed 21 */
+    FUNC_GPIOHS22         = 46, /*!< GPIO High speed 22 */
+    FUNC_GPIOHS23         = 47, /*!< GPIO High speed 23 */
+    FUNC_GPIOHS24         = 48, /*!< GPIO High speed 24 */
+    FUNC_GPIOHS25         = 49, /*!< GPIO High speed 25 */
+    FUNC_GPIOHS26         = 50, /*!< GPIO High speed 26 */
+    FUNC_GPIOHS27         = 51, /*!< GPIO High speed 27 */
+    FUNC_GPIOHS28         = 52, /*!< GPIO High speed 28 */
+    FUNC_GPIOHS29         = 53, /*!< GPIO High speed 29 */
+    FUNC_GPIOHS30         = 54, /*!< GPIO High speed 30 */
+    FUNC_GPIOHS31         = 55, /*!< GPIO High speed 31 */
     FUNC_GPIO0            = 56, /*!< GPIO pin 0 */
     FUNC_GPIO1            = 57, /*!< GPIO pin 1 */
     FUNC_GPIO2            = 58, /*!< GPIO pin 2 */
