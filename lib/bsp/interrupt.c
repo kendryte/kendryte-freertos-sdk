@@ -12,7 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* Enable kernel-mode log API */
 #include <stdint.h>
 #include <stdlib.h>
 #include <syslog.h>

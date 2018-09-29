@@ -12,11 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* Enable kernel-mode log API */
-#include <stdlib.h>
-
 #include <FreeRTOSConfig.h>
 #include <hal.h>
+#include <stdlib.h>
 #include <sysctl.h>
 #include "clint.h"
 #include "entry.h"
