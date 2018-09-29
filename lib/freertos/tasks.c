@@ -590,6 +590,11 @@ static void prvAddNewTaskToReadyList( UBaseType_t xProcessorId, TCB_t *pxNewTCB 
 
 /*-----------------------------------------------------------*/
 
+    UBaseType_t uxTaskGetProcessorId(void)
+    {
+        return portGET_PROCESSOR_ID();
+    }
+
 #if( configSUPPORT_STATIC_ALLOCATION == 1 )
 
 	TaskHandle_t xTaskCreateStatic(	TaskFunction_t pxTaskCode,
