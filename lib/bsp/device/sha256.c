@@ -173,7 +173,7 @@ static void sha256_str(const char* str, size_t length, uint8_t* hash, void* user
 
     uintptr_t dma_write = dma_open_free();
 
-    dma_set_select_request(dma_write, SYSCTL_DMA_SELECT_SHA_RX_REQ);
+    dma_set_request_source(dma_write, SYSCTL_DMA_SELECT_SHA_RX_REQ);
 
     SemaphoreHandle_t event_write = xSemaphoreCreateBinary();
 

@@ -269,7 +269,7 @@ static int spi_read(char* buffer, size_t len, void* userdata)
 
     size_t frames = len / data->buffer_width;
     uintptr_t dma_read = dma_open_free();
-    dma_set_select_request(dma_read, data->dma_req_base);
+    dma_set_request_source(dma_read, data->dma_req_base);
 
     char* ori_buffer = buffer;
 
@@ -301,7 +301,7 @@ static int spi_write(const char* buffer, size_t len, void* userdata)
     COMMON_ENTRY;
 
     uintptr_t dma_write = dma_open_free();
-    dma_set_select_request(dma_write, data->dma_req_base + 1);
+    dma_set_request_source(dma_write, data->dma_req_base + 1);
 
     set_bit_mask(&spi->ctrlr0, TMOD_MASK, TMOD_VALUE(1));
     spi->dmacr = 0x2;
@@ -332,7 +332,7 @@ void spi_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t cou
     COMMON_ENTRY;
 
     uintptr_t dma_write = dma_open_free();
-    dma_set_select_request(dma_write, data->dma_req_base + 1);
+    dma_set_request_source(dma_write, data->dma_req_base + 1);
 
     set_bit_mask(&spi->ctrlr0, TMOD_MASK, TMOD_VALUE(1));
     spi->dmacr = 0x2;
@@ -366,8 +366,8 @@ static int spi_read_write(const char* write_buffer, size_t write_len, char* read
     uintptr_t dma_write = dma_open_free();
     uintptr_t dma_read = dma_open_free();
 
-    dma_set_select_request(dma_write, data->dma_req_base + 1);
-    dma_set_select_request(dma_read, data->dma_req_base);
+    dma_set_request_source(dma_write, data->dma_req_base + 1);
+    dma_set_request_source(dma_read, data->dma_req_base);
 
     size_t tx_frames = write_len / data->buffer_width;
     size_t rx_frames = read_len / data->buffer_width;

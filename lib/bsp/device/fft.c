@@ -106,8 +106,8 @@ static void fft_complex_uint16(fft_point point, fft_direction direction, uint32_
     uintptr_t dma_write = dma_open_free();
     uintptr_t dma_read = dma_open_free();
 
-    dma_set_select_request(dma_write, SYSCTL_DMA_SELECT_FFT_TX_REQ);
-    dma_set_select_request(dma_read, SYSCTL_DMA_SELECT_FFT_RX_REQ);
+    dma_set_request_source(dma_write, SYSCTL_DMA_SELECT_FFT_TX_REQ);
+    dma_set_request_source(dma_read, SYSCTL_DMA_SELECT_FFT_RX_REQ);
 
     SemaphoreHandle_t event_read = xSemaphoreCreateBinary(), event_write = xSemaphoreCreateBinary();
 

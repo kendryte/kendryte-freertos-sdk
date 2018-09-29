@@ -174,7 +174,7 @@ static int i2c_write(const char* buffer, size_t len, void* userdata)
 
     uintptr_t dma_write = dma_open_free();
 
-    dma_set_select_request(dma_write, data->dma_req_base + 1);
+    dma_set_request_source(dma_write, data->dma_req_base + 1);
     dma_transmit(dma_write, buffer, &i2c->data_cmd, 1, 0, 1, len, 4);
     dma_close(dma_write);
 
@@ -201,8 +201,8 @@ static int i2c_transfer_sequential(const char* write_buffer, size_t write_len, c
     uintptr_t dma_read = dma_open_free();
     SemaphoreHandle_t event_read = xSemaphoreCreateBinary(), event_write = xSemaphoreCreateBinary();
 
-    dma_set_select_request(dma_write, data->dma_req_base + 1);
-    dma_set_select_request(dma_read, data->dma_req_base);
+    dma_set_request_source(dma_write, data->dma_req_base + 1);
+    dma_set_request_source(dma_read, data->dma_req_base);
 
     dma_transmit_async(dma_read, &i2c->data_cmd, read_buffer, 0, 1, 1 /*sizeof(uint32_t)*/, read_len, 1 /*4*/, event_read);
     dma_transmit_async(dma_write, write_cmd, &i2c->data_cmd, 1, 0, sizeof(uint32_t), write_len + read_len, 4, event_write);

@@ -459,7 +459,7 @@ static void aes_decrypt(aes_parameter* aes_param, void* userdata)
     uintptr_t aes_write = dma_open_free();
     uintptr_t aes_read = dma_open_free();
 
-    dma_set_select_request(aes_read, SYSCTL_DMA_SELECT_AES_REQ);
+    dma_set_request_source(aes_read, SYSCTL_DMA_SELECT_AES_REQ);
 
     SemaphoreHandle_t event_read = xSemaphoreCreateBinary(), event_write = xSemaphoreCreateBinary();
 
@@ -510,7 +510,7 @@ static void aes_encrypt(aes_parameter* aes_param, void* userdata)
     uintptr_t aes_read = dma_open_free();
     uintptr_t aes_write = dma_open_free();
 
-    dma_set_select_request(aes_read, SYSCTL_DMA_SELECT_AES_REQ);
+    dma_set_request_source(aes_read, SYSCTL_DMA_SELECT_AES_REQ);
 
     SemaphoreHandle_t event_read = xSemaphoreCreateBinary(), event_write = xSemaphoreCreateBinary();
     aes->dma_sel = 1;

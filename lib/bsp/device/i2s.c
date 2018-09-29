@@ -462,7 +462,7 @@ static void i2s_start(void* userdata)
 
         data->stop_signal = 0;
         data->transmit_dma = dma_open_free();
-        dma_set_select_request(data->transmit_dma, data->dma_req_base - 1);
+        dma_set_request_source(data->transmit_dma, data->dma_req_base - 1);
         data->dma_in_use_buffer = 0;
         data->stage_completion_event = xSemaphoreCreateCounting(100, 0);
         data->completion_event = xSemaphoreCreateBinary();
@@ -481,7 +481,7 @@ static void i2s_start(void* userdata)
 
         data->stop_signal = 0;
         data->transmit_dma = dma_open_free();
-        dma_set_select_request(data->transmit_dma, data->dma_req_base);
+        dma_set_request_source(data->transmit_dma, data->dma_req_base);
         data->dma_in_use_buffer = 0;
         data->stage_completion_event = xSemaphoreCreateCounting(100, 0);
         data->completion_event = xSemaphoreCreateBinary();

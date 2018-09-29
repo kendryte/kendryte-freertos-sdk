@@ -28,7 +28,7 @@ extern "C"
 
 typedef uintptr_t handle_t;
 
-typedef struct tag_driver_base
+typedef struct _driver_base
 {
     void *userdata;
     void (*install)(void *userdata);
@@ -397,22 +397,22 @@ typedef struct tag_rtc_driver
     void (*set_datetime)(const struct tm *datetime, void *userdata);
 } rtc_driver_t;
 
-typedef struct tag_custom_driver
+typedef struct _custom_driver
 {
     driver_base_t base;
-    int (*io_control)(size_t control_code, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata);
+    int (*io_control)(uint32_t control_code, const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata);
 } custom_driver_t;
 
 /* ===== internal drivers ======*/
 
-typedef void (*pic_irq_handler)(void* userdata);
-void kernel_iface_pic_on_irq(size_t irq);
+typedef void (*pic_irq_handler_t)(void* userdata);
+void kernel_iface_pic_on_irq(uint32_t irq);
 
 typedef struct tag_pic_driver
 {
     driver_base_t base;
-    void (*set_irq_enable)(size_t irq, int enable, void* userdata);
-    void (*set_irq_priority)(size_t irq, size_t priority, void* userdata);
+    void (*set_irq_enable)(uint32_t irq, int enable, void* userdata);
+    void (*set_irq_priority)(uint32_t irq, uint32_t priority, void* userdata);
 } pic_driver_t;
 
 typedef struct tag_dmac_driver
@@ -420,7 +420,7 @@ typedef struct tag_dmac_driver
     driver_base_t base;
 } dmac_driver_t;
 
-typedef void (*dma_stage_completion_handler)(void* userdata);
+typedef void (*dma_stage_completion_handler_t)(void* userdata);
 
 typedef struct tag_dma_driver
 {
@@ -428,7 +428,7 @@ typedef struct tag_dma_driver
     void (*set_select_request)(uint32_t request, void* userdata);
     void (*config)(uint32_t priority, void* userdata);
     void (*transmit_async)(const volatile void* src, volatile void* dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void* userdata);
-    void (*loop_async)(const volatile void** srcs, size_t src_num, volatile void** dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler stage_completion_handler, void* stage_completion_handler_data, SemaphoreHandle_t completion_event, int* stop_signal, void* userdata);
+    void (*loop_async)(const volatile void** srcs, size_t src_num, volatile void** dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void* stage_completion_handler_data, SemaphoreHandle_t completion_event, int* stop_signal, void* userdata);
 } dma_driver_t;
 
 extern driver_registry_t g_hal_drivers[];
