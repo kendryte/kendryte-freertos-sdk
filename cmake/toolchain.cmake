@@ -10,35 +10,40 @@ endif ()
 
 message(STATUS "Check for RISCV toolchain ...")
 
-IF("${TOOLCHAIN}" STREQUAL "")
-    message(STATUS "Using default RISCV toolchain")
-
-    global_set(CMAKE_C_COMPILER "riscv64-unknown-elf-gcc${EXT}")
-    global_set(CMAKE_CXX_COMPILER  "riscv64-unknown-elf-g++${EXT}")
-    global_set(CMAKE_LINKER "riscv64-unknown-elf-ld${EXT}")
-    global_set(CMAKE_AR "riscv64-unknown-elf-ar${EXT}")
-    global_set(CMAKE_OBJCOPY "riscv64-unknown-elf-objcopy${EXT}")
-    global_set(CMAKE_SIZE "riscv64-unknown-elf-size${EXT}")
-    global_set(CMAKE_OBJDUMP "riscv64-unknown-elf-objdump${EXT}")
-ELSE()
-    message(STATUS "Using ${TOOLCHAIN} RISCV toolchain")
-
-    global_set(CMAKE_C_COMPILER "${TOOLCHAIN}/riscv64-unknown-elf-gcc${EXT}")
-    global_set(CMAKE_CXX_COMPILER  "${TOOLCHAIN}/riscv64-unknown-elf-g++${EXT}")
-    global_set(CMAKE_LINKER "${TOOLCHAIN}/riscv64-unknown-elf-ld${EXT}")
-    global_set(CMAKE_AR "${TOOLCHAIN}/riscv64-unknown-elf-ar${EXT}")
-    global_set(CMAKE_OBJCOPY "${TOOLCHAIN}/riscv64-unknown-elf-objcopy${EXT}")
-    global_set(CMAKE_SIZE "${TOOLCHAIN}/riscv64-unknown-elf-size${EXT}")
-    global_set(CMAKE_OBJDUMP "${TOOLCHAIN}/riscv64-unknown-elf-objdump${EXT}")
-ENDIF()
-
-if (CMAKE_MAKE_PROGRAM)
-    global_set(_TC_MAKE "${CMAKE_MAKE_PROGRAM}")
+if(NOT TOOLCHAIN)
+    # do nothing
+elseif(NOT "${TOOLCHAIN}" MATCHES "/$")
+    global_set(TOOLCHAIN "${TOOLCHAIN}")
 endif()
 
+message(STATUS "Using ${TOOLCHAIN} RISCV toolchain")
+
+global_set(CMAKE_C_COMPILER "${TOOLCHAIN}riscv64-unknown-elf-gcc${EXT}")
+global_set(CMAKE_CXX_COMPILER "${TOOLCHAIN}riscv64-unknown-elf-g++${EXT}")
+global_set(CMAKE_LINKER "${TOOLCHAIN}riscv64-unknown-elf-ld${EXT}")
+global_set(CMAKE_AR "${TOOLCHAIN}riscv64-unknown-elf-ar${EXT}")
+global_set(CMAKE_OBJCOPY "${TOOLCHAIN}riscv64-unknown-elf-objcopy${EXT}")
+global_set(CMAKE_SIZE "${TOOLCHAIN}riscv64-unknown-elf-size${EXT}")
+global_set(CMAKE_OBJDUMP "${TOOLCHAIN}riscv64-unknown-elf-objdump${EXT}")
+
+execute_process(COMMAND ${CMAKE_C_COMPILER} -print-file-name=crt0.o OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE CRT0_OBJ)
+execute_process(COMMAND ${CMAKE_C_COMPILER} -print-file-name=crtbegin.o OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE CRTBEGIN_OBJ)
+execute_process(COMMAND ${CMAKE_C_COMPILER} -print-file-name=crtend.o OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE CRTEND_OBJ)
+execute_process(COMMAND ${CMAKE_C_COMPILER} -print-file-name=crti.o OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE CRTI_OBJ)
+execute_process(COMMAND ${CMAKE_C_COMPILER} -print-file-name=crtn.o OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE CRTN_OBJ)
+
+global_set(CMAKE_C_LINK_EXECUTABLE
+        "<CMAKE_C_COMPILER>  <FLAGS> <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> \"${CRTI_OBJ}\" \"${CRTBEGIN_OBJ}\" <OBJECTS> \"${CRTEND_OBJ}\" \"${CRTN_OBJ}\" -o <TARGET> <LINK_LIBRARIES>")
+
+global_set(CMAKE_CXX_LINK_EXECUTABLE
+        "<CMAKE_CXX_COMPILER>  <FLAGS> <CMAKE_CXX_LINK_FLAGS> <LINK_FLAGS> \"${CRTI_OBJ}\" \"${CRTBEGIN_OBJ}\" <OBJECTS> \"${CRTEND_OBJ}\" \"${CRTN_OBJ}\" -o <TARGET> <LINK_LIBRARIES>")
+
+## do a simple check
 get_filename_component(_BIN_DIR "${CMAKE_C_COMPILER}" DIRECTORY)
 if (NOT "${TOOLCHAIN}" STREQUAL "${_BIN_DIR}" AND NOT "${TOOLCHAIN}" STREQUAL "${_BIN_DIR}/")
     message("TOOLCHAIN is [${TOOLCHAIN}]")
     message("_BIN_DIR is [${_BIN_DIR}]")
     message(WARNING "CMAKE_C_COMPILER is not in kendryte-toolchain dist/bin folder.")
 endif ()
+
+include(${CMAKE_CURRENT_LIST_DIR}/save.cmake)

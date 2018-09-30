@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 /* clang-format off */
-struct wdt_t
+typedef struct _wdt
 {
     /* WDT Control Register                     (0x00) */
     volatile uint32_t cr;
@@ -58,7 +58,7 @@ struct wdt_t
     volatile uint32_t comp_version;
     /* WDT Component Type Register              (0xfc) */
     volatile uint32_t comp_type;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) wdt_t;
 
 
 #define WDT_RESET_ALL                                       0x00000000U
@@ -110,77 +110,6 @@ struct wdt_t
 #define WDT_COMP_VERSION_MASK                               0xFFFFFFFFU
 /* WDT Component Type Register */
 #define WDT_COMP_TYPE_MASK                                  0xFFFFFFFFU
-/* clang-format on */
-
-/**
- * @brief       WDT object instanse
- */
-extern volatile struct wdt_t *const wdt[2];
-
-/**
- * @brief       Feed wdt
- */
-void wdt_feed(uint8_t id);
-
-/**
- * @brief       Enable wdt
- *
- * @param[in]   id      Wdt id 0 or 1
- *
- */
-void wdt_enable(uint8_t id);
-
-/**
- * @brief       Clear wdt interrupt
- *
- * @param[in]   id      Wdt id 0 or 1
- *
- */
-void wdt_interrupt_clear(uint8_t id);
-
-/**
- * @brief       Clear wdt interrupt
- *
- * @param[in]   id      Wdt id 0 or 1
- * @param[in]   mode    Set wdt work mode
- *
- */
-void wdt_response_mode(uint8_t id, uint8_t mode);
-
-/**
- * @brief       Set wdt timeout
- *
- * @param[in]   id          Wdt id 0 or 1
- * @param[in]   timeout     Wdt trigger time
- *
- */
-void wdt_timeout_set(uint8_t id, uint8_t timeout);
-
-/**
- * @brief       Start wdt
- *
- * @param[in]   id          Wdt id 0 or 1
- * @param[in]   toms        Wdt trigger time
- *
- */
-int wdt_start(uint8_t id, size_t toms);
-
-/**
- * @brief       Stop wdt
- *
- * @param[in]   id      Wdt id 0 or 1
- *
- */
-void wdt_stop(uint8_t id);
-
-/**
- * @brief       Set wdt interrupt function
- *
- * @param[in]   id          Wdt id 0 or 1
- * @param[in]   on_irq      Wdt interrupt function
- *
- */
-void wdt_set_irq(uint8_t id, plic_irq_callback_t on_irq);
 
 #ifdef __cplusplus
 }

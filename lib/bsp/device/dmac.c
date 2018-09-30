@@ -27,9 +27,9 @@
 
 /* DMAC */
 
-#define COMMON_ENTRY                        \
-    dmac_data* data = (dmac_data*)userdata; \
-    volatile struct dmac_t* dmac = (volatile struct dmac_t*)data->base_addr;
+#define COMMON_ENTRY                          \
+    dmac_data *data = (dmac_data *)userdata;  \
+    volatile dmac_t *dmac = (volatile dmac_t *)data->base_addr;
 
 typedef struct
 {
@@ -125,7 +125,7 @@ const dmac_driver_t g_dmac_driver_dmac0 = {{&dev0_data, dmac_install, dmac_open,
 #define C_COMMON_ENTRY                                                                                    \
     dma_data* data = (dma_data*)userdata;                                                                 \
     dmac_data* dmacdata = data->dmac_data;                                                                \
-    volatile struct dmac_t* dmac = (volatile struct dmac_t*)dmacdata->base_addr;                          \
+    volatile dmac_t* dmac = (volatile dmac_t*)dmacdata->base_addr;                                        \
     (void)dmac;                                                                                           \
     volatile struct dmac_channel_t* dma = (volatile struct dmac_channel_t*)dmac->channel + data->channel; \
     (void)dma;
@@ -140,7 +140,7 @@ typedef struct
     {
         SemaphoreHandle_t completion_event;
         uint32_t axi_master;
-        int is_ping_pong;
+        int is_loop;
         union
         {
             struct
@@ -160,7 +160,7 @@ typedef struct
                 size_t dest_num;
                 size_t next_src_id;
                 size_t next_dest_id;
-                dma_stage_completion_handler stage_completion_handler;
+                dma_stage_completion_handler_t stage_completion_handler;
                 void* stage_completion_handler_data;
                 int* stop_signal;
             };
@@ -177,7 +177,7 @@ static void dma_completion_isr(void* userdata)
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    if (data->session.is_ping_pong)
+    if (data->session.is_loop)
     {
         if (atomic_read(data->session.stop_signal))
         {
@@ -338,7 +338,7 @@ static int is_memory(uintptr_t address)
     return ((address >= 0x80000000) && (address < 0x80000000 + mem_len)) || ((address >= 0x40000000) && (address < 0x40000000 + mem_len)) || (address == 0x50450040);
 }
 
-static void dma_loop_async_imp(const volatile void** srcs, size_t src_num, volatile void** dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler stage_completion_handler, void* stage_completion_handler_data, SemaphoreHandle_t completion_event, int* stop_signal, void* userdata)
+static void dma_loop_async_imp(const volatile void** srcs, size_t src_num, volatile void** dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void* stage_completion_handler_data, SemaphoreHandle_t completion_event, int* stop_signal, void* userdata)
 {
     C_COMMON_ENTRY;
 
@@ -385,7 +385,7 @@ static void dma_loop_async_imp(const volatile void** srcs, size_t src_num, volat
 
     writeq(cfg_u.data, &dma->cfg);
 
-    data->session.is_ping_pong = 1;
+    data->session.is_loop = 1;
     data->session.flow_control = flow_control;
 
     dma->sar = (uint64_t)srcs[0];
@@ -521,7 +521,7 @@ static void dma_transmit_async_imp(const volatile void* src, volatile void* dest
 
     writeq(cfg_u.data, &dma->cfg);
 
-    data->session.is_ping_pong = 0;
+    data->session.is_loop = 0;
     data->session.flow_control = flow_control;
 
     size_t old_elm_size = element_size;

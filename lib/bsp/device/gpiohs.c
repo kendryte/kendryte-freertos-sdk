@@ -17,6 +17,7 @@
 #include <fpioa.h>
 #include <gpiohs.h>
 #include <hal.h>
+#include <io.h>
 #include <plic.h>
 #include <semphr.h>
 #include <stdio.h>
@@ -34,21 +35,21 @@
 
 typedef struct
 {
-    size_t pin_count;
+    uint32_t pin_count;
     uintptr_t base_addr;
 
     struct gpiohs_pin_context
     {
         void* gpio_userdata;
-        size_t pin;
-        gpio_pin_edge edge;
-        gpio_onchanged callback;
+        uint32_t pin;
+        gpio_pin_edge_t edge;
+        gpio_on_changed_t callback;
         void* userdata;
     } pin_context[32];
 
 } gpiohs_data;
 
-static void gpiohs_pin_onchange_isr(void* userdata);
+static void gpiohs_pin_on_change_isr(void* userdata);
 
 static void gpiohs_install(void* userdata)
 {
@@ -59,14 +60,14 @@ static void gpiohs_install(void* userdata)
     gpiohs->fall_ie.u32[0] = 0;
     gpiohs->fall_ip.u32[0] = 0xFFFFFFFF;
 
-    size_t i;
+    uint32_t i;
     for (i = 0; i < 32; i++)
     {
         data->pin_context[i].gpio_userdata = data;
         data->pin_context[i].pin = i;
         data->pin_context[i].callback = NULL;
         data->pin_context[i].userdata = NULL;
-        pic_set_irq_handler(IRQN_GPIOHS0_INTERRUPT + i, gpiohs_pin_onchange_isr, data->pin_context + i);
+        pic_set_irq_handler(IRQN_GPIOHS0_INTERRUPT + i, gpiohs_pin_on_change_isr, data->pin_context + i);
         pic_set_irq_priority(IRQN_GPIOHS0_INTERRUPT + i, 1);
     }
 }
@@ -80,18 +81,7 @@ static void gpiohs_close(void* userdata)
 {
 }
 
-static uint32_t get_bit(volatile uint32_t* bits, size_t idx)
-{
-    return ((*bits) & (1 << idx)) >> idx;
-}
-
-static void set_bit(volatile uint32_t* bits, size_t idx, uint32_t value)
-{
-    uint32_t org = (*bits) & ~(1 << idx);
-    *bits = org | (value << idx);
-}
-
-static void gpiohs_set_drive_mode(void* userdata, size_t pin, gpio_drive_mode mode)
+static void gpiohs_set_drive_mode(uint32_t pin, gpio_drive_mode_t mode, void* userdata)
 {
     COMMON_ENTRY;
     int io_number = fpioa_get_io_by_func(FUNC_GPIOHS0 + pin);
@@ -125,11 +115,11 @@ static void gpiohs_set_drive_mode(void* userdata, size_t pin, gpio_drive_mode mo
     fpioa_set_io_pull(io_number, pull);
     volatile uint32_t* reg = dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
     volatile uint32_t* reg_d = !dir ? gpiohs->output_en.u32 : gpiohs->input_en.u32;
-    set_bit(reg_d, pin, 0);
-    set_bit(reg, pin, 1);
+    set_bit_idx(reg_d, pin, 0);
+    set_bit_idx(reg, pin, 1);
 }
 
-void gpiohs_set_pin_edge(void* userdata, size_t pin, gpio_pin_edge edge)
+void gpiohs_set_pin_edge(uint32_t pin, gpio_pin_edge_t edge, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -156,18 +146,18 @@ void gpiohs_set_pin_edge(void* userdata, size_t pin, gpio_pin_edge edge)
     }
 
     data->pin_context[pin].edge = edge;
-    set_bit(gpiohs->rise_ie.u32, pin, rise);
-    set_bit(gpiohs->fall_ie.u32, pin, fall);
+    set_bit_idx(gpiohs->rise_ie.u32, pin, rise);
+    set_bit_idx(gpiohs->fall_ie.u32, pin, fall);
     pic_set_irq_enable(IRQN_GPIOHS0_INTERRUPT + pin, irq);
 }
 
-static void gpiohs_pin_onchange_isr(void* userdata)
+static void gpiohs_pin_on_change_isr(void* userdata)
 {
     struct gpiohs_pin_context* ctx = (struct gpiohs_pin_context*)userdata;
     gpiohs_data* data = (gpiohs_data*)ctx->gpio_userdata;
     volatile gpiohs_t* gpiohs = (volatile gpiohs_t*)data->base_addr;
 
-    size_t pin = ctx->pin;
+    uint32_t pin = ctx->pin;
     uint32_t rise = 0, fall = 0;
     switch (ctx->edge)
     {
@@ -192,41 +182,41 @@ static void gpiohs_pin_onchange_isr(void* userdata)
 
     if (rise)
     {
-        set_bit(gpiohs->rise_ie.u32, pin, 0);
-        set_bit(gpiohs->rise_ip.u32, pin, 1);
-        set_bit(gpiohs->rise_ie.u32, pin, 1);
+        set_bit_idx(gpiohs->rise_ie.u32, pin, 0);
+        set_bit_idx(gpiohs->rise_ip.u32, pin, 1);
+        set_bit_idx(gpiohs->rise_ie.u32, pin, 1);
     }
 
     if (fall)
     {
-        set_bit(gpiohs->fall_ie.u32, pin, 0);
-        set_bit(gpiohs->fall_ip.u32, pin, 1);
-        set_bit(gpiohs->fall_ie.u32, pin, 1);
+        set_bit_idx(gpiohs->fall_ie.u32, pin, 0);
+        set_bit_idx(gpiohs->fall_ip.u32, pin, 1);
+        set_bit_idx(gpiohs->fall_ie.u32, pin, 1);
     }
 
     if (ctx->callback)
         ctx->callback(ctx->pin, ctx->userdata);
 }
 
-void gpiohs_set_onchanged(void* userdata, size_t pin, gpio_onchanged callback, void* callback_data)
+void gpiohs_set_on_changed(uint32_t pin, gpio_on_changed_t callback, void* callback_data, void* userdata)
 {
     COMMON_ENTRY;
     data->pin_context[pin].userdata = callback_data;
     data->pin_context[pin].callback = callback;
 }
 
-gpio_pin_value gpiohs_get_pin_value(void* userdata, size_t pin)
+gpio_pin_value_t gpiohs_get_pin_value(uint32_t pin, void* userdata)
 {
     COMMON_ENTRY;
-    return get_bit(gpiohs->input_val.u32, pin);
+    return get_bit_idx(gpiohs->input_val.u32, pin);
 }
 
-void gpiohs_set_pin_value(void* userdata, size_t pin, gpio_pin_value value)
+void gpiohs_set_pin_value(uint32_t pin, gpio_pin_value_t value, void* userdata)
 {
     COMMON_ENTRY;
-    set_bit(gpiohs->output_val.u32, pin, value);
+    set_bit_idx(gpiohs->output_val.u32, pin, value);
 }
 
 static gpiohs_data dev0_data = {32, GPIOHS_BASE_ADDR, {{0}}};
 
-const gpio_driver_t g_gpiohs_driver_gpio0 = {{&dev0_data, gpiohs_install, gpiohs_open, gpiohs_close}, 32, gpiohs_set_drive_mode, gpiohs_set_pin_edge, gpiohs_set_onchanged, gpiohs_set_pin_value, gpiohs_get_pin_value};
+const gpio_driver_t g_gpiohs_driver_gpio0 = {{&dev0_data, gpiohs_install, gpiohs_open, gpiohs_close}, 32, gpiohs_set_drive_mode, gpiohs_set_pin_edge, gpiohs_set_on_changed, gpiohs_set_pin_value, gpiohs_get_pin_value};

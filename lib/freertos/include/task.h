@@ -233,6 +233,8 @@ is used in assert() statements. */
 #define taskSCHEDULER_NOT_STARTED	( ( BaseType_t ) 1 )
 #define taskSCHEDULER_RUNNING		( ( BaseType_t ) 2 )
 
+UBaseType_t uxTaskGetProcessorId(void);
+
 
 /*-----------------------------------------------------------
  * TASK CREATION API

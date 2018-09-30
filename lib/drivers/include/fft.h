@@ -12,15 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _DRIVER_HARD_FFT_H
-#define _DRIVER_HARD_FFT_H
-
+#ifndef _DRIVER_FFT_H
+#define _DRIVER_FFT_H
 #include <stdint.h>
-#include "platform.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef enum
+{
+    FFT_512,
+    FFT_256,
+    FFT_128,
+    FFT_64
+} fft_point_t;
 
 /**
  * @brief      FFT algorithm accelerator register

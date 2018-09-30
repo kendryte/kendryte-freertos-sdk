@@ -12,7 +12,7 @@ If you want to start a new project, for instance, `hello_world`, you only need t
 
 ```shell
 mkdir build && cd build
-cmake .. -DPROJ=<ProjectName> -DTOOLCHAIN=/opt/riscv-toolchain/bin && make
+cmake .. -DPROJ=<ProjectName> -DTOOLCHAIN=/opt/riscv-toolchain/bin/ && make
 ```
 
 You will get 2 key files, `hello_world` and `hello_world.bin`.
@@ -21,3 +21,5 @@ You will get 2 key files, `hello_world` and `hello_world.bin`.
 2. If you want to flash it in UOG, using `hello_world.bin`, then using flash-tool(s) burn <ProjectName>.bin to your flash.
 
 This is very important, don't make a mistake in files.
+
+*If you don't like place code inside SDK, see `CMakeLists.txt.example.cmake`*

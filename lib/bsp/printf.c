@@ -641,7 +641,7 @@ static corelock_t lock = CORELOCK_INIT;
 static void uart_putf(void* unused, char c)
 {
     UNUSED(unused);
-    uart_putchar(c);
+    uarths_putchar(c);
 }
 
 int printk(const char* format, ...)
