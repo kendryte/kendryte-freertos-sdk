@@ -118,7 +118,7 @@ static void i2c_config_as_master(uint32_t slave_address, uint32_t address_width,
         speed_mode = 1;
         break;
     default:
-        configASSERT(!"I2C bus clock_rate is not supported.");
+        configASSERT(!"I2C bus speed is not supported.");
         break;
     }
 
