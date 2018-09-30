@@ -484,31 +484,31 @@ void sccb_dev_write_byte(handle_t file, uint16_t reg_address, uint8_t value)
 
 /* FFT */
 
-void fft_complex_uint16(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t *input, uint16_t *output)
+void fft_complex_uint16(fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output)
 {
     COMMON_ENTRY_FILE(fft_file_, fft, FFT);
-    fft->complex_uint16(point, direction, shifts_mask, input, output, fft->base.userdata);
+    fft->complex_uint16(direction, input, point_num, output, fft->base.userdata);
 }
 
 /* AES */
 
-void aes_decrypt(const aes_parameter *aes_param)
+void aes_hard_decrypt(const aes_param_t *param)
 {
     COMMON_ENTRY_FILE(aes_file_, aes, AES);
-    aes->decrypt(aes_param, aes->base.userdata);
+    aes->hard_decrypt(param, aes->base.userdata);
 }
-void aes_encrypt(const aes_parameter *aes_param)
+void aes_hard_encrypt(const aes_param_t *param)
 {
     COMMON_ENTRY_FILE(aes_file_, aes, AES);
-    aes->encrypt(aes_param, aes->base.userdata);
+    aes->hard_encrypt(param, aes->base.userdata);
 }
 
 /* SHA */
 
-void sha256_str(const char *str, size_t length, uint8_t *hash)
+void sha256_hard_calculate(const uint8_t *input, size_t input_len, uint8_t *output)
 {
     COMMON_ENTRY_FILE(sha256_file_, sha256, SHA256);
-    sha256->sha_str(str, length, hash, sha256->base.userdata);
+    sha256->sha256_hard_calculate(input, input_len, output, sha256->base.userdata);
 }
 
 /* TIMER */

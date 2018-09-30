@@ -277,40 +277,33 @@ typedef struct tag_sccb_driver
     sccb_device_driver_t* (*get_device)(uint32_t slave_address, uint32_t address_width, void *userdata);
 } sccb_driver_t;
 
-typedef struct
+typedef struct tag_fft_data
 {
     int16_t I1;
     int16_t R1;
     int16_t I2;
     int16_t R2;
-} fft_data;
+} fft_data_t;
 
-typedef enum
-{
-    FFT_512,
-    FFT_256,
-    FFT_128,
-    FFT_64
-} fft_point;
-
-typedef enum
+typedef enum tag_fft_direction
 {
     FFT_DIR_BACKWARD,
     FFT_DIR_FORWARD
-} fft_direction;
+} fft_direction_t;
 
 typedef struct tag_fft_driver
 {
     driver_base_t base;
-    void (*complex_uint16)(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t *input, uint16_t *output, void *userdata);
+    void (*complex_uint16)(fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata);
 } fft_driver_t;
 
 typedef enum
 {
-    AES_CIPHER_ECB = 0,
-    AES_CIPHER_CBC = 1,
-    AES_CIPHER_GCM = 2
-} aes_cipher_mod;
+    AES_ECB = 0,
+    AES_CBC = 1,
+    AES_GCM = 2,
+    AES_CIPHER_MAX
+} aes_cipher_mode_t;
 
 typedef enum
 {
@@ -321,36 +314,36 @@ typedef enum
 
 typedef enum
 {
-    AES_MODE_ENCRYPTION = 0,
-    AES_MODE_DECRYPTION = 1,
-} aes_encrypt_sel;
+    AES_HARD_ENCRYPTION = 0,
+    AES_HARD_DECRYPTION = 1,
+} aes_encrypt_sel_t;
 
-typedef struct tag_aes_parameter
+typedef struct tag_aes_param
 {
-    uint8_t* aes_in_data;
-    uint8_t* key_addr;
-    uint8_t key_length;
-    uint8_t* gcm_iv;
-    uint8_t iv_length;
-    uint8_t* aes_aad;
-    uint32_t add_size;
-    aes_cipher_mod cipher_mod;
-    uint32_t data_size;
-    uint8_t* aes_out_data;
-    uint8_t* tag;
-} aes_parameter;
+    uint8_t *input_data;
+    size_t input_data_len;
+    uint8_t *input_key;
+    size_t input_key_len;
+    uint8_t *iv;
+    size_t iv_len;
+    uint8_t* gcm_add;
+    size_t gcm_add_len;
+    aes_cipher_mode_t cipher_mode;
+    uint8_t *output_data;
+    uint8_t *gcm_tag;
+} aes_param_t;
 
 typedef struct tag_aes_driver
 {
     driver_base_t base;
-    void (*decrypt)(const aes_parameter *aes_param, void *userdata);
-    void (*encrypt)(const aes_parameter *aes_param, void *userdata);
+    void (*hard_decrypt)(const aes_param_t *param, void *userdata);
+    void (*hard_encrypt)(const aes_param_t *param, void *userdata);
 } aes_driver_t;
 
 typedef struct tag_sha256_driver
 {
     driver_base_t base;
-    void (*sha_str)(const char *str, size_t length, uint8_t *hash, void *userdata);
+    void (*sha256_hard_calculate)(const uint8_t *input, size_t input_len, uint8_t *output, void *userdata);
 } sha256_driver_t;
 
 typedef void (*timer_on_tick_t)(void* userdata);

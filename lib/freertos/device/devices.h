@@ -426,50 +426,50 @@ void sccb_dev_write_byte(handle_t file, uint16_t reg_address, uint8_t value);
  * @param[in]   input           The input data
  * @param[out]  output          The output data
  */
-void fft_complex_uint16(fft_point point, fft_direction direction, uint32_t shifts_mask, const uint16_t *input, uint16_t *output);
+void fft_complex_uint16(fft_direction_t direction, const uint64_t *input, size_t point, uint64_t *output);
 
 /**
 * @brief       Do aes decrypt
 *
-* @param[in]   aes_in_data      The aes input decrypt data
-* @param[in]   key_addr         The aes key address
-* @param[in]   key_length       The aes key length.16:AES_128 24:AES_192 32:AES_256
-* @param[in]   gcm_iv           The gcm iv address
-* @param[in]   iv_length        The gcm iv length
-* @param[in]   aes_aad          The gcm add address
-* @param[in]   add_size         The gcm add length
-* @param[in]   cipher_mod       The cipher mode. 00:AES_CIPHER_ECB 01:AES_CIPHER_CBC 10:AES_CIPHER_GCM
-* @param[in]   data_size        The input data size
-* @param[out]  aes_out_data     The output data
-* @param[out]  tag              The gcm output tag
+* @param[in]   input_data          The aes input decrypt data
+* @param[in]   input_data_len      The input data size
+* @param[in]   input_key           The aes key address
+* @param[in]   input_key_len       The aes key length.16:AES_128 24:AES_192 32:AES_256
+* @param[in]   iv                  The gcm iv address
+* @param[in]   iv_len              The gcm iv length
+* @param[in]   gcm_add             The gcm add address
+* @param[in]   gcm_add_len         The gcm add length
+* @param[in]   cipher_mode         The cipher mode. 00:AES_CIPHER_ECB 01:AES_CIPHER_CBC 10:AES_CIPHER_GCM
+* @param[out]  output_data         The output data
+* @param[out]  gcm_tag             The output tag
 */
-void aes_decrypt(const aes_parameter *aes_param);
+void aes_hard_decrypt(const aes_param_t *param);
 
 /**
  * @brief       Do aes encrypt
  *
- * @param[in]   aes_in_data         The aes input decrypt data
- * @param[in]   key_addr            The aes key address
- * @param[in]   key_length          The aes key length.16:AES_128 24:AES_192 32:AES_256
- * @param[in]   gcm_iv              The gcm iv address
- * @param[in]   iv_length           The gcm iv length
- * @param[in]   aes_aad             The gcm add address
- * @param[in]   add_size            The gcm add length
- * @param[in]   cipher_mod          The cipher mode. 00:AES_CIPHER_ECB 01:AES_CIPHER_CBC 10:AES_CIPHER_GCM
- * @param[in]   data_size           The input data size
- * @param[out]  aes_out_data        The output data
- * @param[out]  tag                 The output tag
+ * @param[in]   input_data          The aes input encrypt data
+ * @param[in]   input_data_len      The input data size
+ * @param[in]   input_key           The aes key address
+ * @param[in]   input_key_len       The aes key length.16:AES_128 24:AES_192 32:AES_256
+ * @param[in]   iv                  The gcm iv address
+ * @param[in]   iv_len              The gcm iv length
+ * @param[in]   gcm_add             The gcm add address
+ * @param[in]   gcm_add_len         The gcm add length
+ * @param[in]   cipher_mode         The cipher mode. 00:AES_CIPHER_ECB 01:AES_CIPHER_CBC 10:AES_CIPHER_GCM
+ * @param[out]  output_data         The output data
+ * @param[out]  gcm_tag             The output tag
  */
-void aes_encrypt(const aes_parameter *aes_param);
+void aes_hard_encrypt(const aes_param_t *param);
 
 /**
  * @brief       Do sha256
  *
- * @param[in]   str         The sha256 string
- * @param[in]   length      The string length
- * @param[out]  hash        The sha256 result
+ * @param[in]   input         The sha256 data
+ * @param[in]   input_len      The data length
+ * @param[out]  output        The sha256 result
  */
-void sha256_str(const char *str, size_t length, uint8_t *hash);
+void sha256_hard_calculate(const uint8_t *input, size_t input_len, uint8_t *output);
 
 /**
  * @brief       Set the interval of a TIMER device

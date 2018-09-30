@@ -16,11 +16,7 @@
 #include <dmac.h>
 #include <driver.h>
 #include <hal.h>
-#include <io.h>
-#include <plic.h>
-#include <semphr.h>
 #include <sha256.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysctl.h>
@@ -30,29 +26,16 @@
 #define BYTESWAP(x) ((ROTR((x), 8) & 0xff00ff00L) | (ROTL((x), 8) & 0x00ff00ffL))
 #define BYTESWAP64(x) byteswap64(x)
 #define COMMON_ENTRY                                                               \
-    sha256_dev_data* data = (sha256_dev_data*)userdata;                            \
-    volatile struct sha256_t* sha256 = (volatile struct sha256_t*)data->base_addr; \
+    sha256_dev_data *data = (sha256_dev_data*)userdata;                            \
+    volatile sha256_t *sha256 = (volatile sha256_t *)data->base_addr; \
     (void)sha256;
 
 typedef struct
 {
+    enum sysctl_clock_e clock;
     uintptr_t base_addr;
     SemaphoreHandle_t free_mutex;
 } sha256_dev_data;
-
-typedef struct
-{
-    uint64_t total_length;
-    uint32_t hash[SHA256_HASH_WORDS];
-    uint32_t dma_buf_length;
-    uint32_t* dma_buf;
-    uint32_t buffer_length;
-    union
-    {
-        uint32_t words[16];
-        uint8_t bytes[64];
-    } buffer;
-} sha256_context;
 
 static const uint8_t padding[64] =
 {
@@ -74,102 +57,98 @@ static inline uint64_t byteswap64(uint64_t x)
     return ((uint64_t)BYTESWAP(b) << 32) | (uint64_t)BYTESWAP(a);
 }
 
-static void sha256_install(void* userdata)
+static void sha256_install(void *userdata)
 {
     COMMON_ENTRY;
-    sysctl_clock_enable(SYSCTL_CLOCK_SHA);
-    sysctl_reset(SYSCTL_RESET_SHA);
+    sysctl_clock_enable(data->clock);
     data->free_mutex = xSemaphoreCreateMutex();
 }
 
-static int sha256_open(void* userdata)
+static int sha256_open(void *userdata)
 {
     return 1;
 }
 
-static void sha256_close(void* userdata)
+static void sha256_close(void *userdata)
 {
 }
 
-static void entry_exclusive(sha256_dev_data* data)
+static void entry_exclusive(sha256_dev_data *data)
 {
     configASSERT(xSemaphoreTake(data->free_mutex, portMAX_DELAY) == pdTRUE);
 }
 
-static void exit_exclusive(sha256_dev_data* data)
+static void exit_exclusive(sha256_dev_data *data)
 {
     xSemaphoreGive(data->free_mutex);
 }
 
-static void sha256_update_buf(sha256_context* sc, const void* vdata, uint32_t len)
+static void sha256_update_buf(sha256_context_t *context, const void *input, uint32_t len)
 {
-    const uint8_t* data = vdata;
-    uint32_t buffer_bytes_left;
-    uint32_t bytes_to_copy;
+    const uint8_t *input_data = input;
+    size_t buffer_bytes_left;
+    size_t bytes_to_copy;
     uint32_t i;
 
     while (len)
     {
-        buffer_bytes_left = 64L - sc->buffer_length;
-
+        buffer_bytes_left = 64 - context->buffer_len;
         bytes_to_copy = buffer_bytes_left;
         if (bytes_to_copy > len)
             bytes_to_copy = len;
 
-        memcpy(&sc->buffer.bytes[sc->buffer_length], data, bytes_to_copy);
+        memcpy(&context->buffer.bytes[context->buffer_len], input_data, bytes_to_copy);
 
-        sc->total_length += bytes_to_copy * 8L;
+        context->total_len += bytes_to_copy * 8;
 
-        sc->buffer_length += bytes_to_copy;
-        data += bytes_to_copy;
+        context->buffer_len += bytes_to_copy;
+        input_data += bytes_to_copy;
         len -= bytes_to_copy;
 
-        if (sc->buffer_length == 64L)
+        if (context->buffer_len == 64)
         {
             for (i = 0; i < 16; i++)
             {
-                sc->dma_buf[sc->dma_buf_length++] = sc->buffer.words[i];
+                context->dma_buf[context->dma_buf_len++] = context->buffer.words[i];
             }
-            sc->buffer_length = 0L;
+            context->buffer_len = 0;
         }
     }
 }
 
-void sha256_final_buf(sha256_context* sc)
+static void sha256_final_buf(sha256_context_t* context)
 {
-    uint32_t bytes_to_pad;
-    uint64_t length_pad;
+    size_t bytes_to_pad;
+    size_t padding_len;
 
-    bytes_to_pad = 120L - sc->buffer_length;
+    bytes_to_pad = 120 - context->buffer_len;
 
-    if (bytes_to_pad > 64L)
-        bytes_to_pad -= 64L;
-    length_pad = BYTESWAP64(sc->total_length);
-    sha256_update_buf(sc, padding, bytes_to_pad);
-    sha256_update_buf(sc, &length_pad, 8L);
+    if (bytes_to_pad > 64)
+        bytes_to_pad -= 64;
+    padding_len = BYTESWAP64(context->total_len);
+    sha256_update_buf(context, padding, bytes_to_pad);
+    sha256_update_buf(context, &padding_len, 8);
 }
 
-static void sha256_str(const char* str, size_t length, uint8_t* hash, void* userdata)
+static void sha256_hard_calculate(const uint8_t *input, size_t input_len, uint8_t *output, void *userdata)
 {
     COMMON_ENTRY;
     entry_exclusive(data);
-    int i = 0;
-    sha256_context sha;
-    sysctl_clock_enable(SYSCTL_CLOCK_SHA);
-    sysctl_reset(SYSCTL_RESET_SHA);
-
+    uint32_t i = 0;
+    sha256_context_t context;
+    sysctl_clock_enable(data->clock);
     sha256->reserved0 = 0;
     sha256->sha_status |= 1 << 16; /*!< 0 for little endian, 1 for big endian */
     sha256->sha_status |= 1; /*!< enable sha256 */
-    sha256->sha_data_num = (length + 64 + 8) / 64;
-    sha.dma_buf = (uint32_t*)malloc((length + 64 + 8) / 64 * 16 * sizeof(uint32_t));
-    sha.buffer_length = 0L;
-    sha.dma_buf_length = 0L;
-    sha.total_length = 0LL;
-    for (i = 0; i < (sizeof(sha.dma_buf) / 4); i++)
-        sha.dma_buf[i] = 0;
-    sha256_update_buf(&sha, str, length);
-    sha256_final_buf(&sha);
+    sha256->sha_data_num = (input_len + 64 + 8) / 64;
+    context.dma_buf = (uint32_t*)malloc((input_len + 64 + 8) / 64 * 16 * sizeof(uint32_t));
+    context.buffer_len = 0;
+    context.dma_buf_len = 0;
+    context.total_len = 0;
+    for (i = 0; i < (sizeof(context.dma_buf) / 4); i++)
+        context.dma_buf[i] = 0;
+    sha256_update_buf(&context, input, input_len);
+    sha256_final_buf(&context);
 
     uintptr_t dma_write = dma_open_free();
 
@@ -177,21 +156,21 @@ static void sha256_str(const char* str, size_t length, uint8_t* hash, void* user
 
     SemaphoreHandle_t event_write = xSemaphoreCreateBinary();
 
-    dma_transmit_async(dma_write, sha.dma_buf, &sha256->sha_data_in1, 1, 0, sizeof(uint32_t), sha.dma_buf_length, 16, event_write);
+    dma_transmit_async(dma_write, context.dma_buf, &sha256->sha_data_in1, 1, 0, sizeof(uint32_t), context.dma_buf_len, 16, event_write);
     sha256->sha_input_ctrl |= 1; /*!< dma enable */
     configASSERT(xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
 
     while (!(sha256->sha_status & 0x01))
         ;
     for (i = 0; i < SHA256_HASH_WORDS; i++)
-        *((uint32_t*)&hash[i * 4]) = sha256->sha_result[SHA256_HASH_WORDS - i - 1];
-    free(sha.dma_buf);
+        *((uint32_t*)&output[i * 4]) = sha256->sha_result[SHA256_HASH_WORDS - i - 1];
+    free(context.dma_buf);
     dma_close(dma_write);
     vSemaphoreDelete(event_write);
 
     exit_exclusive(data);
 }
 
-static sha256_dev_data dev0_data = {SHA256_BASE_ADDR, 0};
+static sha256_dev_data dev0_data = {SYSCTL_CLOCK_SHA, SHA256_BASE_ADDR, 0};
 
-const sha256_driver_t g_sha_driver_sha256 = {{&dev0_data, sha256_install, sha256_open, sha256_close}, sha256_str};
+const sha256_driver_t g_sha_driver_sha256 = {{&dev0_data, sha256_install, sha256_open, sha256_close}, sha256_hard_calculate};
