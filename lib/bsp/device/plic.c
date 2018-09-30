@@ -56,7 +56,7 @@ static void plic_close(void* userdata)
 {
 }
 
-static void plic_set_irq_enable(size_t irq, int enable, void* userdata)
+static void plic_set_irq_enable(uint32_t irq, int enable, void* userdata)
 {
     configASSERT(irq <= PLIC_NUM_SOURCES);
 
@@ -71,7 +71,7 @@ static void plic_set_irq_enable(size_t irq, int enable, void* userdata)
     plic->target_enables.target[0].enable[irq / 32] = current;
 }
 
-static void plic_set_irq_priority(size_t irq, size_t priority, void* userdata)
+static void plic_set_irq_priority(uint32_t irq, uint32_t priority, void* userdata)
 {
     configASSERT(irq <= PLIC_NUM_SOURCES);
     /* Set interrupt priority by IRQ number */

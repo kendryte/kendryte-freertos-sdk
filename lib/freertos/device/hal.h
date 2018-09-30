@@ -24,13 +24,6 @@ extern "C"
 {
 #endif
 
-#define MAX_IRQN 256
-
-/**
- * @brief       Install HAL
- */
-void install_hal();
-
 /**
  * @brief       Set frequency of CPU
  * @param[in]   frequency       The desired frequency in Hz
@@ -40,18 +33,18 @@ void install_hal();
 uint32_t system_set_cpu_frequency(uint32_t frequency);
 
 /**
+ * @brief       Install a custom driver
+ * @param[in]   name        Specify the path to access it later
+ * @param[in]   driver      The driver info
+ */
+void system_install_custom_driver(const char *name, const custom_driver_t *driver);
+
+/**
  * @brief       Enable or disable IRQ
  * @param[in]   irq         IRQ number
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void pic_set_irq_enable(size_t irq, int enable);
-
-/**
- * @brief       Set priority of IRQ
- * @param[in]   irq             IRQ number
- * @param[in]   priority        The priority of IRQ
- */
-void pic_set_irq_priority(size_t irq, size_t priority);
+void pic_set_irq_enable(uint32_t irq, int enable);
 
 /**
  * @brief       Set handler of IRQ
@@ -59,27 +52,34 @@ void pic_set_irq_priority(size_t irq, size_t priority);
  * @param[in]   handler         The handler function
  * @param[in]   userdata        The userdata of the handler function
  */
-void pic_set_irq_handler(size_t irq, pic_irq_handler handler, void* userdata);
+void pic_set_irq_handler(uint32_t irq, pic_irq_handler_t handler, void *userdata);
+
+/**
+ * @brief       Set priority of IRQ
+ * @param[in]   irq             IRQ number
+ * @param[in]   priority        The priority of IRQ
+ */
+void pic_set_irq_priority(uint32_t irq, uint32_t priority);
 
 /**
  * @brief       Wait for a free DMA and open it
  *
  * @return      The DMA handle
  */
-uintptr_t dma_open_free();
+handle_t dma_open_free();
 
 /**
  * @brief       Close DMA
  * @param[in]   file        The DMA handle
  */
-void dma_close(uintptr_t file);
+void dma_close(handle_t file);
 
 /**
- * @brief       Set the request line of DMA
+ * @brief       Set the request source of DMA
  * @param[in]   file        The DMA handle
- * @param[in]   request     The request line number
+ * @param[in]   request     The request source number
  */
-void dma_set_select_request(uintptr_t file, uint32_t request);
+void dma_set_request_source(handle_t file, uint32_t request);
 
 /**
  * @brief       DMA asynchronously
@@ -93,7 +93,7 @@ void dma_set_select_request(uintptr_t file, uint32_t request);
  * @param[in]   burst_size              Element count to transmit per request
  * @param[in]   completion_event        Event to signal when this transmition is completed
  */
-void dma_transmit_async(uintptr_t file, const volatile void* src, volatile void* dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event);
+void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event);
 
 /**
  * @brief       DMA synchrnonously
@@ -106,7 +106,7 @@ void dma_transmit_async(uintptr_t file, const volatile void* src, volatile void*
  * @param[in]   count               Element count to transmit
  * @param[in]   burst_size          Element count to transmit per request
  */
-void dma_transmit(uintptr_t file, const volatile void* src, volatile void* dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size);
+void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size);
 
 /**
  * @brief       DMA loop asynchronously
@@ -125,15 +125,7 @@ void dma_transmit(uintptr_t file, const volatile void* src, volatile void* dest,
  * @param[in]   completion_event                    Event to signal when this transmition is completed
  * @param[in]   stop_signal                         The address of signal indicating whether to stop the transmition, set to 1 to stop
  */
-void dma_loop_async(uintptr_t file, const volatile void** srcs, size_t src_num, volatile void** dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler stage_completion_handler, void* stage_completion_handler_data, SemaphoreHandle_t completion_event, int* stop_signal);
-
-
-/**
- * @brief       Install a custom driver
- * @param[in]   name        Specify the path to access it later
- * @param[in]   driver      The driver info
- */
-void install_custom_driver(const char* name, const custom_driver_t* driver);
+void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal);
 
 #ifdef __cplusplus
 }

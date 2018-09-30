@@ -46,8 +46,8 @@ extern "C" {
 
 uint32_t get_bit_mask(volatile uint32_t* bits, uint32_t mask);
 void set_bit_mask(volatile uint32_t* bits, uint32_t mask, uint32_t value);
-uint32_t get_bit_idx(volatile uint32_t* bits, size_t idx);
-void set_bit_idx(volatile uint32_t* bits, size_t idx, uint32_t value);
+uint32_t get_bit_idx(volatile uint32_t* bits, uint32_t idx);
+void set_bit_idx(volatile uint32_t* bits, uint32_t idx, uint32_t value);
 
 #ifdef __cplusplus
 }

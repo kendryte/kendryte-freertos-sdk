@@ -33,7 +33,7 @@ typedef struct
 {
     enum sysctl_clock_e clock;
     uintptr_t base_addr;
-    size_t pin_count;
+    uint32_t pin_count;
     struct
     {
         uint32_t periods;
@@ -67,7 +67,7 @@ static double pwm_set_frequency(double frequency, void* userdata)
     return frequency;
 }
 
-static double pwm_set_active_duty_cycle_percentage(size_t pin, double duty_cycle_percentage, void* userdata)
+static double pwm_set_active_duty_cycle_percentage(uint32_t pin, double duty_cycle_percentage, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(pin < data->pin_count);
@@ -79,7 +79,7 @@ static double pwm_set_active_duty_cycle_percentage(size_t pin, double duty_cycle
     return percent / 100.0;
 }
 
-static void pwm_set_enable(size_t pin, int enable, void* userdata)
+static void pwm_set_enable(uint32_t pin, int enable, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(pin < data->pin_count);

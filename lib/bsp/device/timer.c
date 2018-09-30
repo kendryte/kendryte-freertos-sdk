@@ -12,20 +12,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/* Copyright 2018 Canaan Inc.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 #include <FreeRTOS.h>
 #include <driver.h>
 #include <fpioa.h>
@@ -50,7 +36,7 @@ typedef struct
     enum sysctl_clock_e clock;
     enum plic_irq_t irq;
     size_t channel;
-    timer_ontick ontick;
+    timer_on_tick_t on_tick;
     void* ontick_data;
 } timer_data;
 
@@ -99,11 +85,11 @@ static size_t timer_set_interval(size_t nanoseconds, void* userdata)
     return (size_t)(min_step * value);
 }
 
-static void timer_set_ontick(timer_ontick ontick, void* ontick_data, void* userdata)
+static void timer_set_on_tick(timer_on_tick_t on_tick, void* ontick_data, void* userdata)
 {
     COMMON_ENTRY;
     data->ontick_data = ontick_data;
-    data->ontick = ontick;
+    data->on_tick = on_tick;
 }
 
 static void timer_set_enable(int enable, void* userdata)
@@ -125,8 +111,8 @@ static void timer_isr(void* userdata)
         if (channel & 1)
         {
             timer_data* td = data + i;
-            if (td->ontick)
-                td->ontick(td->ontick_data);
+            if (td->on_tick)
+                td->on_tick(td->ontick_data);
         }
 
         channel >>= 1;
@@ -143,7 +129,7 @@ static void timer_isr(void* userdata)
 { TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, 3, NULL, NULL }
 /* clang format on */
 
-#define INIT_TIMER_DRIVER(i) { { &dev_data[i], timer_install, timer_open, timer_close }, timer_set_interval, timer_set_ontick, timer_set_enable }
+#define INIT_TIMER_DRIVER(i) { { &dev_data[i], timer_install, timer_open, timer_close }, timer_set_interval, timer_set_on_tick, timer_set_enable }
 
 static timer_data dev_data[12] =
 {

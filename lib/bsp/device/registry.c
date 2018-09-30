@@ -62,6 +62,11 @@ extern const pwm_driver_t g_pwm_driver_pwm0;
 extern const pwm_driver_t g_pwm_driver_pwm1;
 extern const pwm_driver_t g_pwm_driver_pwm2;
 
+extern const wdt_driver_t g_wdt_driver_wdt0;
+extern const wdt_driver_t g_wdt_driver_wdt1;
+
+extern const rtc_driver_t g_rtc_driver_rtc0;
+
 driver_registry_t g_system_drivers[] =
 {
     {"/dev/uart1", &g_uart_driver_uart0, DRIVER_UART},
@@ -109,6 +114,11 @@ driver_registry_t g_system_drivers[] =
     {"/dev/pwm0", &g_pwm_driver_pwm0, DRIVER_PWM},
     {"/dev/pwm1", &g_pwm_driver_pwm1, DRIVER_PWM},
     {"/dev/pwm2", &g_pwm_driver_pwm2, DRIVER_PWM},
+
+    {"/dev/wdt0", &g_wdt_driver_wdt0, DRIVER_WDT},
+    {"/dev/wdt1", &g_wdt_driver_wdt1, DRIVER_WDT},
+
+    {"/dev/rtc0", &g_rtc_driver_rtc0, DRIVER_RTC},
     {0}
 };
 

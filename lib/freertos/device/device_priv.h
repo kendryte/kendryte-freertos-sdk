@@ -12,26 +12,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <io.h>
+#ifndef _FREERTOS_DEVICE_PRIV_H
+#define _FREERTOS_DEVICE_PRIV_H
 
-uint32_t get_bit_mask(volatile uint32_t* bits, uint32_t mask)
-{
-    return (*bits) & mask;
-}
+#include <driver.h>
+#include <stddef.h>
+#include <stdint.h>
 
-void set_bit_mask(volatile uint32_t* bits, uint32_t mask, uint32_t value)
+#ifdef __cplusplus
+extern "C"
 {
-    uint32_t org = (*bits) & ~mask;
-    *bits = org | (value & mask);
-}
+#endif
 
-uint32_t get_bit_idx(volatile uint32_t* bits, uint32_t idx)
-{
-    return ((*bits) & (1 << idx)) >> idx;
-}
+/**
+ * @brief       Install HAL
+ */
+void install_hal();
 
-void set_bit_idx(volatile uint32_t* bits, uint32_t idx, uint32_t value)
-{
-    uint32_t org = (*bits) & ~(1 << idx);
-    *bits = org | (value << idx);
+/**
+ * @brief       Install all drivers
+ */
+void install_drivers();
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif /* _FREERTOS_DEVICE_PRIV_H */

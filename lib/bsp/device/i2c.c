@@ -41,7 +41,7 @@ typedef struct
     struct
     {
         SemaphoreHandle_t free_mutex;
-        i2c_slave_handler slave_handler;
+        i2c_slave_handler_t slave_handler;
     };
 } i2c_data;
 
@@ -75,17 +75,17 @@ typedef struct
     i2c_data* i2c_data;
     size_t slave_address;
     size_t address_width;
-    i2c_bus_speed_mode bus_speed_mode;
+    i2c_bus_speed_mode_t bus_speed_mode;
 } i2c_dev_data;
 
 static void i2c_dev_install(void* userdata);
 static int i2c_dev_open(void* userdata);
 static void i2c_dev_close(void* userdata);
-static int i2c_dev_read(char* buffer, size_t len, void* userdata);
-static int i2c_dev_write(const char* buffer, size_t len, void* userdata);
-static int i2c_dev_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata);
+static int i2c_dev_read(uint8_t* buffer, size_t len, void* userdata);
+static int i2c_dev_write(const uint8_t* buffer, size_t len, void* userdata);
+static int i2c_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata);
 
-static i2c_device_driver_t* i2c_get_device(size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode, void* userdata)
+static i2c_device_driver_t* i2c_get_device(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void* userdata)
 {
     i2c_device_driver_t* driver = (i2c_device_driver_t*)malloc(sizeof(i2c_device_driver_t));
     memset(driver, 0, sizeof(i2c_device_driver_t));
@@ -106,7 +106,7 @@ static i2c_device_driver_t* i2c_get_device(size_t slave_address, size_t address_
     return driver;
 }
 
-static void i2c_config_as_master(size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode, void* userdata)
+static void i2c_config_as_master(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void* userdata)
 {
     configASSERT(address_width == 7 || address_width == 10);
     COMMON_ENTRY;
@@ -118,7 +118,7 @@ static void i2c_config_as_master(size_t slave_address, size_t address_width, i2c
         speed_mode = 1;
         break;
     default:
-        configASSERT(!"I2C bus speed is not supported.");
+        configASSERT(!"I2C bus clock_rate is not supported.");
         break;
     }
 
@@ -136,7 +136,7 @@ static void i2c_config_as_master(size_t slave_address, size_t address_width, i2c
     i2c->enable = I2C_ENABLE_ENABLE;
 }
 
-static int i2c_read(char* buffer, size_t len, void* userdata)
+static int i2c_read(uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -168,13 +168,13 @@ static int i2c_read(char* buffer, size_t len, void* userdata)
     return read;
 }
 
-static int i2c_write(const char* buffer, size_t len, void* userdata)
+static int i2c_write(const uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_ENTRY;
 
     uintptr_t dma_write = dma_open_free();
 
-    dma_set_select_request(dma_write, data->dma_req_base + 1);
+    dma_set_request_source(dma_write, data->dma_req_base + 1);
     dma_transmit(dma_write, buffer, &i2c->data_cmd, 1, 0, 1, len, 4);
     dma_close(dma_write);
 
@@ -186,7 +186,7 @@ static int i2c_write(const char* buffer, size_t len, void* userdata)
     return len;
 }
 
-static int i2c_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int i2c_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -201,8 +201,8 @@ static int i2c_transfer_sequential(const char* write_buffer, size_t write_len, c
     uintptr_t dma_read = dma_open_free();
     SemaphoreHandle_t event_read = xSemaphoreCreateBinary(), event_write = xSemaphoreCreateBinary();
 
-    dma_set_select_request(dma_write, data->dma_req_base + 1);
-    dma_set_select_request(dma_read, data->dma_req_base);
+    dma_set_request_source(dma_write, data->dma_req_base + 1);
+    dma_set_request_source(dma_read, data->dma_req_base);
 
     dma_transmit_async(dma_read, &i2c->data_cmd, read_buffer, 0, 1, 1 /*sizeof(uint32_t)*/, read_len, 1 /*4*/, event_read);
     dma_transmit_async(dma_write, write_cmd, &i2c->data_cmd, 1, 0, sizeof(uint32_t), write_len + read_len, 4, event_write);
@@ -243,7 +243,7 @@ static void i2c_dev_close(void* userdata)
 {
 }
 
-static int i2c_dev_read(char* buffer, size_t len, void* userdata)
+static int i2c_dev_read(uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -252,7 +252,7 @@ static int i2c_dev_read(char* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static int i2c_dev_write(const char* buffer, size_t len, void* userdata)
+static int i2c_dev_write(const uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -261,7 +261,7 @@ static int i2c_dev_write(const char* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static int i2c_dev_transfer_sequential(const char* write_buffer, size_t write_len, char* read_buffer, size_t read_len, void* userdata)
+static int i2c_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -300,7 +300,7 @@ static void on_i2c_irq(void* userdata)
     (void)dummy;
 }
 
-static void i2c_config_as_slave(size_t slave_address, size_t address_width, i2c_bus_speed_mode bus_speed_mode, i2c_slave_handler* handler, void* userdata)
+static void i2c_config_as_slave(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t* handler, void* userdata)
 {
     configASSERT(address_width == 7 || address_width == 10);
     COMMON_ENTRY;
@@ -312,7 +312,7 @@ static void i2c_config_as_slave(size_t slave_address, size_t address_width, i2c_
         speed_mode = 1;
         break;
     default:
-        configASSERT(!"I2C bus speed is not supported.");
+        configASSERT(!"I2C bus clock_rate is not supported.");
         break;
     }
 

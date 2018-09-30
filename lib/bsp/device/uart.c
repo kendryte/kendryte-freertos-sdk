@@ -34,7 +34,7 @@ typedef struct
     size_t head;
     size_t tail;
     size_t length;
-    char ring_buffer[RINGBUFF_LEN];
+    uint8_t ring_buffer[RINGBUFF_LEN];
 } ringbuffer_t;
 
 typedef struct
@@ -42,13 +42,13 @@ typedef struct
     enum sysctl_clock_e clock;
     uintptr_t base_addr;
     size_t channel;
-    ringbuffer_t* recBuf;
+    ringbuffer_t* recv_buf;
 } uart_data;
 
 static int write_ringbuff(uint8_t rdata, void* userdata)
 {
     COMMON_ENTRY;
-    ringbuffer_t* ring_buff = data->recBuf;
+    ringbuffer_t* ring_buff = data->recv_buf;
 
     if (ring_buff->length >= RINGBUFF_LEN)
     {
@@ -60,10 +60,10 @@ static int write_ringbuff(uint8_t rdata, void* userdata)
     return 0;
 }
 
-static int read_ringbuff(char* rData, size_t len, void* userdata)
+static int read_ringbuff(uint8_t* rData, size_t len, void* userdata)
 {
     COMMON_ENTRY;
-    ringbuffer_t* ring_buff = data->recBuf;
+    ringbuffer_t* ring_buff = data->recv_buf;
     size_t cnt = 0;
     while ((len--) && ring_buff->length)
     {
@@ -98,7 +98,7 @@ static int uart_open(void* userdata)
     ring_buff->head = 0;
     ring_buff->tail = 0;
     ring_buff->length = 0;
-    data->recBuf = ring_buff;
+    data->recv_buf = ring_buff;
     pic_set_irq_handler(IRQN_UART1_INTERRUPT + data->channel, on_irq_apbuart_recv, userdata);
     pic_set_irq_priority(IRQN_UART1_INTERRUPT + data->channel, 1);
     pic_set_irq_enable(IRQN_UART1_INTERRUPT + data->channel, 1);
@@ -108,24 +108,24 @@ static int uart_open(void* userdata)
 static void uart_close(void* userdata)
 {
     COMMON_ENTRY;
-    free(data->recBuf);
+    free(data->recv_buf);
 }
 
-static void uart_config(size_t baud_rate, size_t data_width, uart_stopbit stopbit, uart_parity parity, void* userdata)
+static void uart_config(uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity, void* userdata)
 {
     COMMON_ENTRY;
 
-    configASSERT(data_width >= 5 && data_width <= 8);
-    if (data_width == 5)
+    configASSERT(databits >= 5 && databits <= 8);
+    if (databits == 5)
     {
-        configASSERT(stopbit != UART_STOP_2);
+        configASSERT(stopbits != UART_STOP_2);
     }
     else
     {
-        configASSERT(stopbit != UART_STOP_1_5);
+        configASSERT(stopbits != UART_STOP_1_5);
     }
 
-    uint32_t stopbit_val = stopbit == UART_STOP_1 ? 0 : 1;
+    uint32_t stopbit_val = stopbits == UART_STOP_1 ? 0 : 1;
     uint32_t parity_val = 0;
     switch (parity)
     {
@@ -158,7 +158,7 @@ static void uart_config(size_t baud_rate, size_t data_width, uart_stopbit stopbi
     uart->DLL = u16Divider & 0xFF;
     uart->DLH = u16Divider >> 8;
     uart->LCR = 0;
-    uart->LCR = (data_width - 5) | (stopbit_val << 2) | (parity_val << 3);
+    uart->LCR = (databits - 5) | (stopbit_val << 2) | (parity_val << 3);
     uart->LCR &= ~(1u << 7);
     uart->MCR &= ~3;
     uart->IER = 1;
@@ -172,12 +172,12 @@ static int uart_putc(volatile uart_t* uart, char c)
     return 0;
 }
 
-static int uart_read(char* buffer, size_t len, void* userdata)
+static int uart_read(uint8_t* buffer, size_t len, void* userdata)
 {
     return read_ringbuff(buffer, len, userdata);
 }
 
-static int uart_write(const char* buffer, size_t len, void* userdata)
+static int uart_write(const uint8_t* buffer, size_t len, void* userdata)
 {
     COMMON_ENTRY;
 

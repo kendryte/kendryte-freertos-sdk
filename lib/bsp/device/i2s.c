@@ -44,7 +44,7 @@ typedef struct
     struct
     {
         i2s_transmit transmit;
-        char* buffer;
+        uint8_t* buffer;
         size_t buffer_frames;
         size_t buffer_size;
         size_t block_align;
@@ -165,7 +165,7 @@ static void extract_params(const audio_format_t* format, enum word_select_cycles
     }
 }
 
-static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, i2s_align_mode align_mode, size_t channels_mask, void* userdata)
+static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -262,7 +262,7 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
     configASSERT(data->buffer_frames >= 100);
     free(data->buffer);
     data->buffer_size = data->block_align * data->buffer_frames;
-    data->buffer = (char*)malloc(data->buffer_size * BUFFER_COUNT);
+    data->buffer = (uint8_t*)malloc(data->buffer_size * BUFFER_COUNT);
     data->buffer_ptr = 0;
     data->next_free_buffer = 0;
     data->stop_signal = 0;
@@ -270,7 +270,7 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
     data->dma_in_use_buffer = -1;
 }
 
-static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms, i2s_align_mode align_mode, size_t channels_mask, void* userdata)
+static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -369,7 +369,7 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
     configASSERT(data->buffer_frames >= 100);
     free(data->buffer);
     data->buffer_size = data->block_align * data->buffer_frames;
-    data->buffer = (char*)malloc(data->buffer_size * BUFFER_COUNT);
+    data->buffer = (uint8_t*)malloc(data->buffer_size * BUFFER_COUNT);
     data->buffer_ptr = 0;
     data->next_free_buffer = 0;
     data->stop_signal = 0;
@@ -377,7 +377,7 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
     data->dma_in_use_buffer = 0;
 }
 
-static void i2s_get_buffer(char** buffer, size_t* frames, void* userdata)
+static void i2s_get_buffer(uint8_t** buffer, size_t* frames, void* userdata)
 {
     COMMON_ENTRY;
 
@@ -462,7 +462,7 @@ static void i2s_start(void* userdata)
 
         data->stop_signal = 0;
         data->transmit_dma = dma_open_free();
-        dma_set_select_request(data->transmit_dma, data->dma_req_base - 1);
+        dma_set_request_source(data->transmit_dma, data->dma_req_base - 1);
         data->dma_in_use_buffer = 0;
         data->stage_completion_event = xSemaphoreCreateCounting(100, 0);
         data->completion_event = xSemaphoreCreateBinary();
@@ -481,7 +481,7 @@ static void i2s_start(void* userdata)
 
         data->stop_signal = 0;
         data->transmit_dma = dma_open_free();
-        dma_set_select_request(data->transmit_dma, data->dma_req_base);
+        dma_set_request_source(data->transmit_dma, data->dma_req_base);
         data->dma_in_use_buffer = 0;
         data->stage_completion_event = xSemaphoreCreateCounting(100, 0);
         data->completion_event = xSemaphoreCreateBinary();

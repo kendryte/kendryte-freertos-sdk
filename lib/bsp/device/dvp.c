@@ -36,7 +36,7 @@ typedef struct
 
     struct
     {
-        dvp_on_frame_event frame_event_callback;
+        dvp_on_frame_event_t frame_event_callback;
         void* frame_event_callback_data;
         size_t width;
         size_t height;
@@ -63,7 +63,7 @@ static void dvp_close(void* userdata)
 {
 }
 
-static void dvp_config(size_t width, size_t height, int auto_enable, void* userdata)
+static void dvp_config(uint32_t width, uint32_t height, int auto_enable, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(width % 8 == 0 && width && height);
@@ -100,7 +100,7 @@ static void dvp_enable_frame(void* userdata)
     dvp->sts = DVP_STS_DVP_EN | DVP_STS_DVP_EN_WE;
 }
 
-static void dvp_set_signal(dvp_signal_type type, int value, void* userdata)
+static void dvp_set_signal(dvp_signal_type_t type, int value, void* userdata)
 {
     COMMON_ENTRY;
     switch (type)
@@ -123,7 +123,7 @@ static void dvp_set_signal(dvp_signal_type type, int value, void* userdata)
     }
 }
 
-static void dvp_set_output_enable(size_t index, int enable, void* userdata)
+static void dvp_set_output_enable(uint32_t index, int enable, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(index < 2);
@@ -144,14 +144,14 @@ static void dvp_set_output_enable(size_t index, int enable, void* userdata)
     }
 }
 
-static void dvp_set_output_attributes(size_t index, video_format format, void* output_buffer, void* userdata)
+static void dvp_set_output_attributes(uint32_t index, video_format_t format, void* output_buffer, void* userdata)
 {
     COMMON_ENTRY;
     configASSERT(index < 2);
 
     if (index == 0)
     {
-        configASSERT(format == VIDEO_FMT_RGB24Planar);
+        configASSERT(format == VIDEO_FMT_RGB24_PLANAR);
         uintptr_t buffer_addr = (uintptr_t)output_buffer;
         size_t planar_size = data->width * data->height;
         dvp->r_addr = buffer_addr;
@@ -171,21 +171,21 @@ static void dvp_frame_event_isr(void* userdata)
 
     if (dvp->sts & DVP_STS_FRAME_START)
     {
-        dvp_on_frame_event callback;
+        dvp_on_frame_event_t callback;
         if ((callback = data->frame_event_callback))
             callback(VIDEO_FE_BEGIN, data->frame_event_callback_data);
         dvp->sts |= DVP_STS_FRAME_START | DVP_STS_FRAME_START_WE;
     }
     if (dvp->sts & DVP_STS_FRAME_FINISH)
     {
-        dvp_on_frame_event callback;
+        dvp_on_frame_event_t callback;
         if ((callback = data->frame_event_callback))
             callback(VIDEO_FE_END, data->frame_event_callback_data);
         dvp->sts |= DVP_STS_FRAME_FINISH | DVP_STS_FRAME_FINISH_WE;
     }
 }
 
-static void dvp_set_frame_event_enable(video_frame_event event, int enable, void* userdata)
+static void dvp_set_frame_event_enable(dvp_frame_event_t event, int enable, void* userdata)
 {
     COMMON_ENTRY;
     switch (event)
@@ -220,7 +220,7 @@ static void dvp_set_frame_event_enable(video_frame_event event, int enable, void
     pic_set_irq_enable(IRQN_DVP_INTERRUPT, 1);
 }
 
-static void dvp_set_on_frame_event(dvp_on_frame_event callback, void* callback_data, void* userdata)
+static void dvp_set_on_frame_event(dvp_on_frame_event_t callback, void* callback_data, void* userdata)
 {
     COMMON_ENTRY;
 

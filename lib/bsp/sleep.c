@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 #include <FreeRTOS.h>
-#include <common.h>
 #include <task.h>
 #include <sysctl.h>
 #include "sleep.h"
