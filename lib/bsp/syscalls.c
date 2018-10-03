@@ -99,7 +99,7 @@ return ret;
 
 typedef struct _syscall_ret
 {
-    int err;
+    uintptr_t err;
     uintptr_t epc;
 } syscall_ret_t;
 
@@ -393,7 +393,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
 #pragma GCC diagnostic warning "-Woverride-init"
 #endif
 
-    int err = syscall_table[syscall_id_table[0xFF & n]](
+    uintptr_t err = syscall_table[syscall_id_table[0xFF & n]](
         a0, /* a0 */
         a1, /* a1 */
         a2, /* a2 */
