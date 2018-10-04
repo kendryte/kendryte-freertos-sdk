@@ -133,6 +133,7 @@ SECTIONS
     KEEP (*(.dtors))
   } > ram : DATA
   
+    . = ALIGN(64);
   .data :
   {
     *(.data .data.* .gnu.linkonce.d.*)
@@ -149,6 +150,7 @@ SECTIONS
   } > ram : DATA
   _edata = .; PROVIDE (edata = .);
   
+    . = ALIGN(64);
   __bss_start = .;
   .sbss :
   {

@@ -130,7 +130,7 @@ trap_entry:
   # Get event
   addi sp, sp, -REGBYTES
   sd t1, 0x0(sp)
-  la   t0, g_core_sync_events
+  la   t0, g_core_pending_switch
   csrr t1, mhartid
   slli t1, t1, 3
   add  t0, t0, t1
@@ -138,8 +138,7 @@ trap_entry:
   addi sp, sp, REGBYTES
   # Test ContextSwitch event
   ld   t0, 0x0(t0)
-  addi t0, t0, -2 # CORE_SYNC_CONTEXT_SWITCH
-  bnez t0, .handle_irq
+  beqz t0, .handle_irq
 
   ld t0, 0x0(sp)
   addi sp, sp, REGBYTES
