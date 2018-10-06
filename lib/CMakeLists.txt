@@ -29,11 +29,20 @@ ADD_LIBRARY(kendryte STATIC ${LIB_SRC})
 SET_TARGET_PROPERTIES(kendryte PROPERTIES LINKER_LANGUAGE C)
 
 # find headers files to INSTALL
-file(GLOB_RECURSE LIB_HEADERS
-        "../lib/*.h"
-        "../lib/*.hpp"
-        )
-
+file(GLOB_RECURSE PRJ_FREERTOS_CONFIG "${PROJECT_SOURCE_DIR}/*FreeRTOSConfig.h")
+if(PRJ_FREERTOS_CONFIG)
+        file(GLOB_RECURSE LIB_HEADERS
+                "../lib/*.h"
+                "../lib/*.hpp"
+                "${PROJECT_SOURCE_DIR}/*FreeRTOSConfig.h"
+                )
+        list(FILTER LIB_HEADERS EXCLUDE REGEX ".*${CMAKE_CURRENT_LIST_DIR}/\\.\\./lib/freertos/conf/FreeRTOSConfig\\.h.*")
+else()
+        file(GLOB_RECURSE LIB_HEADERS
+                "../lib/*.h"
+                "../lib/*.hpp"
+                )
+endif()
 set_target_properties(kendryte PROPERTIES PUBLIC_HEADER "${LIB_HEADERS}")
 
 # copy .a file and headers
