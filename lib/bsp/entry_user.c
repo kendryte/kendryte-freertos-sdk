@@ -13,23 +13,29 @@
  * limitations under the License.
  */
 #include <FreeRTOSConfig.h>
+#include <clint.h>
+#include <fpioa.h>
 #include <hal.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sysctl.h>
-#include "clint.h"
-#include "entry.h"
-#include "fpioa.h"
-#include "uarths.h"
+#include <uarths.h>
 
 #define PLL1_OUTPUT_FREQ 160000000UL
 #define PLL2_OUTPUT_FREQ 45158400UL
+
+extern uint8_t __bss_start[];
+extern uint8_t __bss_end[];
+extern uint8_t _tls_data[];
+
+extern __thread uint8_t _tdata_begin[], _tdata_end[], _tbss_end[];
 
 extern int main(int argc, char* argv[]);
 extern void __libc_init_array(void);
 extern void __libc_fini_array(void);
 extern int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char**));
 
-void setup_clocks()
+static void setup_clocks()
 {
     system_set_cpu_frequency(configCPU_CLOCK_HZ);
 
@@ -44,6 +50,24 @@ void setup_clocks()
     while (sysctl_pll_is_lock(SYSCTL_PLL2) == 0)
         sysctl_pll_clear_slip(SYSCTL_PLL2);
     sysctl_clock_enable(SYSCTL_CLOCK_PLL2);
+}
+
+static void init_tls(void)
+{
+    register void* thread_pointer asm("tp");
+
+    size_t tdata_size = _tdata_end - _tdata_begin;
+
+    memcpy(thread_pointer, _tls_data, tdata_size);
+
+    size_t tbss_size = _tbss_end - _tdata_end;
+
+    memset(thread_pointer + tdata_size, 0, tbss_size);
+}
+
+static void init_bss(void)
+{
+    memset(__bss_start, 0, __bss_end - __bss_start);
 }
 
 void _init_bsp(int core_id, int number_of_cores)

@@ -133,7 +133,7 @@ SECTIONS
     KEEP (*(.dtors))
   } > ram : DATA
   
-    . = ALIGN(64);
+  . = ALIGN(64);
   .data :
   {
     *(.data .data.* .gnu.linkonce.d.*)
@@ -150,7 +150,7 @@ SECTIONS
   } > ram : DATA
   _edata = .; PROVIDE (edata = .);
   
-    . = ALIGN(64);
+  . = .;
   __bss_start = .;
   .sbss :
   {
@@ -163,6 +163,12 @@ SECTIONS
     *(.dynbss)
     *(.bss .bss.* .gnu.linkonce.b.*)
     *(COMMON)
+	/* Align here to ensure that the .bss section occupies space up to
+       _end.  Align after .bss to ensure correct alignment even if the
+       .bss section disappears because there are no input sections.
+       FIXME: Why do we need it? When there is no .bss section, we don't
+       pad the .data section.  */
+    . = ALIGN(. != 0 ? 64 / 8 : 1);
   } > ram : DYN_DATA
   __bss_end = .;
 
@@ -200,7 +206,7 @@ SECTIONS
    * Align _heap_start to cache line size
    */
   . = ALIGN(64);
-  PROVIDE( _end = ABSOLUTE(.) );
+  _end = .; PROVIDE( _end = ABSOLUTE(.) );
   /* Leave 2 holes for stack & TLS, the size can set in kconfig */
   PROVIDE( _heap_start = ABSOLUTE(.) + _stack_size * 5 );
   PROVIDE( _tp0 = (_end + 63) & (-64) );
