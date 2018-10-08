@@ -48,6 +48,7 @@
 #include <core_sync.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysctl.h>
 #include <syslog.h>
 #include "FreeRTOS.h"
 #include "clint.h"
@@ -200,4 +201,9 @@ void vPortFatal(const char* file, int line, const char* message)
     exit(-1);
     while (1)
         ;
+}
+
+UBaseType_t uxPortGetCPUClock()
+{
+    return sysctl_clock_get_freq(SYSCTL_CLOCK_CPU);
 }

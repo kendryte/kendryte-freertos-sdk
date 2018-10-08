@@ -37,8 +37,6 @@ extern int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char
 
 static void setup_clocks()
 {
-    system_set_cpu_frequency(configCPU_CLOCK_HZ);
-
     sysctl_pll_enable(SYSCTL_PLL1);
     sysctl_pll_set_freq(SYSCTL_PLL1, SYSCTL_SOURCE_IN0, PLL1_OUTPUT_FREQ);
     while (sysctl_pll_is_lock(SYSCTL_PLL1) == 0)

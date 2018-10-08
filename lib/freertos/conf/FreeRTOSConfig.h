@@ -57,8 +57,8 @@
 #include <stdint.h>
 
 /* clock */
-#define configCPU_CLOCK_HZ					( ( unsigned long ) 160000000 )
-#define configTICK_CLOCK_HZ					( ( unsigned long ) 160000000 / 50 )
+#define configCPU_CLOCK_HZ					uxPortGetCPUClock()
+#define configTICK_CLOCK_HZ					( configCPU_CLOCK_HZ / 50 )
 #define configTICK_RATE_HZ					( ( TickType_t ) 100 )
 
 /* multithreading */

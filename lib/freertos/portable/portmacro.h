@@ -136,6 +136,8 @@ void vPortAddNewTaskToReadyListAsync(UBaseType_t uxPsrId, void* pxNewTaskHandle)
 void vPortEnterCritical(void);
 void vPortExitCritical(void);
 
+UBaseType_t uxPortGetCPUClock();
+
 #define portGET_PROCESSOR_ID() uxPortGetProcessorId()
 
 #define portDISABLE_INTERRUPTS()                __asm volatile  ( "csrc mstatus,8" )
