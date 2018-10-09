@@ -26,7 +26,7 @@
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
     SemaphoreHandle_t free_mutex;
 } fft_dev_data;
@@ -63,7 +63,7 @@ static void fft_complex_uint16(fft_direction_t direction, const uint64_t *input,
 {
     COMMON_ENTRY;
     entry_exclusive(data);
-    uint16_t shift = (direction==FFT_DIR_FORWARD) ? 0x1ff : 0x0;
+    uint16_t shift = (direction == FFT_DIR_FORWARD) ? 0x1ff : 0x0;
     fft_point_t point = FFT_512;
     switch(point_num)
     {

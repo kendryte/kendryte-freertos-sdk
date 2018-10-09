@@ -37,10 +37,10 @@ typedef enum
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
-    enum sysctl_dma_select_e dma_req_base;
-    enum sysctl_threshold_e clock_threshold;
+    sysctl_dma_select_t dma_req_base;
+    sysctl_threshold_t clock_threshold;
     struct
     {
         i2s_transmit transmit;

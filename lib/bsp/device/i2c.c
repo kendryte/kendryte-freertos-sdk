@@ -34,9 +34,9 @@
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
-    enum sysctl_threshold_e threshold;
-    enum sysctl_dma_select_e dma_req_base;
+    sysctl_clock_t clock;
+    sysctl_threshold_t threshold;
+    sysctl_dma_select_t dma_req_base;
     uintptr_t base_addr;
     struct
     {

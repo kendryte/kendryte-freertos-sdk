@@ -39,7 +39,7 @@ typedef struct
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
     size_t channel;
     ringbuffer_t* recv_buf;

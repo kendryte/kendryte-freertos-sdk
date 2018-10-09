@@ -31,7 +31,7 @@
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
     uint32_t pin_count;
     struct

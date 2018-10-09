@@ -737,16 +737,7 @@ void system_install_custom_driver(const char *name, const custom_driver_t *drive
 
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {
-    sysctl_clock_set_clock_select(SYSCTL_CLOCK_SELECT_ACLK, SYSCTL_SOURCE_IN0);
-
-    sysctl_pll_disable(SYSCTL_PLL0);
-    sysctl_pll_enable(SYSCTL_PLL0);
-    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, SYSCTL_SOURCE_IN0, frequency  *2);
-
-    while (sysctl_pll_is_lock(SYSCTL_PLL0) == 0)
-        sysctl_pll_clear_slip(SYSCTL_PLL0);
-    sysctl_clock_enable(SYSCTL_PLL0);
-    sysctl_clock_set_clock_select(SYSCTL_CLOCK_SELECT_ACLK, SYSCTL_SOURCE_PLL0);
+    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, (sysctl->clk_sel0.aclk_divider_sel + 1) * 2 * frequency);
     uarths_init();
     return result;
 }

@@ -33,7 +33,7 @@
 typedef struct
 {
     uintptr_t base_addr;
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
 } rtc_data;
 
 static int rtc_in_range(int value, int min, int max);
@@ -54,7 +54,7 @@ static void rtc_install(void* userdata)
     /* Unprotect RTC */
     rtc_protect_set(rtc, 0);
     /* Set RTC clock frequency */
-    rtc_timer_set_clock_frequency(rtc, sysctl_clock_source_get_freq(SYSCTL_SOURCE_IN0));
+    rtc_timer_set_clock_frequency(rtc, sysctl_clock_get_freq(SYSCTL_SOURCE_IN0));
     rtc_timer_set_clock_count_value(rtc, 1);
 
     /* Set RTC mode to timer running mode */

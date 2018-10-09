@@ -34,7 +34,7 @@
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
     SemaphoreHandle_t free_mutex;
 } sccb_data;

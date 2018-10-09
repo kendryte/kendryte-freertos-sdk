@@ -40,12 +40,12 @@
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
     uint8_t dfs_off;
     uint8_t tmod_off;
     uint8_t frf_off;
-    enum sysctl_dma_select_e dma_req_base;
+    sysctl_dma_select_t dma_req_base;
 
     struct
     {

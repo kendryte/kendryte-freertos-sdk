@@ -33,7 +33,7 @@
 typedef struct
 {
     uintptr_t base_addr;
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     enum plic_irq_t irq;
 
     struct

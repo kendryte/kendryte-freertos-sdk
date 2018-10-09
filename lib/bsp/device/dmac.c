@@ -281,7 +281,7 @@ static void dma_set_select_request_imp(uint32_t request, void* userdata)
     }
     else
     {
-        struct sysctl_dma_sel0_t dma_sel;
+        sysctl_dma_sel0_t dma_sel;
         dma_sel = sysctl->dma_sel0;
 
         switch (data->channel)
