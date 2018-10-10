@@ -8,7 +8,7 @@ if (NOT BUILDING_SDK)
         set_property(TARGET kendryte PROPERTY IMPORTED_LOCATION ${SDK_ROOT}/libkendryte.a)
     else()
         ### source code sdk
-        header_directories(${SDK_ROOT}/lib)
+        include_directories(${SDK_ROOT}/lib/arch/include ${SDK_ROOT}/lib/utils/include)
         add_subdirectory(${SDK_ROOT}/lib SDK)
     endif()
 endif ()
