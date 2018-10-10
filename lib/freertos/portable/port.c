@@ -45,16 +45,16 @@
 
 /* Scheduler includes. */
 #include <atomic.h>
-#include <core_sync.h>
+#include <clint.h>
+#include <encoding.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysctl.h>
 #include <syslog.h>
+#include "core_sync.h"
 #include "FreeRTOS.h"
-#include "clint.h"
-#include "encoding.h"
 #include "portmacro.h"
-#include "stdio.h"
 #include "task.h"
 
 /* A variable is used to keep track of the critical section nesting.  This

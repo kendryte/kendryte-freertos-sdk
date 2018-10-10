@@ -12,13 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <encoding.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <math.h>
+#include <string.h>
 #include <stdio.h>
 #include "sysctl.h"
-#include "string.h"
-#include "encoding.h"
 
 #define SYSCTRL_CLOCK_FREQ_IN0 (26000000UL)
 

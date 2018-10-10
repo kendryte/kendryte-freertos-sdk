@@ -12,16 +12,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <FreeRTOS.h>
 #include <clint.h>
 #include <encoding.h>
 #include <fpioa.h>
 #include <stdlib.h>
-#include <task.h>
-#include <device_priv.h>
 #include <stdio.h>
-#include <core_sync.h>
-#include "portable/portmacro.h"
+#include "core_sync.h"
+#include "device/device_priv.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 typedef struct
 {

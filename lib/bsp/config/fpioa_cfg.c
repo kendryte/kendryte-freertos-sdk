@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <fpioa_cfg.h>
+#include "../device/fpioa_cfg.h"
 
 const fpioa_cfg_t g_fpioa_cfg =
 {

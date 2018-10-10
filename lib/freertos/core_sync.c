@@ -12,15 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <FreeRTOS.h>
 #include <atomic.h>
 #include <clint.h>
 #include <core_sync.h>
 #include <encoding.h>
 #include <plic.h>
-#include "portable/portmacro.h"
+#include "FreeRTOS.h"
 #include "task.h"
-#include <printf.h>
 
 volatile UBaseType_t g_core_pending_switch[portNUM_PROCESSORS] = { 0 };
 static volatile UBaseType_t s_core_sync_events[portNUM_PROCESSORS] = { 0 };

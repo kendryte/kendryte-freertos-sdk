@@ -55,7 +55,7 @@ extern "C" {
  * These settings should not be altered.
  *-----------------------------------------------------------
  */
-#include "encoding.h"
+#include <encoding.h>
 /* Multi-Core */
 #define portNUM_PROCESSORS 2
 

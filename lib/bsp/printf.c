@@ -41,9 +41,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <printf.h>
 #include <stddef.h>
-
-#include "printf.h"
 
 /*
  * Configuration
@@ -641,7 +640,7 @@ static corelock_t lock = CORELOCK_INIT;
 static void uart_putf(void* unused, char c)
 {
     UNUSED(unused);
-    uarths_putchar(c);
+    uarths_write_byte(c);
 }
 
 int printk(const char* format, ...)

@@ -12,9 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <FreeRTOS.h>
+#include "FreeRTOS.h"
 #include <atomic.h>
-#include <device_priv.h>
+#include "device_priv.h"
 #include <devices.h>
 #include <driver.h>
 #include <hal.h>

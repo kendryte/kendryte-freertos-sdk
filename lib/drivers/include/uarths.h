@@ -172,48 +172,30 @@ struct uarths_t
 
 /**
  * @brief       Initialization Core UART
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
  */
-int uarths_init();
+void uarths_init();
 
 /**
- * @brief       Put a char to UART
+ * @brief       Get a byte from UART
  *
- * @param[in]   c       The char to put
- *
- * @note        If c is '\n', a '\r' will be appended automatically
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
+ * @return      byte from UART
  */
-int uarths_putchar(char c);
+
+uint8_t uarths_read_byte();
+
+/**
+ * @brief       Put a byte to UART
+ *
+ * @param[in]   value       The byte to put
+ */
+void uarths_write_byte(uint8_t value);
 
 /**
  * @brief       Send a string to UART
  *
  * @param[in]   s       The string to send
- *
- * @note        The string must ending with '\0'
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
  */
-int uarths_puts(const char *s);
-
-
-/**
- * @brief       Get a byte from UART
- *
- * @return      byte as int type from UART
- */
-
-int uarths_getc(void);
-
+void uarths_puts(const char *s);
 
 #ifdef __cplusplus
 }

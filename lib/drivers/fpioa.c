@@ -14,8 +14,8 @@
  */
 #include <stddef.h>
 #include <stdint.h>
-#include "sysctl.h"
 #include "fpioa.h"
+#include "sysctl.h"
 
 volatile struct fpioa_t *const fpioa = (volatile struct fpioa_t *)FPIOA_BASE_ADDR;
 
