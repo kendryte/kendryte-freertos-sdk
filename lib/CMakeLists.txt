@@ -1,5 +1,4 @@
 #project(kendryte)
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_LIST_DIR}/arch/include ${CMAKE_CURRENT_LIST_DIR}/utils/include)
 
 ADD_SUBDIRECTORY(drivers)
 ADD_SUBDIRECTORY(freertos)
