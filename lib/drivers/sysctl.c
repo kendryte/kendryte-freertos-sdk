@@ -834,6 +834,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
     case SYSCTL_PLL0:
         /* Do not bypass PLL */
         sysctl->pll0.pll_bypass0 = 0;
+        sysctl->pll0.pll_out_en0 = 0;
         /*
          * Power on the PLL, negtive from PWRDN
          * 0 is power off
@@ -855,6 +856,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
     case SYSCTL_PLL1:
         /* Do not bypass PLL */
         sysctl->pll1.pll_bypass1 = 0;
+        sysctl->pll1.pll_out_en1 = 0;
         /*
          * Power on the PLL, negtive from PWRDN
          * 0 is power off
@@ -876,6 +878,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
     case SYSCTL_PLL2:
         /* Do not bypass PLL */
         sysctl->pll2.pll_bypass2 = 0;
+        sysctl->pll2.pll_out_en2 = 0;
         /*
          * Power on the PLL, negtive from PWRDN
          * 0 is power off
