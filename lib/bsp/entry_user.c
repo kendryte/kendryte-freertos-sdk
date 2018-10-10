@@ -37,10 +37,7 @@ extern int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char
 
 static void setup_clocks()
 {
-    sysctl_pll_enable(SYSCTL_PLL1);
     sysctl_pll_set_freq(SYSCTL_PLL1, PLL1_OUTPUT_FREQ);
-
-    sysctl_pll_enable(SYSCTL_PLL2);
     sysctl_pll_set_freq(SYSCTL_PLL2, PLL2_OUTPUT_FREQ);
 }
 

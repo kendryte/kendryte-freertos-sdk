@@ -15,8 +15,8 @@
 #ifndef _BSP_SLEEP_H
 #define _BSP_SLEEP_H
 
-#include "clint.h"
-#include "encoding.h"
+#include <clint.h>
+#include <encoding.h>
 #include <sys/time.h>
 
 extern int nanosleep(const struct timespec* req, struct timespec* rem);
