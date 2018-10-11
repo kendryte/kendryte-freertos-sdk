@@ -12,11 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "FreeRTOS.h"
-#include "driver.h"
-#include "hal.h"
-#include "fft.h"
-#include "sysctl.h"
+#include <FreeRTOS.h>
+#include <driver.h>
+#include <hal.h>
+#include <fft.h>
+#include <sysctl.h>
 
 #define COMMON_ENTRY                                    \
     fft_dev_data *data = (fft_dev_data *)userdata;      \

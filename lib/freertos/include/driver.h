@@ -15,12 +15,12 @@
 #ifndef _FREERTOS_DRIVER_H
 #define _FREERTOS_DRIVER_H
 
-#include <FreeRTOS.h>
-#include <semphr.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 #ifdef __cplusplus
 extern "C"

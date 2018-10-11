@@ -19,70 +19,70 @@
 /* Register base address */
 
 /* Under Coreplex */
-#define CLINT_BASE_ADDR     (0x02000000)
-#define PLIC_BASE_ADDR      (0x0C000000)
+#define CLINT_BASE_ADDR     (0x02000000U)
+#define PLIC_BASE_ADDR      (0x0C000000U)
 
 /* Under TileLink */
-#define UARTHS_BASE_ADDR    (0x38000000)
-#define GPIOHS_BASE_ADDR    (0x38001000)
+#define UARTHS_BASE_ADDR    (0x38000000U)
+#define GPIOHS_BASE_ADDR    (0x38001000U)
 
 /* Under AXI 64 bit */
-#define RAM_BASE_ADDR       (0x80000000)
-#define RAM_SIZE            (6 * 1024 * 1024)
+#define RAM_BASE_ADDR       (0x80000000U)
+#define RAM_SIZE            (6 * 1024 * 1024U)
 
-#define IO_BASE_ADDR        (0x40000000)
-#define IO_SIZE             (6 * 1024 * 1024)
+#define IO_BASE_ADDR        (0x40000000U)
+#define IO_SIZE             (6 * 1024 * 1024U)
 
-#define AI_RAM_BASE_ADDR    (0x80600000)
-#define AI_RAM_SIZE         (2 * 1024 * 1024)
+#define AI_RAM_BASE_ADDR    (0x80600000U)
+#define AI_RAM_SIZE         (2 * 1024 * 1024U)
 
-#define AI_IO_BASE_ADDR     (0x40600000)
-#define AI_IO_SIZE          (2 * 1024 * 1024)
+#define AI_IO_BASE_ADDR     (0x40600000U)
+#define AI_IO_SIZE          (2 * 1024 * 1024U)
 
-#define AI_BASE_ADDR        (0x40800000)
-#define AI_SIZE             (12 * 1024 * 1024)
+#define AI_BASE_ADDR        (0x40800000U)
+#define AI_SIZE             (12 * 1024 * 1024U)
 
-#define FFT_BASE_ADDR       (0x42000000)
-#define FFT_SIZE            (4 * 1024 * 1024)
+#define FFT_BASE_ADDR       (0x42000000U)
+#define FFT_SIZE            (4 * 1024 * 1024U)
 
-#define ROM_BASE_ADDR       (0x88000000)
-#define ROM_SIZE            (128 * 1024)
+#define ROM_BASE_ADDR       (0x88000000U)
+#define ROM_SIZE            (128 * 1024U)
 
 /* Under AHB 32 bit */
-#define DMAC_BASE_ADDR      (0x50000000)
+#define DMAC_BASE_ADDR      (0x50000000U)
 
 /* Under APB1 32 bit */
-#define GPIO_BASE_ADDR      (0x50200000)
-#define UART1_BASE_ADDR     (0x50210000)
-#define UART2_BASE_ADDR     (0x50220000)
-#define UART3_BASE_ADDR     (0x50230000)
-#define SPI_SLAVE_BASE_ADDR (0x50240000)
-#define I2S0_BASE_ADDR      (0x50250000)
-#define I2S1_BASE_ADDR      (0x50260000)
-#define I2S2_BASE_ADDR      (0x50270000)
-#define I2C0_BASE_ADDR      (0x50280000)
-#define I2C1_BASE_ADDR      (0x50290000)
-#define I2C2_BASE_ADDR      (0x502A0000)
-#define FPIOA_BASE_ADDR     (0x502B0000)
-#define SHA256_BASE_ADDR    (0x502C0000)
-#define TIMER0_BASE_ADDR    (0x502D0000)
-#define TIMER1_BASE_ADDR    (0x502E0000)
-#define TIMER2_BASE_ADDR    (0x502F0000)
+#define GPIO_BASE_ADDR      (0x50200000U)
+#define UART1_BASE_ADDR     (0x50210000U)
+#define UART2_BASE_ADDR     (0x50220000U)
+#define UART3_BASE_ADDR     (0x50230000U)
+#define SPI_SLAVE_BASE_ADDR (0x50240000U)
+#define I2S0_BASE_ADDR      (0x50250000U)
+#define I2S1_BASE_ADDR      (0x50260000U)
+#define I2S2_BASE_ADDR      (0x50270000U)
+#define I2C0_BASE_ADDR      (0x50280000U)
+#define I2C1_BASE_ADDR      (0x50290000U)
+#define I2C2_BASE_ADDR      (0x502A0000U)
+#define FPIOA_BASE_ADDR     (0x502B0000U)
+#define SHA256_BASE_ADDR    (0x502C0000U)
+#define TIMER0_BASE_ADDR    (0x502D0000U)
+#define TIMER1_BASE_ADDR    (0x502E0000U)
+#define TIMER2_BASE_ADDR    (0x502F0000U)
 
 /* Under APB2 32 bit */
-#define WDT0_BASE_ADDR      (0x50400000)
-#define WDT1_BASE_ADDR      (0x50410000)
-#define OTP_BASE_ADDR       (0x50420000)
-#define DVP_BASE_ADDR       (0x50430000)
-#define SYSCTL_BASE_ADDR    (0x50440000)
-#define AES_BASE_ADDR       (0x50450000)
-#define RTC_BASE_ADDR       (0x50460000)
+#define WDT0_BASE_ADDR      (0x50400000U)
+#define WDT1_BASE_ADDR      (0x50410000U)
+#define OTP_BASE_ADDR       (0x50420000U)
+#define DVP_BASE_ADDR       (0x50430000U)
+#define SYSCTL_BASE_ADDR    (0x50440000U)
+#define AES_BASE_ADDR       (0x50450000U)
+#define RTC_BASE_ADDR       (0x50460000U)
 
 
 /* Under APB3 32 bit */
-#define SPI0_BASE_ADDR      (0x52000000)
-#define SPI1_BASE_ADDR      (0x53000000)
-#define SPI3_BASE_ADDR      (0x54000000)
+#define SPI0_BASE_ADDR      (0x52000000U)
+#define SPI1_BASE_ADDR      (0x53000000U)
+#define SPI3_BASE_ADDR      (0x54000000U)
 
 /* clang-format on */
 

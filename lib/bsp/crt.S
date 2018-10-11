@@ -400,6 +400,16 @@ _fini:
   .size  _init, .-_init
   .size  _fini, .-_fini
 
+.global __register_frame_info
+.type   __register_frame_info, @function
+.global __deregister_frame_info
+.type   __deregister_frame_info, @function
+__register_frame_info:
+__deregister_frame_info:
+  ret
+  .size  __register_frame_info, .-__register_frame_info
+  .size  __deregister_frame_info, .-__deregister_frame_info
+
 .section ".tdata.begin"
 .globl _tdata_begin
 _tdata_begin:

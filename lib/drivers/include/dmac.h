@@ -16,9 +16,9 @@
 #define _DRIVER_DMAC_H
 
 #include <stdint.h>
+#include <stdbool.h>
+#include <platform.h>
 #include "io.h"
-#include "platform.h"
-#include "stdbool.h"
 
 #ifdef __cplusplus
 extern "C" {

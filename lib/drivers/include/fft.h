@@ -16,7 +16,7 @@
 #define _DRIVER_FFT_H
 
 #include <stdint.h>
-#include "platform.h"
+#include <platform.h>
 
 #ifdef __cplusplus
 extern "C" {

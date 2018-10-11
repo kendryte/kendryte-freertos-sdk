@@ -16,6 +16,7 @@
 #define _SHA256_H
 #include <stdint.h>
 #include <stddef.h>
+#include <platform.h>
 
 #ifdef __cplusplus
 extern "C" {

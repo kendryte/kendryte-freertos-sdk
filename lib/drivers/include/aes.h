@@ -16,6 +16,7 @@
 #define _DRIVER_AES_H
 
 #include <stdint.h>
+#include <platform.h>
 
 #ifdef __cplusplus
 extern "C" {

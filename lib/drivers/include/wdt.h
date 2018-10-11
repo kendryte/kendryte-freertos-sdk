@@ -17,7 +17,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <plic.h>
+#include "plic.h"
 
 #ifdef __cplusplus
 extern "C" {

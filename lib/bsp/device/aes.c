@@ -12,10 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "FreeRTOS.h"
-#include "aes.h"
-#include "driver.h"
-#include "sysctl.h"
+#include <FreeRTOS.h>
+#include <aes.h>
+#include <driver.h>
+#include <sysctl.h>
 
 #define COMMON_ENTRY                                               \
     aes_dev_data *data = (aes_dev_data *)userdata;                 \
@@ -169,9 +169,16 @@ static void os_gcm_get_tag(uint8_t *gcm_tag, void *userdata)
     os_gcm_check_tag((uint32_t *)gcm_tag, userdata);
 }
 
-static void os_aes_init( const uint8_t *input_key, size_t input_key_len, uint8_t *iv, size_t iv_len, uint8_t *gcm_aad,
-                            aes_cipher_mode_t cipher_mode, aes_encrypt_sel_t encrypt_sel, size_t gcm_aad_len,
-                            size_t input_data_len, void *userdata)
+static void os_aes_init(const uint8_t *input_key,
+    size_t input_key_len,
+    uint8_t *iv,
+    size_t iv_len,
+    uint8_t *gcm_aad,
+    aes_cipher_mode_t cipher_mode,
+    aes_encrypt_sel_t encrypt_sel,
+    size_t gcm_aad_len,
+    size_t input_data_len,
+    void *userdata)
 {
     COMMON_ENTRY;
     size_t remainder, uint32_num, uint8_num, i;
@@ -241,10 +248,10 @@ static void os_aes_init( const uint8_t *input_key, size_t input_key_len, uint8_t
 }
 
 static void aes_process_less_80_bytes(const uint8_t *input_data,
-                                        uint8_t *output_data,
-                                        size_t input_data_len,
-                                        aes_cipher_mode_t cipher_mode,
-                                        void *userdata)
+    uint8_t *output_data,
+    size_t input_data_len,
+    aes_cipher_mode_t cipher_mode,
+    void *userdata)
 {
     size_t padding_len, uint32_num, uint8_num, remainder, i;
     uint32_t uint32_data;
@@ -328,10 +335,10 @@ static void aes_process_less_80_bytes(const uint8_t *input_data,
 }
 
 static void os_aes_process(const uint8_t *input_data,
-                            uint8_t *output_data,
-                            size_t input_data_len,
-                            aes_cipher_mode_t cipher_mode,
-                            void *userdata)
+    uint8_t *output_data,
+    size_t input_data_len,
+    aes_cipher_mode_t cipher_mode,
+    void *userdata)
 {
     size_t temp_len = 0;
     uint32_t i = 0;

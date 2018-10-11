@@ -36,7 +36,7 @@
 #define _DRIVER_FPIOA_H
 
 #include <stdint.h>
-#include "platform.h"
+#include <platform.h>
 
 #ifdef __cplusplus
 extern "C" {

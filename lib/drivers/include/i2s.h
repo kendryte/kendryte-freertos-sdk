@@ -17,7 +17,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "platform.h"
+#include <platform.h>
 #include "io.h"
 #include "dmac.h"
 

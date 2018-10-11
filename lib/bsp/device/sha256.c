@@ -14,12 +14,12 @@
  */
 #include <stdlib.h>
 #include <string.h>
-#include "FreeRTOS.h"
-#include "dmac.h"
-#include "driver.h"
-#include "hal.h"
-#include "sha256.h"
-#include "sysctl.h"
+#include <FreeRTOS.h>
+#include <dmac.h>
+#include <driver.h>
+#include <hal.h>
+#include <sha256.h>
+#include <sysctl.h>
 
 #define ROTL(x, n) (((x) << (n)) | ((x) >> (32 - (n))))
 #define ROTR(x, n) (((x) >> (n)) | ((x) << (32 - (n))))
