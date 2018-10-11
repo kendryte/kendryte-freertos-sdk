@@ -317,8 +317,7 @@ extern "C" {
  */
 
 /* clang-format off */
-typedef enum 
-_fpioa_function
+typedef enum _fpioa_function
 {
     FUNC_JTAG_TCLK        = 0,  /*!< JTAG Test Clock */
     FUNC_JTAG_TDI         = 1,  /*!< JTAG Test Data In */
@@ -992,7 +991,6 @@ int fpioa_get_io_driving(int number);
  *     - Other  The IO number
  */
 int fpioa_get_io_by_function(fpioa_function_t function);
-
 
 #ifdef __cplusplus
 }
