@@ -312,12 +312,18 @@ void gpio_set_pin_value(handle_t file, uint32_t pin, gpio_pin_value_t value)
 
 /* I2C */
 
-handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode)
+handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width)
 {
     COMMON_ENTRY(i2c, I2C);
-    i2c_device_driver_t *driver = i2c->get_device(slave_address, address_width, bus_speed_mode, i2c->base.userdata);
+    i2c_device_driver_t *driver = i2c->get_device(slave_address, address_width, i2c->base.userdata);
     driver_registry_t *reg = install_custom_driver_core(name, DRIVER_I2C_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
+}
+
+double i2c_dev_set_clock_rate(handle_t file, double clock_rate)
+{
+    COMMON_ENTRY(i2c_device, I2C_DEVICE);
+    return i2c_device->set_clock_rate(clock_rate, i2c_device->base.userdata);
 }
 
 int i2c_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
@@ -326,10 +332,16 @@ int i2c_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size
     return i2c_device->transfer_sequential(write_buffer, write_len, read_buffer, read_len, i2c_device->base.userdata);
 }
 
-void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t *handler)
+void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_slave_handler_t *handler)
 {
     COMMON_ENTRY(i2c, I2C);
-    i2c->config_as_slave(slave_address, address_width, bus_speed_mode, handler, i2c->base.userdata);
+    i2c->config_as_slave(slave_address, address_width, handler, i2c->base.userdata);
+}
+
+double i2c_slave_set_clock_rate(handle_t file, double clock_rate)
+{
+    COMMON_ENTRY(i2c, I2C);
+    return i2c->slave_set_clock_rate(clock_rate, i2c->base.userdata);
 }
 
 /* I2S */

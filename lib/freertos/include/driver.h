@@ -126,14 +126,10 @@ typedef struct tag_gpio_driver
     gpio_pin_value_t (*get_pin_value)(uint32_t pin, void *userdata);
 } gpio_driver_t;
 
-typedef enum
-{
-    I2C_BS_STANDARD
-} i2c_bus_speed_mode_t;
-
 typedef struct tag_i2c_device_driver
 {
     driver_base_t base;
+    double (*set_clock_rate)(double clock_rate, void *userdata);
     int (*read)(uint8_t *buffer, size_t len, void *userdata);
     int (*write)(const uint8_t *buffer, size_t len, void *userdata);
     int (*transfer_sequential)(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
@@ -156,8 +152,9 @@ typedef struct _i2c_slave_handler
 typedef struct tag_i2c_driver
 {
     driver_base_t base;
-    i2c_device_driver_t * (*get_device)(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void *userdata);
-    void (*config_as_slave)(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t *handler, void *userdata);
+    i2c_device_driver_t * (*get_device)(uint32_t slave_address, uint32_t address_width, void *userdata);
+    void (*config_as_slave)(uint32_t slave_address, uint32_t address_width, i2c_slave_handler_t *handler, void *userdata);
+    double (*slave_set_clock_rate)(double clock_rate, void *userdata);
 } i2c_driver_t;
 
 typedef enum _audio_format_type

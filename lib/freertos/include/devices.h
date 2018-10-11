@@ -158,11 +158,20 @@ void gpio_set_pin_value(handle_t file, uint32_t pin, gpio_pin_value_t value);
  * @param[in]   name                Specify the path to access the device
  * @param[in]   slave_address       The address of slave
  * @param[in]   address_width       The bits width of address
- * @param[in]   bus_speed_mode      The bus clock_rate mode selection
  *
  * @return      The I2C device handle
  */
-handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode);
+handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width);
+
+/**
+ * @brief       Set the clock rate of a I2C device
+ *
+ * @param[in]   file            The I2C device handle
+ * @param[in]   clock_rate      The desired clock rate in Hz
+ *
+ * @return      The actual clock rate after set
+ */
+double i2c_dev_set_clock_rate(handle_t file, double clock_rate);
 
 /**
  * @brief       Write to then read from a I2C device
@@ -183,10 +192,19 @@ int i2c_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size
  * @param[in]   file                The I2C controller handle
  * @param[in]   slave_address       The address of slave
  * @param[in]   address_width       The bits width of address
- * @param[in]   bus_speed_mode      The bus clock_rate mode selection
  * @param[in]   handler             The slave handler
  */
-void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t *handler);
+void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_slave_handler_t *handler);
+
+/**
+ * @brief       Set the clock rate of a slave I2C controller
+ *
+ * @param[in]   file            The I2C controller handle
+ * @param[in]   clock_rate      The desired clock rate in Hz
+ *
+ * @return      The actual clock rate after set
+ */
+double i2c_slave_set_clock_rate(handle_t file, double clock_rate);
 
 /**
  * @brief       Configure a I2S controller with render mode
@@ -267,7 +285,7 @@ handle_t spi_get_device(handle_t file, const char *name, spi_mode_t mode, spi_fr
 void spi_dev_config_non_standard(handle_t file, uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode);
 
 /**
- * @brief       Set the clock_rate of a SPI device
+ * @brief       Set the clock rate of a SPI device
  *
  * @param[in]   file            The SPI device handle
  * @param[in]   clock_rate      The desired clock rate in Hz
