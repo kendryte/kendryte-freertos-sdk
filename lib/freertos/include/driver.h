@@ -272,7 +272,7 @@ typedef struct tag_sccb_device_driver
 typedef struct tag_sccb_driver
 {
     driver_base_t base;
-    sccb_device_driver_t* (*get_device)(uint32_t slave_address, uint32_t address_width, void *userdata);
+    sccb_device_driver_t* (*get_device)(uint32_t slave_address, uint32_t reg_address_width, void *userdata);
 } sccb_driver_t;
 
 typedef struct tag_fft_data

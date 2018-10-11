@@ -407,14 +407,14 @@ void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void *u
 /**
  * @brief       Register and open a SCCB device
  *
- * @param[in]   file                The SCCB controller handle
- * @param[in]   name                Specify the path to access the device
- * @param[in]   slave_address       The address of slave
- * @param[in]   address_width       The bits width of address
+ * @param[in]   file                    The SCCB controller handle
+ * @param[in]   name                    Specify the path to access the device
+ * @param[in]   slave_address           The address of slave
+ * @param[in]   reg_address_width       The bits width of register address
  *
  * @return      The SCCB device handle
  */
-handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width);
+handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t reg_address_width);
 
 /**
  * @brief       Read a byte from a SCCB device

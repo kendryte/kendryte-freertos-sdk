@@ -474,10 +474,10 @@ void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void *u
 
 /* SSCB */
 
-handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width)
+handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t reg_address_width)
 {
     COMMON_ENTRY(sccb, SCCB);
-    sccb_device_driver_t *driver = sccb->get_device(slave_address, address_width, sccb->base.userdata);
+    sccb_device_driver_t *driver = sccb->get_device(slave_address, reg_address_width, sccb->base.userdata);
     driver_registry_t *reg = install_custom_driver_core(name, DRIVER_SCCB_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
