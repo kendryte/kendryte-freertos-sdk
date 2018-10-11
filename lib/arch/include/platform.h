@@ -161,9 +161,8 @@
  * | 65     | IRQN_GPIOHS31_INTERRUPT  | Hi-speed GPIO31 interrupt          |
  *
  */
-
 /* clang-format off */
-typedef enum plic_irq_t
+typedef enum _plic_irq
 {
     IRQN_NO_INTERRUPT        = 0, /*!< The non-existent interrupt */
     IRQN_SPI0_INTERRUPT      = 1, /*!< SPI0 interrupt */

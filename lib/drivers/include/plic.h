@@ -16,7 +16,7 @@
  * @file
  * @brief      The PLIC complies with the RISC-V Privileged Architecture
  *             specification, and can support a maximum of 1023 external
- *             interrupt sources targeting up to 15,872 hart contexts.
+ *             interrupt sources targeting up to 15,872 core contexts.
  *
  * @note       PLIC RAM Layout
  *
@@ -58,8 +58,6 @@
 #define _DRIVER_PLIC_H
 
 #include <stdint.h>
-#include "encoding.h"
-#include "platform.h"
 
 /* For c++ compatibility */
 #ifdef __cplusplus
@@ -72,8 +70,9 @@ extern "C" {
 #define PLIC_NUM_PRIORITIES (7)
 
 /* Real number of cores */
-#define PLIC_NUM_HARTS      (2)
+#define PLIC_NUM_CORES      (2)
 /* clang-format on */
+
 
 /**
  * @brief      Interrupt Source Priorities
@@ -86,11 +85,11 @@ extern "C" {
  *             the lowest ID have the highest effective priority. The priority
  *             registers are all WARL.
  */
-struct plic_source_priorities_t
+typedef struct _plic_source_priorities
 {
     /* 0x0C000000: Reserved, 0x0C000004-0x0C000FFC: 1-1023 priorities */
     uint32_t priority[1024];
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) plic_source_priorities_t;
 
 /**
  * @brief       Interrupt Pending Bits
@@ -106,12 +105,13 @@ struct plic_source_priorities_t
  *              pending bit can be set by instructing the associated gateway to
  *              send an interrupt service request.
  */
-struct plic_pending_bits_t {
+typedef struct _plic_pending_bits
+{
     /* 0x0C001000-0x0C00107C: Bit 0 is zero, Bits 1-1023 is pending bits */
     uint32_t u32[32];
     /* 0x0C001080-0x0C001FFF: Reserved */
     uint8_t resv[0xF80];
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) plic_pending_bits_t;
 
 /**
  * @brief       Target Interrupt Enables
@@ -131,17 +131,17 @@ struct plic_pending_bits_t {
  *              treating all non-existent interrupt source’s enables as
  *              hardwired to zero.
  */
-struct plic_target_enables_t
+typedef struct _plic_target_enables
 {
     /* 0x0C002000-0x0C1F1F80: target 0-15871 enables */
     struct
     {
         uint32_t enable[32];/* Offset 0x00-0x7C: Bit 0 is zero, Bits 1-1023 is bits*/
     } target[15872];
-    
+
     /* 0x0C1F2000-0x0C1FFFFC: Reserved, size 0xE000 */
     uint8_t resv[0xE000];
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) plic_target_enables_t;
 
 /**
  * @brief       PLIC Targets
@@ -172,7 +172,7 @@ struct plic_target_enables_t
  *              that is currently enabled for the target, the completion is
  *              silently ignored.
  */
-struct plic_target_t
+typedef struct _plic_target
 {
     /* 0x0C200000-0x0FFFF004: target 0-15871 */
     struct {
@@ -180,7 +180,7 @@ struct plic_target_t
         uint32_t claim_complete;    /* Offset 0x004 */
         uint8_t resv[0xFF8];        /* Offset 0x008, Size 0xFF8 */
     } target[15872];
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) plic_target_t;
 
 /**
  * @brief       Platform-Level Interrupt Controller
@@ -188,121 +188,19 @@ struct plic_target_t
  *              PLIC is Platform-Level Interrupt Controller. The PLIC complies
  *              with the RISC-V Privileged Architecture specification, and can
  *              support a maximum of 1023 external interrupt sources targeting
- *              up to 15,872 hart contexts.
+ *              up to 15,872 core contexts.
  */
-struct plic_t
+typedef struct _plic
 {
     /* 0x0C000000-0x0C000FFC */
-    struct plic_source_priorities_t source_priorities;
+    plic_source_priorities_t source_priorities;
     /* 0x0C001000-0x0C001FFF */
-    const struct plic_pending_bits_t pending_bits;
+    const plic_pending_bits_t pending_bits;
     /* 0x0C002000-0x0C1FFFFC */
-    struct plic_target_enables_t target_enables;
+    plic_target_enables_t target_enables;
     /* 0x0C200000-0x0FFFF004 */
-    struct plic_target_t targets;
-} __attribute__((packed, aligned(4)));
-
-/**
- * @brief       Definitions for the interrupt callbacks
- */
-typedef int (*plic_irq_callback_t)(void *ctx);
-
-/**
- * @brief       Initialize PLIC external interrupt
- *
- * @note        This function will set MIP_MEIP. The MSTATUS_MIE must set by user.
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
- */
-int plic_init(void);
-
-/**
- * @brief       Enable PLIC external interrupt
- *
- * @param[in]   irq_number      external interrupt number
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
- */
-
-int plic_irq_enable(plic_irq_t irq_number);
-
-/**
- * @brief       Disable PLIC external interrupt
- *
- * @param[in]   irq_number  The external interrupt number
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
- */
-int plic_irq_disable(plic_irq_t irq_number);
-
-/**
- * @brief       Set IRQ priority
- *
- * @param[in]   irq_number      The external interrupt number
- * @param[in]   priority        The priority of external interrupt number
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
- */
-int plic_set_priority(plic_irq_t irq_number, uint32_t priority);
-
-/**
- * @brief       Get IRQ priority
- *
- * @param[in]   irq_number          The external interrupt number
- *
- * @return      The priority of external interrupt number
- */
-uint32_t plic_get_priority(plic_irq_t irq_number);
-
-/**
- * @brief       Claim an IRQ
- *
- * @return      The current IRQ number
- */
-uint32_t plic_irq_claim(void);
-
-/**
- * @brief       Complete an IRQ
- *
- * @param[in]   source      The source IRQ number to complete
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
- */
-int plic_irq_complete(uint32_t source);
-
-/**
- * @brief       Register user callback function by IRQ number
- *
- * @param[in]   irq             The irq
- * @param[in]   callback        The callback
- * @param       ctx             The context
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
- */
-int plic_irq_register(plic_irq_t irq, plic_irq_callback_t callback, void *ctx);
-
-/**
- * @brief       Deegister user callback function by IRQ number
- *
- * @param[in]   irq     The irq
- *
- * @return      result
- *     - 0      Success
- *     - Other  Fail
- */
-int plic_irq_deregister(plic_irq_t irq);
+    plic_target_t targets;
+} __attribute__((packed, aligned(4))) plic_t;
 
 /* For c++ compatibility */
 #ifdef __cplusplus

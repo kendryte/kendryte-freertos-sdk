@@ -38,14 +38,14 @@ typedef struct
     int32_t axi_master2_use;
 } dmac_data;
 
-static void dmac_install(void* userdata)
+static void dmac_install(void *userdata)
 {
     COMMON_ENTRY;
 
     uint64_t tmp;
-    union dmac_commonreg_intclear_u intclear;
-    union dmac_cfg_u dmac_cfg;
-    union dmac_reset_u dmac_reset;
+    dmac_commonreg_intclear_u_t intclear;
+    dmac_cfg_u_t dmac_cfg;
+    dmac_reset_u_t dmac_reset;
 
     sysctl_clock_enable(SYSCTL_CLOCK_DMA);
 
@@ -81,16 +81,16 @@ static void dmac_install(void* userdata)
     writeq(dmac_cfg.data, &dmac->cfg);
 }
 
-static int dmac_open(void* userdata)
+static int dmac_open(void *userdata)
 {
     return 1;
 }
 
-static void dmac_close(void* userdata)
+static void dmac_close(void *userdata)
 {
 }
 
-static uint32_t add_lru_axi_master(dmac_data* data)
+static uint32_t add_lru_axi_master(dmac_data *data)
 {
     uint32_t axi1 = atomic_read(&data->axi_master1_use);
     uint32_t axi2 = atomic_read(&data->axi_master2_use);
@@ -107,7 +107,7 @@ static uint32_t add_lru_axi_master(dmac_data* data)
     }
 }
 
-static void release_axi_master(dmac_data* data, uint32_t axi)
+static void release_axi_master(dmac_data *data, uint32_t axi)
 {
     if (axi == 0)
         atomic_add(&data->axi_master1_use, -1);
@@ -123,16 +123,16 @@ const dmac_driver_t g_dmac_driver_dmac0 = {{&dev0_data, dmac_install, dmac_open,
 
 #define MAX_PING_PONG_SRCS 4
 #define C_COMMON_ENTRY                                                                                    \
-    dma_data* data = (dma_data*)userdata;                                                                 \
-    dmac_data* dmacdata = data->dmac_data;                                                                \
-    volatile dmac_t* dmac = (volatile dmac_t*)dmacdata->base_addr;                                        \
+    dma_data *data = (dma_data *)userdata;                                                                \
+    dmac_data *dmacdata = data->dmac_data;                                                                \
+    volatile dmac_t *dmac = (volatile dmac_t *)dmacdata->base_addr;                                       \
     (void)dmac;                                                                                           \
-    volatile struct dmac_channel_t* dma = (volatile struct dmac_channel_t*)dmac->channel + data->channel; \
+    volatile dmac_channel_t *dma = (volatile dmac_channel_t *)dmac->channel + data->channel;              \
     (void)dma;
 
 typedef struct
 {
-    dmac_data* dmac_data;
+    dmac_data *dmac_data;
     size_t channel;
     int used;
 
@@ -145,30 +145,30 @@ typedef struct
         {
             struct
             {
-                enum dmac_transfer_flow flow_control;
+                dmac_transfer_flow_t flow_control;
                 size_t element_size;
                 size_t count;
-                void* alloc_mem;
-                volatile void* dest;
+                void *alloc_mem;
+                volatile void *dest;
             };
 
             struct
             {
-                const volatile void* srcs[MAX_PING_PONG_SRCS];
+                const volatile void *srcs[MAX_PING_PONG_SRCS];
                 size_t src_num;
-                volatile void* dests[MAX_PING_PONG_SRCS];
+                volatile void *dests[MAX_PING_PONG_SRCS];
                 size_t dest_num;
                 size_t next_src_id;
                 size_t next_dest_id;
                 dma_stage_completion_handler_t stage_completion_handler;
-                void* stage_completion_handler_data;
-                int* stop_signal;
+                void *stage_completion_handler_data;
+                int *stop_signal;
             };
         };
     } session;
 } dma_data;
 
-static void dma_completion_isr(void* userdata)
+static void dma_completion_isr(void *userdata)
 {
     C_COMMON_ENTRY;
 
@@ -218,16 +218,16 @@ static void dma_completion_isr(void* userdata)
                 if (data->session.element_size == 1)
                 {
                     size_t i;
-                    uint32_t* p_src = data->session.alloc_mem;
-                    uint8_t* p_dst = (uint8_t*)data->session.dest;
+                    uint32_t *p_src = data->session.alloc_mem;
+                    uint8_t *p_dst = (uint8_t *)data->session.dest;
                     for (i = 0; i < data->session.count; i++)
                         p_dst[i] = p_src[i];
                 }
                 else if (data->session.element_size == 2)
                 {
                     size_t i;
-                    uint32_t* p_src = data->session.alloc_mem;
-                    uint16_t* p_dst = (uint16_t*)data->session.dest;
+                    uint32_t *p_src = data->session.alloc_mem;
+                    uint16_t *p_dst = (uint16_t *)data->session.dest;
                     for (i = 0; i < data->session.count; i++)
                         p_dst[i] = p_src[i];
                 }
@@ -250,7 +250,7 @@ static void dma_completion_isr(void* userdata)
     }
 }
 
-static void dma_install(void* userdata)
+static void dma_install(void *userdata)
 {
     C_COMMON_ENTRY;
 
@@ -259,19 +259,19 @@ static void dma_install(void* userdata)
     pic_set_irq_enable(IRQN_DMA0_INTERRUPT + data->channel, 1);
 }
 
-static int dma_open(void* userdata)
+static int dma_open(void *userdata)
 {
     C_COMMON_ENTRY;
     return atomic_cas(&data->used, 0, 1) == 0;
 }
 
-static void dma_close_imp(void* userdata)
+static void dma_close_imp(void *userdata)
 {
     C_COMMON_ENTRY;
     atomic_set(&data->used, 0);
 }
 
-static void dma_set_select_request_imp(uint32_t request, void* userdata)
+static void dma_set_select_request_imp(uint32_t request, void *userdata)
 {
     C_COMMON_ENTRY;
 
@@ -315,13 +315,13 @@ static void dma_set_select_request_imp(uint32_t request, void* userdata)
     }
 }
 
-static void dma_config_imp(uint32_t priority, void* userdata)
+static void dma_config_imp(uint32_t priority, void *userdata)
 {
     C_COMMON_ENTRY;
     configASSERT((dmac->chen & (1 << data->channel)) == 0);
     configASSERT(priority <= 7);
 
-    union dmac_ch_cfg_u cfg_u;
+    dmac_ch_cfg_u_t cfg_u;
 
     cfg_u.data = readq(&dma->cfg);
     cfg_u.ch_cfg.ch_prior = priority;
@@ -338,7 +338,7 @@ static int is_memory(uintptr_t address)
     return ((address >= 0x80000000) && (address < 0x80000000 + mem_len)) || ((address >= 0x40000000) && (address < 0x40000000 + mem_len)) || (address == 0x50450040);
 }
 
-static void dma_loop_async_imp(const volatile void** srcs, size_t src_num, volatile void** dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void* stage_completion_handler_data, SemaphoreHandle_t completion_event, int* stop_signal, void* userdata)
+static void dma_loop_async_imp(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata)
 {
     C_COMMON_ENTRY;
 
@@ -358,9 +358,9 @@ static void dma_loop_async_imp(const volatile void** srcs, size_t src_num, volat
 
     int mem_type_src = is_memory((uintptr_t)srcs[0]), mem_type_dest = is_memory((uintptr_t)dests[0]);
 
-    union dmac_ch_cfg_u cfg_u;
+    dmac_ch_cfg_u_t cfg_u;
 
-    enum dmac_transfer_flow flow_control = DMAC_MEM2MEM_DMA;
+    dmac_transfer_flow_t flow_control = DMAC_MEM2MEM_DMA;
     if (mem_type_src == 0 && mem_type_dest == 0)
     {
         configASSERT(!"Periph to periph dma is not supported.");
@@ -442,7 +442,7 @@ static void dma_loop_async_imp(const volatile void** srcs, size_t src_num, volat
     dma->intstatus_en = 0xFFFFFFE2;
     dma->intclear = 0xFFFFFFFF;
 
-    union dmac_ch_ctl_u ctl_u;
+    dmac_ch_ctl_u_t ctl_u;
 
     ctl_u.data = readq(&dma->ctl);
     ctl_u.ch_ctl.sinc = src_inc;
@@ -477,7 +477,7 @@ static void dma_loop_async_imp(const volatile void** srcs, size_t src_num, volat
     dmac->chen |= 0x101 << data->channel;
 }
 
-static void dma_transmit_async_imp(const volatile void* src, volatile void* dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void* userdata)
+static void dma_transmit_async_imp(const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata)
 {
     C_COMMON_ENTRY;
 
@@ -494,9 +494,9 @@ static void dma_transmit_async_imp(const volatile void* src, volatile void* dest
 
     int mem_type_src = is_memory((uintptr_t)src), mem_type_dest = is_memory((uintptr_t)dest);
 
-    union dmac_ch_cfg_u cfg_u;
+    dmac_ch_cfg_u_t cfg_u;
 
-    enum dmac_transfer_flow flow_control = DMAC_MEM2MEM_DMA;
+    dmac_transfer_flow_t flow_control = DMAC_MEM2MEM_DMA;
     if (mem_type_src == 0 && mem_type_dest == 0)
     {
         configASSERT(!"Periph to periph dma is not supported.");
@@ -532,7 +532,7 @@ static void dma_transmit_async_imp(const volatile void* src, volatile void* dest
 
     if (flow_control != DMAC_MEM2MEM_DMA && old_elm_size < 4)
     {
-        void* alloc_mem = malloc(sizeof(uint32_t) * count);
+        void *alloc_mem = malloc(sizeof(uint32_t) * count);
         data->session.alloc_mem = alloc_mem;
         element_size = sizeof(uint32_t);
 
@@ -546,15 +546,15 @@ static void dma_transmit_async_imp(const volatile void* src, volatile void* dest
             if (old_elm_size == 1)
             {
                 size_t i;
-                const uint8_t* p_src = (const uint8_t*)src;
-                uint32_t* p_dst = alloc_mem;
+                const uint8_t *p_src = (const uint8_t *)src;
+                uint32_t *p_dst = alloc_mem;
                 for (i = 0; i < count; i++)
                     p_dst[i] = p_src[i];
             }
             else if (old_elm_size == 2)
             {
                 size_t i;
-                const uint16_t* p_src = (const uint16_t*)src;
+                const uint16_t *p_src = (const uint16_t *)src;
                 uint32_t* p_dst = alloc_mem;
                 for (i = 0; i < count; i++)
                     p_dst[i] = p_src[i];
@@ -629,7 +629,7 @@ static void dma_transmit_async_imp(const volatile void* src, volatile void* dest
     dma->intstatus_en = 0xFFFFFFE2;
     dma->intclear = 0xFFFFFFFF;
 
-    union dmac_ch_ctl_u ctl_u;
+    dmac_ch_ctl_u_t ctl_u;
 
     ctl_u.data = readq(&dma->ctl);
     ctl_u.ch_ctl.sinc = src_inc;

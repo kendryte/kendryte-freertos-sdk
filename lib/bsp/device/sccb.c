@@ -28,8 +28,8 @@
 /* SCCB Controller */
 
 #define COMMON_ENTRY                                                       \
-    sccb_data* data = (sccb_data*)userdata;                                \
-    volatile struct dvp_t* sccb = (volatile struct dvp_t*)data->base_addr; \
+    sccb_data *data = (sccb_data *)userdata;                               \
+    volatile dvp_t *sccb = (volatile dvp_t *)data->base_addr;              \
     (void)sccb;
 
 typedef struct
@@ -39,7 +39,7 @@ typedef struct
     SemaphoreHandle_t free_mutex;
 } sccb_data;
 
-static void sccb_install(void* userdata)
+static void sccb_install(void *userdata)
 {
     COMMON_ENTRY;
 
@@ -49,40 +49,40 @@ static void sccb_install(void* userdata)
     data->free_mutex = xSemaphoreCreateMutex();
 }
 
-static int sccb_open(void* userdata)
+static int sccb_open(void *userdata)
 {
     return 1;
 }
 
-static void sccb_close(void* userdata)
+static void sccb_close(void *userdata)
 {
 }
 
 /* SCCB Device */
 
-#define COMMON_DEV_ENTRY                                \
-    sccb_dev_data* dev_data = (sccb_dev_data*)userdata; \
-    sccb_data* data = (sccb_data*)dev_data->sccb_data;  \
-    volatile struct dvp_t* sccb = (volatile struct dvp_t*)data->base_addr;
+#define COMMON_DEV_ENTRY                                 \
+    sccb_dev_data *dev_data = (sccb_dev_data *)userdata; \
+    sccb_data *data = (sccb_data *)dev_data->sccb_data;  \
+    volatile dvp_t *sccb = (volatile dvp_t *)data->base_addr;
 
 typedef struct
 {
-    sccb_data* sccb_data;
+    sccb_data *sccb_data;
     uint32_t slave_address;
     uint32_t address_width;
 } sccb_dev_data;
 
-static void sccb_dev_install(void* userdata);
-static int sccb_dev_open(void* userdata);
-static void sccb_dev_close(void* userdata);
-static uint8_t sccb_dev_read_byte(uint16_t reg_address, void* userdata);
-static void sccb_dev_write_byte(uint16_t reg_address, uint8_t value, void* userdata);
+static void sccb_dev_install(void *userdata);
+static int sccb_dev_open(void *userdata);
+static void sccb_dev_close(void *userdata);
+static uint8_t sccb_dev_read_byte(uint16_t reg_address, void *userdata);
+static void sccb_dev_write_byte(uint16_t reg_address, uint8_t value, void *userdata);
 
-static sccb_device_driver_t* sccb_get_device(uint32_t slave_address, uint32_t address_width, void* userdata)
+static sccb_device_driver_t * sccb_get_device(uint32_t slave_address, uint32_t address_width, void *userdata)
 {
     configASSERT(address_width == 8 || address_width == 16);
 
-    sccb_device_driver_t* driver = (sccb_device_driver_t*)malloc(sizeof(sccb_device_driver_t));
+    sccb_device_driver_t *driver = (sccb_device_driver_t *)malloc(sizeof(sccb_device_driver_t));
     memset(driver, 0, sizeof(sccb_device_driver_t));
 
     sccb_dev_data* dev_data = (sccb_dev_data*)malloc(sizeof(sccb_dev_data));
@@ -99,32 +99,32 @@ static sccb_device_driver_t* sccb_get_device(uint32_t slave_address, uint32_t ad
     return driver;
 }
 
-static void entry_exclusive(sccb_dev_data* dev_data)
+static void entry_exclusive(sccb_dev_data *dev_data)
 {
-    sccb_data* data = (sccb_data*)dev_data->sccb_data;
+    sccb_data *data = (sccb_data *)dev_data->sccb_data;
     configASSERT(xSemaphoreTake(data->free_mutex, portMAX_DELAY) == pdTRUE);
 }
 
-static void exit_exclusive(sccb_dev_data* dev_data)
+static void exit_exclusive(sccb_dev_data *dev_data)
 {
-    sccb_data* data = (sccb_data*)dev_data->sccb_data;
+    sccb_data *data = (sccb_data *)dev_data->sccb_data;
     xSemaphoreGive(data->free_mutex);
 }
 
-static void sccb_dev_install(void* userdata)
+static void sccb_dev_install(void *userdata)
 {
 }
 
-static int sccb_dev_open(void* userdata)
+static int sccb_dev_open(void *userdata)
 {
     return 1;
 }
 
-static void sccb_dev_close(void* userdata)
+static void sccb_dev_close(void *userdata)
 {
 }
 
-static void dvp_sccb_start_transfer(volatile struct dvp_t* dvp)
+static void dvp_sccb_start_transfer(volatile dvp_t *dvp)
 {
     while (dvp->sts & DVP_STS_SCCB_EN)
         ;
@@ -133,7 +133,7 @@ static void dvp_sccb_start_transfer(volatile struct dvp_t* dvp)
         ;
 }
 
-static uint8_t sccb_dev_read_byte(uint16_t reg_address, void* userdata)
+static uint8_t sccb_dev_read_byte(uint16_t reg_address, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -141,12 +141,12 @@ static uint8_t sccb_dev_read_byte(uint16_t reg_address, void* userdata)
     if (dev_data->address_width == 8)
     {
         set_bit_mask(&sccb->sccb_cfg, DVP_SCCB_BYTE_NUM_MASK, DVP_SCCB_BYTE_NUM_2);
-        sccb->sccb_ctl = DVP_SCCB_WRITE_ENABLE | DVP_SCCB_DEVICE_ADDRESS(dev_data->slave_address) | DVP_SCCB_REG_ADDRESS(reg_address);
+        sccb->sccb_ctl = DVP_SCCB_WRITE_DATA_ENABLE | DVP_SCCB_DEVICE_ADDRESS(dev_data->slave_address) | DVP_SCCB_REG_ADDRESS(reg_address);
     }
     else
     {
         set_bit_mask(&sccb->sccb_cfg, DVP_SCCB_BYTE_NUM_MASK, DVP_SCCB_BYTE_NUM_3);
-        sccb->sccb_ctl = DVP_SCCB_WRITE_ENABLE | DVP_SCCB_DEVICE_ADDRESS(dev_data->slave_address) | DVP_SCCB_REG_ADDRESS(reg_address >> 8) | DVP_SCCB_WDATA_BYTE0(reg_address & 0xFF);
+        sccb->sccb_ctl = DVP_SCCB_WRITE_DATA_ENABLE | DVP_SCCB_DEVICE_ADDRESS(dev_data->slave_address) | DVP_SCCB_REG_ADDRESS(reg_address >> 8) | DVP_SCCB_WDATA_BYTE0(reg_address & 0xFF);
     }
 
     dvp_sccb_start_transfer(sccb);
@@ -159,7 +159,7 @@ static uint8_t sccb_dev_read_byte(uint16_t reg_address, void* userdata)
     return ret;
 }
 
-static void sccb_dev_write_byte(uint16_t reg_address, uint8_t value, void* userdata)
+static void sccb_dev_write_byte(uint16_t reg_address, uint8_t value, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -167,12 +167,12 @@ static void sccb_dev_write_byte(uint16_t reg_address, uint8_t value, void* userd
     if (dev_data->address_width == 8)
     {
         set_bit_mask(&sccb->sccb_cfg, DVP_SCCB_BYTE_NUM_MASK, DVP_SCCB_BYTE_NUM_3);
-        sccb->sccb_ctl = DVP_SCCB_WRITE_ENABLE | DVP_SCCB_DEVICE_ADDRESS(dev_data->slave_address) | DVP_SCCB_REG_ADDRESS(reg_address) | DVP_SCCB_WDATA_BYTE0(value);
+        sccb->sccb_ctl = DVP_SCCB_WRITE_DATA_ENABLE | DVP_SCCB_DEVICE_ADDRESS(dev_data->slave_address) | DVP_SCCB_REG_ADDRESS(reg_address) | DVP_SCCB_WDATA_BYTE0(value);
     }
     else
     {
         set_bit_mask(&sccb->sccb_cfg, DVP_SCCB_BYTE_NUM_MASK, DVP_SCCB_BYTE_NUM_4);
-        sccb->sccb_ctl = DVP_SCCB_WRITE_ENABLE | DVP_SCCB_DEVICE_ADDRESS(dev_data->slave_address) | DVP_SCCB_REG_ADDRESS(reg_address >> 8) | DVP_SCCB_WDATA_BYTE0(reg_address & 0xFF) | DVP_SCCB_WDATA_BYTE1(value);
+        sccb->sccb_ctl = DVP_SCCB_WRITE_DATA_ENABLE | DVP_SCCB_DEVICE_ADDRESS(dev_data->slave_address) | DVP_SCCB_REG_ADDRESS(reg_address >> 8) | DVP_SCCB_WDATA_BYTE0(reg_address & 0xFF) | DVP_SCCB_WDATA_BYTE1(value);
     }
 
     dvp_sccb_start_transfer(sccb);

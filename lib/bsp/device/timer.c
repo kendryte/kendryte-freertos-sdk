@@ -25,24 +25,24 @@
 #include <timer.h>
 #include "fpioa_cfg.h"
 
-#define COMMON_ENTRY                                                            \
-    timer_data* data = (timer_data*)userdata;                                   \
-    volatile struct timer_t* timer = (volatile struct timer_t*)data->base_addr; \
+#define COMMON_ENTRY                                                                 \
+    timer_data *data = (timer_data *)userdata;                                       \
+    volatile kendryte_timer_t *timer = (volatile kendryte_timer_t *)data->base_addr; \
     (void)timer;
 
 typedef struct
 {
     uintptr_t base_addr;
     sysctl_clock_t clock;
-    enum plic_irq_t irq;
+    plic_irq_t irq;
     size_t channel;
     timer_on_tick_t on_tick;
-    void* ontick_data;
+    void *ontick_data;
 } timer_data;
 
-static void timer_isr(void* userdata);
+static void timer_isr(void *userdata);
 
-static void timer_install(void* userdata)
+static void timer_install(void *userdata)
 {
     COMMON_ENTRY;
 
@@ -64,17 +64,17 @@ static void timer_install(void* userdata)
     }
 }
 
-static int timer_open(void* userdata)
+static int timer_open(void *userdata)
 {
     COMMON_ENTRY;
     return 1;
 }
 
-static void timer_close(void* userdata)
+static void timer_close(void *userdata)
 {
 }
 
-static size_t timer_set_interval(size_t nanoseconds, void* userdata)
+static size_t timer_set_interval(size_t nanoseconds, void *userdata)
 {
     COMMON_ENTRY;
     uint32_t clk_freq = sysctl_clock_get_freq(data->clock);
@@ -85,14 +85,14 @@ static size_t timer_set_interval(size_t nanoseconds, void* userdata)
     return (size_t)(min_step * value);
 }
 
-static void timer_set_on_tick(timer_on_tick_t on_tick, void* ontick_data, void* userdata)
+static void timer_set_on_tick(timer_on_tick_t on_tick, void *ontick_data, void *userdata)
 {
     COMMON_ENTRY;
     data->ontick_data = ontick_data;
     data->on_tick = on_tick;
 }
 
-static void timer_set_enable(int enable, void* userdata)
+static void timer_set_enable(int enable, void *userdata)
 {
     COMMON_ENTRY;
     if (enable)
@@ -101,7 +101,7 @@ static void timer_set_enable(int enable, void* userdata)
         timer->channel[data->channel].control = TIMER_CR_INTERRUPT_MASK;
 }
 
-static void timer_isr(void* userdata)
+static void timer_isr(void *userdata)
 {
     COMMON_ENTRY;
     uint32_t channel = timer->intr_stat;

@@ -28,8 +28,8 @@
 /* I2C Controller */
 
 #define COMMON_ENTRY                                                      \
-    i2c_data* data = (i2c_data*)userdata;                                 \
-    volatile struct i2c_t* i2c = (volatile struct i2c_t*)data->base_addr; \
+    i2c_data *data = (i2c_data *)userdata;                                \
+    volatile i2c_t *i2c = (volatile i2c_t *)data->base_addr;              \
     (void)i2c;
 
 typedef struct
@@ -45,9 +45,9 @@ typedef struct
     };
 } i2c_data;
 
-static void i2c_install(void* userdata)
+static void i2c_install(void *userdata)
 {
-    i2c_data* data = (i2c_data*)userdata;
+    COMMON_ENTRY;
 
     /* GPIO clock under APB0 clock, so enable APB0 clock firstly */
     sysctl_clock_enable(data->clock);
@@ -55,42 +55,42 @@ static void i2c_install(void* userdata)
     data->free_mutex = xSemaphoreCreateMutex();
 }
 
-static int i2c_open(void* userdata)
+static int i2c_open(void *userdata)
 {
     return 1;
 }
 
-static void i2c_close(void* userdata)
+static void i2c_close(void *userdata)
 {
 }
 
 /* I2C Device */
 
-#define COMMON_DEV_ENTRY                              \
-    i2c_dev_data* dev_data = (i2c_dev_data*)userdata; \
-    i2c_data* data = (i2c_data*)dev_data->i2c_data;
+#define COMMON_DEV_ENTRY                               \
+    i2c_dev_data *dev_data = (i2c_dev_data *)userdata; \
+    i2c_data *data = (i2c_data *)dev_data->i2c_data;
 
 typedef struct
 {
-    i2c_data* i2c_data;
+    i2c_data *i2c_data;
     size_t slave_address;
     size_t address_width;
     i2c_bus_speed_mode_t bus_speed_mode;
 } i2c_dev_data;
 
-static void i2c_dev_install(void* userdata);
-static int i2c_dev_open(void* userdata);
-static void i2c_dev_close(void* userdata);
-static int i2c_dev_read(uint8_t* buffer, size_t len, void* userdata);
-static int i2c_dev_write(const uint8_t* buffer, size_t len, void* userdata);
-static int i2c_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata);
+static void i2c_dev_install(void *userdata);
+static int i2c_dev_open(void *userdata);
+static void i2c_dev_close(void *userdata);
+static int i2c_dev_read(uint8_t *buffer, size_t len, void *userdata);
+static int i2c_dev_write(const uint8_t *buffer, size_t len, void *userdata);
+static int i2c_dev_transfer_sequential(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
 
-static i2c_device_driver_t* i2c_get_device(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void* userdata)
+static i2c_device_driver_t * i2c_get_device(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void *userdata)
 {
-    i2c_device_driver_t* driver = (i2c_device_driver_t*)malloc(sizeof(i2c_device_driver_t));
+    i2c_device_driver_t *driver = (i2c_device_driver_t *)malloc(sizeof(i2c_device_driver_t));
     memset(driver, 0, sizeof(i2c_device_driver_t));
 
-    i2c_dev_data* dev_data = (i2c_dev_data*)malloc(sizeof(i2c_dev_data));
+    i2c_dev_data *dev_data = (i2c_dev_data *)malloc(sizeof(i2c_dev_data));
     dev_data->slave_address = slave_address;
     dev_data->address_width = address_width;
     dev_data->bus_speed_mode = bus_speed_mode;
@@ -106,7 +106,7 @@ static i2c_device_driver_t* i2c_get_device(uint32_t slave_address, uint32_t addr
     return driver;
 }
 
-static void i2c_config_as_master(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void* userdata)
+static void i2c_config_as_master(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void *userdata)
 {
     configASSERT(address_width == 7 || address_width == 10);
     COMMON_ENTRY;
@@ -136,7 +136,7 @@ static void i2c_config_as_master(uint32_t slave_address, uint32_t address_width,
     i2c->enable = I2C_ENABLE_ENABLE;
 }
 
-static int i2c_read(uint8_t* buffer, size_t len, void* userdata)
+static int i2c_read(uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -168,7 +168,7 @@ static int i2c_read(uint8_t* buffer, size_t len, void* userdata)
     return read;
 }
 
-static int i2c_write(const uint8_t* buffer, size_t len, void* userdata)
+static int i2c_write(const uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -186,11 +186,11 @@ static int i2c_write(const uint8_t* buffer, size_t len, void* userdata)
     return len;
 }
 
-static int i2c_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
+static int i2c_transfer_sequential(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata)
 {
     COMMON_ENTRY;
 
-    uint32_t* write_cmd = malloc(sizeof(uint32_t) * (write_len + read_len));
+    uint32_t *write_cmd = malloc(sizeof(uint32_t) * (write_len + read_len));
     size_t i;
     for (i = 0; i < write_len; i++)
         write_cmd[i] = write_buffer[i];
@@ -217,33 +217,33 @@ static int i2c_transfer_sequential(const uint8_t* write_buffer, size_t write_len
     return read_len;
 }
 
-static void entry_exclusive(i2c_dev_data* dev_data)
+static void entry_exclusive(i2c_dev_data *dev_data)
 {
     i2c_data* data = (i2c_data*)dev_data->i2c_data;
     configASSERT(xSemaphoreTake(data->free_mutex, portMAX_DELAY) == pdTRUE);
     i2c_config_as_master(dev_data->slave_address, dev_data->address_width, dev_data->bus_speed_mode, data);
 }
 
-static void exit_exclusive(i2c_dev_data* dev_data)
+static void exit_exclusive(i2c_dev_data *dev_data)
 {
     i2c_data* data = (i2c_data*)dev_data->i2c_data;
     xSemaphoreGive(data->free_mutex);
 }
 
-static void i2c_dev_install(void* userdata)
+static void i2c_dev_install(void *userdata)
 {
 }
 
-static int i2c_dev_open(void* userdata)
+static int i2c_dev_open(void *userdata)
 {
     return 1;
 }
 
-static void i2c_dev_close(void* userdata)
+static void i2c_dev_close(void *userdata)
 {
 }
 
-static int i2c_dev_read(uint8_t* buffer, size_t len, void* userdata)
+static int i2c_dev_read(uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -252,7 +252,7 @@ static int i2c_dev_read(uint8_t* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static int i2c_dev_write(const uint8_t* buffer, size_t len, void* userdata)
+static int i2c_dev_write(const uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -261,7 +261,7 @@ static int i2c_dev_write(const uint8_t* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static int i2c_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
+static int i2c_dev_transfer_sequential(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -270,7 +270,7 @@ static int i2c_dev_transfer_sequential(const uint8_t* write_buffer, size_t write
     return ret;
 }
 
-static void on_i2c_irq(void* userdata)
+static void on_i2c_irq(void *userdata)
 {
     COMMON_ENTRY;
 
@@ -300,7 +300,7 @@ static void on_i2c_irq(void* userdata)
     (void)dummy;
 }
 
-static void i2c_config_as_slave(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t* handler, void* userdata)
+static void i2c_config_as_slave(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t* handler, void *userdata)
 {
     configASSERT(address_width == 7 || address_width == 10);
     COMMON_ENTRY;

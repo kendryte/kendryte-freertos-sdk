@@ -24,9 +24,9 @@
 
 #define UART_BRATE_CONST 16
 #define RINGBUFF_LEN 64
-#define COMMON_ENTRY                                           \
-    uart_data* data = (uart_data*)userdata;                    \
-    volatile uart_t* uart = (volatile uart_t*)data->base_addr; \
+#define COMMON_ENTRY                                            \
+    uart_data *data = (uart_data *)userdata;                    \
+    volatile uart_t *uart = (volatile uart_t *)data->base_addr; \
     (void)uart;
 
 typedef struct
@@ -42,25 +42,24 @@ typedef struct
     sysctl_clock_t clock;
     uintptr_t base_addr;
     size_t channel;
-    ringbuffer_t* recv_buf;
+    ringbuffer_t *recv_buf;
 } uart_data;
 
-static int write_ringbuff(uint8_t rdata, void* userdata)
+static int write_ringbuff(uint8_t rdata, void *userdata)
 {
     COMMON_ENTRY;
-    ringbuffer_t* ring_buff = data->recv_buf;
+    ringbuffer_t *ring_buff = data->recv_buf;
 
     if (ring_buff->length >= RINGBUFF_LEN)
-    {
         return -1;
-    }
+
     ring_buff->ring_buffer[ring_buff->tail] = rdata;
     ring_buff->tail = (ring_buff->tail + 1) % RINGBUFF_LEN;
     ring_buff->length++;
     return 0;
 }
 
-static int read_ringbuff(uint8_t* rData, size_t len, void* userdata)
+static int read_ringbuff(uint8_t *rData, size_t len, void *userdata)
 {
     COMMON_ENTRY;
     ringbuffer_t* ring_buff = data->recv_buf;
@@ -72,26 +71,25 @@ static int read_ringbuff(uint8_t* rData, size_t len, void* userdata)
         ring_buff->length--;
         cnt++;
     }
+
     return cnt;
 }
 
-static void on_irq_apbuart_recv(void* userdata)
+static void on_irq_apbuart_recv(void *userdata)
 {
     COMMON_ENTRY;
     while (uart->LSR & 1)
-    {
         write_ringbuff(((uint8_t)(uart->RBR & 0xff)), userdata);
-    }
 }
 
-static void uart_install(void* userdata)
+static void uart_install(void *userdata)
 {
     COMMON_ENTRY;
 
     sysctl_clock_enable(data->clock);
 }
 
-static int uart_open(void* userdata)
+static int uart_open(void *userdata)
 {
     COMMON_ENTRY;
     ringbuffer_t* ring_buff = malloc(sizeof(ringbuffer_t));
@@ -105,13 +103,13 @@ static int uart_open(void* userdata)
     return 1;
 }
 
-static void uart_close(void* userdata)
+static void uart_close(void *userdata)
 {
     COMMON_ENTRY;
     free(data->recv_buf);
 }
 
-static void uart_config(uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity, void* userdata)
+static void uart_config(uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -164,20 +162,20 @@ static void uart_config(uint32_t baud_rate, uint32_t databits, uart_stopbits_t s
     uart->IER = 1;
 }
 
-static int uart_putc(volatile uart_t* uart, char c)
+static int uart_putc(volatile uart_t *uart, char c)
 {
     while (!(uart->LSR & (1u << 6)))
-        continue;
+        ;
     uart->THR = c;
     return 0;
 }
 
-static int uart_read(uint8_t* buffer, size_t len, void* userdata)
+static int uart_read(uint8_t *buffer, size_t len, void *userdata)
 {
     return read_ringbuff(buffer, len, userdata);
 }
 
-static int uart_write(const uint8_t* buffer, size_t len, void* userdata)
+static int uart_write(const uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_ENTRY;
 

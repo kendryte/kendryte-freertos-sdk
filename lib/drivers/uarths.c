@@ -18,13 +18,13 @@
 #include "sysctl.h"
 #include "uarths.h"
 
-volatile struct uarths_t *const uarths = (volatile struct uarths_t *)UARTHS_BASE_ADDR;
+volatile uarths_t *const uarths = (volatile uarths_t *)UARTHS_BASE_ADDR;
 
 uint8_t uarths_read_byte()
 {
     while (1)
     {
-        struct uarths_rxdata_t recv = uarths->rxdata;
+        uarths_rxdata_t recv = uarths->rxdata;
         if (!recv.empty)
             return recv.data;
     }

@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _DRIVER_IO_H
-#define _DRIVER_IO_H
+#ifndef DRIVER_IO_H
+#define DRIVER_IO_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -22,10 +22,10 @@
 extern "C" {
 #endif
 
-#define readb(addr) (*(volatile uint8_t*)(addr))
-#define readw(addr) (*(volatile uint16_t*)(addr))
-#define readl(addr) (*(volatile uint32_t*)(addr))
-#define readq(addr) (*(volatile uint64_t*)(addr))
+#define readb(addr) (*(volatile uint8_t *)(addr))
+#define readw(addr) (*(volatile uint16_t *)(addr))
+#define readl(addr) (*(volatile uint32_t *)(addr))
+#define readq(addr) (*(volatile uint64_t *)(addr))
 
 #define writeb(v, addr)                     \
     {                                       \
@@ -53,4 +53,4 @@ void set_bit_idx(volatile uint32_t* bits, uint32_t idx, uint32_t value);
 }
 #endif
 
-#endif /* _DRIVER_IO_H */
+#endif /* DRIVER_IO_H */

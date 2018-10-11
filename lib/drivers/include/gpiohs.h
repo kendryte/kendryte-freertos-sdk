@@ -16,10 +16,7 @@
 #define _DRIVER_GPIOHS_H
 
 #include <stdint.h>
-#include "platform.h"
 #include <stddef.h>
-#include "plic.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -48,7 +45,7 @@ extern "C" {
 /**
  * @brief      GPIO bits raw object
  */
-struct gpiohs_raw_t
+typedef struct _gpiohs_raw
 {
     /* Address offset 0x00 */
     uint32_t input_val;
@@ -84,12 +81,12 @@ struct gpiohs_raw_t
     uint32_t iof_sel;
     /* Address offset 0x40 */
     uint32_t output_xor;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) gpiohs_raw_t;
 
 /**
- * @brief      GPIO bits object
+ * @brief       GPIO bits object
  */
-typedef struct
+typedef struct _gpiohs_bits
 {
     uint32_t b0 : 1;
     uint32_t b1 : 1;
@@ -126,9 +123,9 @@ typedef struct
 } __attribute__((packed, aligned(4))) gpiohs_bits_t;
 
 /**
- * @brief      GPIO bits multi access union
+ * @brief       GPIO bits multi access union
  */
-typedef union
+typedef union _gpiohs_u32
 {
     /* 32x1 bit mode */
     uint32_t u32[1];
@@ -155,7 +152,7 @@ typedef union
  *             written to the *_ip register at that bit.
  */
 
-typedef struct
+typedef struct _gpiohs
 {
     /* Address offset 0x00, Input Values */
     gpiohs_u32_t input_val;

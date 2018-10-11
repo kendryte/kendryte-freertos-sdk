@@ -24,7 +24,7 @@ extern "C" {
 #endif
 
 /* clang-format off */
-struct spi_t
+typedef struct _spi
 {
     /* SPI Control Register 0                                    (0x00)*/
     volatile uint32_t ctrlr0;
@@ -97,7 +97,7 @@ struct spi_t
     /* SPI XIP time out register for continuous transfers        (0x114)*/
     volatile uint32_t xip_cnt_time_out;
     volatile uint32_t endian;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) spi_t;
 /* clang-format on */
 
 #ifdef __cplusplus

@@ -25,8 +25,8 @@
 
 #define BUFFER_COUNT 2
 #define COMMON_ENTRY                                                      \
-    i2s_data* data = (i2s_data*)userdata;                                 \
-    volatile struct i2s_t* i2s = (volatile struct i2s_t*)data->base_addr; \
+    i2s_data *data = (i2s_data *)userdata;                                \
+    volatile i2s_t *i2s = (volatile i2s_t *)data->base_addr;              \
     (void)i2s;
 
 typedef enum
@@ -44,7 +44,7 @@ typedef struct
     struct
     {
         i2s_transmit transmit;
-        uint8_t* buffer;
+        uint8_t *buffer;
         size_t buffer_frames;
         size_t buffer_size;
         size_t block_align;
@@ -59,17 +59,17 @@ typedef struct
     };
 } i2s_data;
 
-static void i2s_transmit_set_enable(i2s_transmit transmit, int enable, volatile struct i2s_t* i2s);
-static void i2sc_transmit_set_enable(i2s_transmit transmit, int enable, volatile struct i2s_channel_t* i2sc);
+static void i2s_transmit_set_enable(i2s_transmit transmit, int enable, volatile i2s_t *i2s);
+static void i2sc_transmit_set_enable(i2s_transmit transmit, int enable, volatile i2s_channel_t *i2sc);
 
-static void i2s_install(void* userdata)
+static void i2s_install(void *userdata)
 {
     COMMON_ENTRY;
 
     /* GPIO clock under APB0 clock, so enable APB0 clock firstly */
     sysctl_clock_enable(data->clock);
 
-    union ier_u u_ier;
+    ier_t u_ier;
 
     u_ier.reg_data = readl(&i2s->ier);
     u_ier.ier.ien = 1;
@@ -78,20 +78,20 @@ static void i2s_install(void* userdata)
     data->buffer = NULL;
 }
 
-static int i2s_open(void* userdata)
+static int i2s_open(void *userdata)
 {
     return 1;
 }
 
-static void i2s_close(void* userdata)
+static void i2s_close(void *userdata)
 {
 }
 
-static void i2s_set_threshold(volatile struct i2s_channel_t* i2sc, i2s_transmit transmit, enum fifo_threshold_t threshold)
+static void i2s_set_threshold(volatile i2s_channel_t *i2sc, i2s_transmit transmit, i2s_fifo_threshold_t threshold)
 {
     if (transmit == I2S_RECEIVE)
     {
-        union rfcr_u u_rfcr;
+        rfcr_t u_rfcr;
 
         u_rfcr.reg_data = readl(&i2sc->rfcr);
         u_rfcr.rfcr.rxchdt = threshold;
@@ -99,7 +99,7 @@ static void i2s_set_threshold(volatile struct i2s_channel_t* i2sc, i2s_transmit 
     }
     else
     {
-        union tfcr_u u_tfcr;
+        tfcr_t u_tfcr;
 
         u_tfcr.reg_data = readl(&i2sc->tfcr);
         u_tfcr.tfcr.txchet = threshold;
@@ -107,11 +107,11 @@ static void i2s_set_threshold(volatile struct i2s_channel_t* i2sc, i2s_transmit 
     }
 }
 
-static void i2sc_set_mask_interrupt(volatile struct i2s_channel_t* i2sc,
+static void i2sc_set_mask_interrupt(volatile i2s_channel_t *i2sc,
     uint32_t rx_available_int, uint32_t rx_overrun_int,
     uint32_t tx_empty_int, uint32_t tx_overrun_int)
 {
-    union imr_u u_imr;
+    imr_t u_imr;
 
     u_imr.reg_data = readl(&i2sc->imr);
 
@@ -135,7 +135,7 @@ static void i2sc_set_mask_interrupt(volatile struct i2s_channel_t* i2sc,
     writel(u_imr.reg_data, &i2sc->imr);
 }
 
-static void extract_params(const audio_format_t* format, enum word_select_cycles_t* wsc, enum word_length_t* wlen, size_t* block_align, uint32_t* dma_divide16)
+static void extract_params(const audio_format_t *format, i2s_word_select_cycles_t *wsc, i2s_word_length_t *wlen, size_t *block_align, uint32_t *dma_divide16)
 {
     configASSERT(format->sample_rate == 44100);
 
@@ -165,7 +165,7 @@ static void extract_params(const audio_format_t* format, enum word_select_cycles
     }
 }
 
-static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void* userdata)
+static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -189,8 +189,8 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
         break;
     }
 
-    enum word_select_cycles_t wsc;
-    enum word_length_t wlen;
+    i2s_word_select_cycles_t wsc;
+    i2s_word_length_t wlen;
     size_t block_align;
     uint32_t dma_divide16;
 
@@ -201,8 +201,8 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
     i2s_transmit_set_enable(I2S_RECEIVE, 0, userdata);
     i2s_transmit_set_enable(I2S_SEND, 0, userdata);
 
-    union ccr_u u_ccr;
-    union cer_u u_cer;
+    ccr_t u_ccr;
+    cer_t u_cer;
 
     u_cer.reg_data = readl(&i2s->cer);
     u_cer.cer.clken = 0;
@@ -229,7 +229,7 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
     size_t enabled_channel = 0;
     for (channel = 0; channel < 4; channel++)
     {
-        volatile struct i2s_channel_t* i2sc = i2s->channel + channel;
+        volatile i2s_channel_t *i2sc = i2s->channel + channel;
 
         if ((channels_mask & 3) == 3)
         {
@@ -237,7 +237,7 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
             i2sc_transmit_set_enable(I2S_RECEIVE, 0, i2sc);
             i2sc_set_mask_interrupt(i2sc, 0, 0, 1, 1);
 
-            union rcr_tcr_u u_tcr;
+            rcr_tcr_t u_tcr;
             u_tcr.reg_data = readl(&i2sc->tcr);
             u_tcr.rcr_tcr.wlen = wlen;
             writel(u_tcr.reg_data, &i2sc->tcr);
@@ -270,7 +270,7 @@ static void i2s_config_as_render(const audio_format_t* format, size_t delay_ms, 
     data->dma_in_use_buffer = -1;
 }
 
-static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void* userdata)
+static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -294,8 +294,8 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
         break;
     }
 
-    enum word_select_cycles_t wsc;
-    enum word_length_t wlen;
+    i2s_word_select_cycles_t wsc;
+    i2s_word_length_t wlen;
     size_t block_align;
     uint32_t dma_divide16;
 
@@ -307,8 +307,8 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
     i2s_transmit_set_enable(I2S_RECEIVE, 0, userdata);
     i2s_transmit_set_enable(I2S_SEND, 0, userdata);
 
-    union ccr_u u_ccr;
-    union cer_u u_cer;
+    ccr_t u_ccr;
+    cer_t u_cer;
 
     u_cer.reg_data = readl(&i2s->cer);
     u_cer.cer.clken = 0;
@@ -335,7 +335,7 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
     size_t enabled_channel = 0;
     for (channel = 0; channel < 4; channel++)
     {
-        volatile struct i2s_channel_t* i2sc = i2s->channel + channel;
+        volatile i2s_channel_t *i2sc = i2s->channel + channel;
 
         if ((channels_mask & 3) == 3)
         {
@@ -344,7 +344,7 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
             i2sc_set_mask_interrupt(i2sc, 1, 1, 0, 0);
 
             /* set word length */
-            union rcr_tcr_u u_tcr;
+            rcr_tcr_t u_tcr;
             u_tcr.reg_data = readl(&i2sc->rcr);
             u_tcr.rcr_tcr.wlen = wlen;
             writel(u_tcr.reg_data, &i2sc->rcr);
@@ -377,7 +377,7 @@ static void i2s_config_as_capture(const audio_format_t* format, size_t delay_ms,
     data->dma_in_use_buffer = 0;
 }
 
-static void i2s_get_buffer(uint8_t** buffer, size_t* frames, void* userdata)
+static void i2s_get_buffer(uint8_t **buffer, size_t *frames, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -390,7 +390,7 @@ static void i2s_get_buffer(uint8_t** buffer, size_t* frames, void* userdata)
     *frames = (data->buffer_size - data->buffer_ptr) / data->block_align;
 }
 
-static void i2s_release_buffer(size_t frames, void* userdata)
+static void i2s_release_buffer(size_t frames, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -403,10 +403,10 @@ static void i2s_release_buffer(size_t frames, void* userdata)
     }
 }
 
-static void i2s_transmit_set_enable(i2s_transmit transmit, int enable, volatile struct i2s_t* i2s)
+static void i2s_transmit_set_enable(i2s_transmit transmit, int enable, volatile i2s_t *i2s)
 {
-    union irer_u u_irer;
-    union iter_u u_iter;
+    irer_t u_irer;
+    iter_t u_iter;
 
     if (transmit == I2S_RECEIVE)
     {
@@ -422,10 +422,10 @@ static void i2s_transmit_set_enable(i2s_transmit transmit, int enable, volatile 
     }
 }
 
-static void i2sc_transmit_set_enable(i2s_transmit transmit, int enable, volatile struct i2s_channel_t* i2sc)
+static void i2sc_transmit_set_enable(i2s_transmit transmit, int enable, volatile i2s_channel_t *i2sc)
 {
-    union rer_u u_rer;
-    union ter_u u_ter;
+    rer_t u_rer;
+    ter_t u_ter;
 
     if (transmit == I2S_SEND)
     {
@@ -441,7 +441,7 @@ static void i2sc_transmit_set_enable(i2s_transmit transmit, int enable, volatile
     }
 }
 
-static void i2s_stage_completion_isr(void* userdata)
+static void i2s_stage_completion_isr(void *userdata)
 {
     COMMON_ENTRY;
 
@@ -452,7 +452,7 @@ static void i2s_stage_completion_isr(void* userdata)
     xSemaphoreGiveFromISR(data->stage_completion_event, &xHigherPriorityTaskWoken);
 }
 
-static void i2s_start(void* userdata)
+static void i2s_start(void *userdata)
 {
     COMMON_ENTRY;
 
@@ -467,10 +467,10 @@ static void i2s_start(void* userdata)
         data->stage_completion_event = xSemaphoreCreateCounting(100, 0);
         data->completion_event = xSemaphoreCreateBinary();
 
-        const volatile void* srcs[BUFFER_COUNT] = {
+        const volatile void *srcs[BUFFER_COUNT] = {
             data->buffer,
             data->buffer + data->buffer_size};
-        volatile void* dests[1] = {
+        volatile void *dests[1] = {
             &i2s->txdma};
 
         dma_loop_async(data->transmit_dma, srcs, BUFFER_COUNT, dests, 1, 1, 0, sizeof(uint32_t), data->buffer_size >> 2, 4, i2s_stage_completion_isr, userdata, data->completion_event, &data->stop_signal);
@@ -486,9 +486,9 @@ static void i2s_start(void* userdata)
         data->stage_completion_event = xSemaphoreCreateCounting(100, 0);
         data->completion_event = xSemaphoreCreateBinary();
 
-        const volatile void* srcs[1] = {
+        const volatile void *srcs[1] = {
             &i2s->rxdma};
-        volatile void* dests[BUFFER_COUNT] = {
+        volatile void *dests[BUFFER_COUNT] = {
             data->buffer,
             data->buffer + data->buffer_size};
 
@@ -497,7 +497,7 @@ static void i2s_start(void* userdata)
     i2s_transmit_set_enable(data->transmit, 1, i2s);
 }
 
-static void i2s_stop(void* userdata)
+static void i2s_stop(void *userdata)
 {
     COMMON_ENTRY;
     i2s_transmit_set_enable(data->transmit, 0, i2s);

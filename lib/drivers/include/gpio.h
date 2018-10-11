@@ -15,10 +15,8 @@
 #ifndef _DRIVER_GPIO_H
 #define _DRIVER_GPIO_H
 
-#include "platform.h"
 #include <inttypes.h>
 #include <stddef.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -26,7 +24,7 @@ extern "C" {
 /**
  * @brief       Structure for accessing GPIO registers by individual bit
  */
-typedef struct
+typedef struct _gpio_bits
 {
     uint32_t b0 : 1;
     uint32_t b1 : 1;
@@ -65,7 +63,7 @@ typedef struct
 /**
  * @brief       Structure of templates for accessing GPIO registers
  */
-typedef union
+typedef union _gpio_access_tp
 {
     /* 32x1 bit mode */
     uint32_t u32[1];
@@ -80,7 +78,7 @@ typedef union
 /**
  * @brief       The GPIO address map
  */
-typedef struct
+typedef struct _gpio
 {
     /* Offset 0x00: Data (output) registers */
     gpio_access_tp_t data_output;
