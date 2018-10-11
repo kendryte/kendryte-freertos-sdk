@@ -322,7 +322,7 @@ void spi_dev_fill(handle_t file, uint32_t instruction, uint32_t address, uint32_
  * @param[in]   height          The frame height
  * @param[in]   auto_enable     Process frames automatically
  */
-void dvp_config(handle_t file, uint32_t width, uint32_t height, int auto_enable);
+void dvp_config(handle_t file, uint32_t width, uint32_t height, bool auto_enable);
 
 /**
  * @brief       Enable to process of current frame
@@ -347,7 +347,7 @@ uint32_t dvp_get_output_num(handle_t file);
  * @param[in]   type        The signal type
  * @param[in]   value       1 is set, 0 is unset
  */
-void dvp_set_signal(handle_t file, dvp_signal_type_t type, int value);
+void dvp_set_signal(handle_t file, dvp_signal_type_t type, bool value);
 
 /**
  * @brief       Enable or disable a output of a DVP device
@@ -356,7 +356,7 @@ void dvp_set_signal(handle_t file, dvp_signal_type_t type, int value);
  * @param[in]   index       The output index
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void dvp_set_output_enable(handle_t file, uint32_t index, int enable);
+void dvp_set_output_enable(handle_t file, uint32_t index, bool enable);
 
 /**
  * @brief       Set output attributes of a DVP device
@@ -375,7 +375,7 @@ void dvp_set_output_attributes(handle_t file, uint32_t index, video_format_t for
  * @param[in]   event       The frame event
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, int enable);
+void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, bool enable);
 
 /**
  * @brief       Set the frame event handler of a DVP device
@@ -496,7 +496,7 @@ void timer_set_on_tick(handle_t file, timer_on_tick_t on_tick, void *userdata);
  * @param[in]   file        The TIMER controller handle
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void timer_set_enable(handle_t file, int enable);
+void timer_set_enable(handle_t file, bool enable);
 
 /**
  * @brief       Get the pin count of a PWM controller
@@ -535,7 +535,7 @@ double pwm_set_active_duty_cycle_percentage(handle_t file, uint32_t pin, double 
  * @param[in]   pin         The PWM pin
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void pwm_set_enable(handle_t file, uint32_t pin, int enable);
+void pwm_set_enable(handle_t file, uint32_t pin, bool enable);
 
 /**
  * @brief       Set the response mode of a WDT device
@@ -577,7 +577,7 @@ void wdt_restart_counter(handle_t file);
  * @param[in]   file        The WDT device handle
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void wdt_set_enable(handle_t file, int enable);
+void wdt_set_enable(handle_t file, bool enable);
 
 /**
  * @brief       Get the datetime of a RTC device

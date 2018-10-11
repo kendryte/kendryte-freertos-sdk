@@ -110,7 +110,7 @@ static void wdt_restart_counter(void *userdata)
     wdt->crr = WDT_CRR_MASK;
 }
 
-static void wdt_set_enable(int enable, void *userdata)
+static void wdt_set_enable(bool enable, void *userdata)
 {
     COMMON_ENTRY;
     if (enable)

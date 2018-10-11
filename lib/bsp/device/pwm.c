@@ -79,7 +79,7 @@ static double pwm_set_active_duty_cycle_percentage(uint32_t pin, double duty_cyc
     return percent / 100.0;
 }
 
-static void pwm_set_enable(uint32_t pin, int enable, void *userdata)
+static void pwm_set_enable(uint32_t pin, bool enable, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(pin < data->pin_count);

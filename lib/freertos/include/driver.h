@@ -17,6 +17,7 @@
 
 #include <FreeRTOS.h>
 #include <semphr.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
@@ -255,12 +256,12 @@ typedef struct tag_dvp_driver
 {
     driver_base_t base;
     uint32_t output_num;
-    void (*config)(uint32_t width, uint32_t height, int auto_enable, void *userdata);
+    void (*config)(uint32_t width, uint32_t height, bool auto_enable, void *userdata);
     void (*enable_frame)(void* userdata);
-    void (*set_signal)(dvp_signal_type_t type, int value, void *userdata);
-    void (*set_output_enable)(uint32_t index, int enable, void *userdata);
+    void (*set_signal)(dvp_signal_type_t type, bool value, void *userdata);
+    void (*set_output_enable)(uint32_t index, bool enable, void *userdata);
     void (*set_output_attributes)(uint32_t index, video_format_t format, void *output_buffer, void *userdata);
-    void (*set_frame_event_enable)(dvp_frame_event_t event, int enable, void *userdata);
+    void (*set_frame_event_enable)(dvp_frame_event_t event, bool enable, void *userdata);
     void (*set_on_frame_event)(dvp_on_frame_event_t callback, void *callback_data, void *userdata);
 } dvp_driver_t;
 
@@ -353,7 +354,7 @@ typedef struct tag_timer_driver
     driver_base_t base;
     size_t (*set_interval)(size_t nanoseconds, void *userdata);
     void (*set_on_tick)(timer_on_tick_t on_tick, void *ontick_data, void *userdata);
-    void (*set_enable)(int enable, void *userdata);
+    void (*set_enable)(bool enable, void *userdata);
 } timer_driver_t;
 
 typedef struct tag_pwm_driver
@@ -362,7 +363,7 @@ typedef struct tag_pwm_driver
     uint32_t pin_count;
     double (*set_frequency)(double frequency, void *userdata);
     double (*set_active_duty_cycle_percentage)(uint32_t pin, double duty_cycle_percentage, void *userdata);
-    void (*set_enable)(uint32_t pin, int enable, void *userdata);
+    void (*set_enable)(uint32_t pin, bool enable, void *userdata);
 } pwm_driver_t;
 
 typedef enum _wdt_response_mode
@@ -380,7 +381,7 @@ typedef struct tag_wdt_driver
     size_t (*set_timeout)(size_t nanoseconds, void *userdata);
     void (*set_on_timeout)(wdt_on_timeout_t handler, void *handler_userdata, void *userdata);
     void (*restart_counter)(void *userdata);
-    void (*set_enable)(int enable, void *userdata);
+    void (*set_enable)(bool enable, void *userdata);
 } wdt_driver_t;
 
 typedef struct tag_rtc_driver
@@ -404,7 +405,7 @@ void kernel_iface_pic_on_irq(uint32_t irq);
 typedef struct tag_pic_driver
 {
     driver_base_t base;
-    void (*set_irq_enable)(uint32_t irq, int enable, void *userdata);
+    void (*set_irq_enable)(uint32_t irq, bool enable, void *userdata);
     void (*set_irq_priority)(uint32_t irq, uint32_t priority, void *userdata);
 } pic_driver_t;
 

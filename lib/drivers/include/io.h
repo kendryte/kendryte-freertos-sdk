@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef DRIVER_IO_H
-#define DRIVER_IO_H
+#ifndef _DRIVER_IO_H
+#define _DRIVER_IO_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -53,4 +53,4 @@ void set_bit_idx(volatile uint32_t* bits, uint32_t idx, uint32_t value);
 }
 #endif
 
-#endif /* DRIVER_IO_H */
+#endif /* _DRIVER_IO_H */

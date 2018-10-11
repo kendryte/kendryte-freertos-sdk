@@ -412,7 +412,7 @@ void spi_dev_fill(handle_t file, uint32_t instruction, uint32_t address, uint32_
 
 /* DVP */
 
-void dvp_config(handle_t file, uint32_t width, uint32_t height, int auto_enable)
+void dvp_config(handle_t file, uint32_t width, uint32_t height, bool auto_enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->config(width, height, auto_enable, dvp->base.userdata);
@@ -430,13 +430,13 @@ uint32_t dvp_get_output_num(handle_t file)
     return dvp->output_num;
 }
 
-void dvp_set_signal(handle_t file, dvp_signal_type_t type, int value)
+void dvp_set_signal(handle_t file, dvp_signal_type_t type, bool value)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_signal(type, value, dvp->base.userdata);
 }
 
-void dvp_set_output_enable(handle_t file, uint32_t index, int enable)
+void dvp_set_output_enable(handle_t file, uint32_t index, bool enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_output_enable(index, enable, dvp->base.userdata);
@@ -448,7 +448,7 @@ void dvp_set_output_attributes(handle_t file, uint32_t index, video_format_t for
     dvp->set_output_attributes(index, format, output_buffer, dvp->base.userdata);
 }
 
-void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, int enable)
+void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, bool enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_frame_event_enable(event, enable, dvp->base.userdata);
@@ -525,7 +525,7 @@ void timer_set_on_tick(handle_t file, timer_on_tick_t on_tick, void *ontick_data
     timer->set_on_tick(on_tick, ontick_data, timer->base.userdata);
 }
 
-void timer_set_enable(handle_t file, int enable)
+void timer_set_enable(handle_t file, bool enable)
 {
     COMMON_ENTRY(timer, TIMER);
     timer->set_enable(enable, timer->base.userdata);
@@ -551,7 +551,7 @@ double pwm_set_active_duty_cycle_percentage(handle_t file, uint32_t pin, double 
     return pwm->set_active_duty_cycle_percentage(pin, duty_cycle_percentage, pwm->base.userdata);
 }
 
-void pwm_set_enable(handle_t file, uint32_t pin, int enable)
+void pwm_set_enable(handle_t file, uint32_t pin, bool enable)
 {
     COMMON_ENTRY(pwm, PWM);
     pwm->set_enable(pin, enable, pwm->base.userdata);
@@ -582,7 +582,7 @@ void wdt_restart_counter(handle_t file)
     wdt->restart_counter(wdt->base.userdata);
 }
 
-void wdt_set_enable(handle_t file, int enable)
+void wdt_set_enable(handle_t file, bool enable)
 {
     COMMON_ENTRY(wdt, WDT);
     wdt->set_enable(enable, wdt->base.userdata);
@@ -640,7 +640,7 @@ void install_hal()
 
 /* PIC */
 
-void pic_set_irq_enable(uint32_t irq, int enable)
+void pic_set_irq_enable(uint32_t irq, bool enable)
 {
     COMMON_ENTRY_FILE(pic_file_, pic, PIC);
     pic->set_irq_enable(irq, enable, pic->base.userdata);

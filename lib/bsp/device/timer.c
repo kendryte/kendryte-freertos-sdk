@@ -92,7 +92,7 @@ static void timer_set_on_tick(timer_on_tick_t on_tick, void *ontick_data, void *
     data->on_tick = on_tick;
 }
 
-static void timer_set_enable(int enable, void *userdata)
+static void timer_set_enable(bool enable, void *userdata)
 {
     COMMON_ENTRY;
     if (enable)

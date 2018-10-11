@@ -56,7 +56,7 @@ static void plic_close(void* userdata)
 {
 }
 
-static void plic_set_irq_enable(uint32_t irq, int enable, void* userdata)
+static void plic_set_irq_enable(uint32_t irq, bool enable, void* userdata)
 {
     configASSERT(irq <= PLIC_NUM_SOURCES);
 

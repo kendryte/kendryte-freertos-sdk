@@ -63,7 +63,7 @@ static void dvp_close(void *userdata)
 {
 }
 
-static void dvp_config(uint32_t width, uint32_t height, int auto_enable, void *userdata)
+static void dvp_config(uint32_t width, uint32_t height, bool auto_enable, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(width % 8 == 0 && width && height);
@@ -100,7 +100,7 @@ static void dvp_enable_frame(void *userdata)
     dvp->sts = DVP_STS_DVP_EN | DVP_STS_DVP_EN_WE;
 }
 
-static void dvp_set_signal(dvp_signal_type_t type, int value, void *userdata)
+static void dvp_set_signal(dvp_signal_type_t type, bool value, void *userdata)
 {
     COMMON_ENTRY;
     switch (type)
@@ -123,7 +123,7 @@ static void dvp_set_signal(dvp_signal_type_t type, int value, void *userdata)
     }
 }
 
-static void dvp_set_output_enable(uint32_t index, int enable, void *userdata)
+static void dvp_set_output_enable(uint32_t index, bool enable, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(index < 2);
@@ -185,7 +185,7 @@ static void dvp_frame_event_isr(void *userdata)
     }
 }
 
-static void dvp_set_frame_event_enable(dvp_frame_event_t event, int enable, void *userdata)
+static void dvp_set_frame_event_enable(dvp_frame_event_t event, bool enable, void *userdata)
 {
     COMMON_ENTRY;
     switch (event)

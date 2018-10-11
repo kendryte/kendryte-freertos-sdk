@@ -44,7 +44,7 @@ void system_install_custom_driver(const char *name, const custom_driver_t *drive
  * @param[in]   irq         IRQ number
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void pic_set_irq_enable(uint32_t irq, int enable);
+void pic_set_irq_enable(uint32_t irq, bool enable);
 
 /**
  * @brief       Set handler of IRQ
