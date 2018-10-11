@@ -338,7 +338,7 @@ static int is_memory(uintptr_t address)
     return ((address >= 0x80000000) && (address < 0x80000000 + mem_len)) || ((address >= 0x40000000) && (address < 0x40000000 + mem_len)) || (address == 0x50450040);
 }
 
-static void dma_loop_async_imp(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata)
+static void dma_loop_async_imp(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata)
 {
     C_COMMON_ENTRY;
 
@@ -477,7 +477,7 @@ static void dma_loop_async_imp(const volatile void **srcs, size_t src_num, volat
     dmac->chen |= 0x101 << data->channel;
 }
 
-static void dma_transmit_async_imp(const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata)
+static void dma_transmit_async_imp(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata)
 {
     C_COMMON_ENTRY;
 

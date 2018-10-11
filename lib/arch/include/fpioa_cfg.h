@@ -12,24 +12,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <fpioa_cfg.h>
-#include <fpioa.h>
-#include <FreeRTOS.h>
+#ifndef _FPIOA_CFG_H
+#define _FPIOA_CFG_H
 
-const fpioa_cfg_t __attribute__((weak)) g_fpioa_cfg =
+#include <platform.h>
+#include <stdint.h>
+
+#define FPIOA_CFG_VERSION 1
+
+typedef struct _fpioa_cfg_item
 {
-    .version = FPIOA_CFG_VERSION,
-    .functions_count = 0
-};
+    int number;
+    fpioa_function_t function;
+} fpioa_cfg_item_t;
 
-void fpioa_setup()
+typedef struct _fpioa_cfg
 {
-    configASSERT(g_fpioa_cfg.version == FPIOA_CFG_VERSION);
+    uint32_t version;
+    uint32_t functions_count;
+    fpioa_cfg_item_t functions[];
+} fpioa_cfg_t;
 
-    uint32_t i;
-    for (i = 0; i < g_fpioa_cfg.functions_count; i++)
-    {
-        fpioa_cfg_item_t item = g_fpioa_cfg.functions[i];
-        fpioa_set_function(item.number, item.function);
-    }
-}
+extern const fpioa_cfg_t g_fpioa_cfg;
+
+#endif

@@ -421,8 +421,8 @@ typedef struct tag_dma_driver
     driver_base_t base;
     void (*set_select_request)(uint32_t request, void *userdata);
     void (*config)(uint32_t priority, void *userdata);
-    void (*transmit_async)(const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata);
-    void (*loop_async)(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata);
+    void (*transmit_async)(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata);
+    void (*loop_async)(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata);
 } dma_driver_t;
 
 extern driver_registry_t g_hal_drivers[];

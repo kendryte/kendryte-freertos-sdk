@@ -12,20 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _FPIOA_CFG_H
-#define _FPIOA_CFG_H
+#ifndef _FPIOA_CFG_PRIV_H
+#define _FPIOA_CFG_PRIV_H
 
-#include <fpioa.h>
+#include <fpioa_cfg.h>
 
-typedef struct
-{
-    uint32_t version;
-    uint32_t io_count;
-    fpioa_function_t io_functions[FPIOA_NUM_IO];
-} fpioa_cfg_t;
-
-extern const fpioa_cfg_t g_fpioa_cfg;
-
-int fpioa_get_io_by_function(fpioa_function_t function);
+void fpioa_setup();
 
 #endif

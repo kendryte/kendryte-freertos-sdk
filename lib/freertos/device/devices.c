@@ -705,13 +705,13 @@ void dma_set_request_source(handle_t file, uint32_t request)
     dma->set_select_request(request, dma->base.userdata);
 }
 
-void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event)
+void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event)
 {
     COMMON_ENTRY(dma, DMA);
     dma->transmit_async(src, dest, src_inc, dest_inc, element_size, count, burst_size, completion_event, dma->base.userdata);
 }
 
-void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size)
+void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size)
 {
     SemaphoreHandle_t event = xSemaphoreCreateBinary();
     dma_transmit_async(file, src, dest, src_inc, dest_inc, element_size, count, burst_size, event);
@@ -720,7 +720,7 @@ void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, 
     vSemaphoreDelete(event);
 }
 
-void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal)
+void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal)
 {
     COMMON_ENTRY(dma, DMA);
     dma->loop_async(srcs, src_num, dests, dest_num, src_inc, dest_inc, element_size, count, burst_size, stage_completion_handler, stage_completion_handler_data, completion_event, stop_signal, dma->base.userdata);
