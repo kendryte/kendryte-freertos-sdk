@@ -1749,20 +1749,21 @@ uint32_t sysctl_pll_set_freq(sysctl_pll_t pll, uint32_t pll_freq)
     if (pll_freq == 0)
         return 0;
 
-    sysctl_clock_t clock = SYSCTL_PLL0;
+    volatile sysctl_general_pll_t *v_pll_t;
     switch (pll)
     {
     case SYSCTL_PLL0:
-        clock = SYSCTL_CLOCK_PLL0;
+        v_pll_t = (sysctl_general_pll_t *)(&sysctl->pll0);
         break;
     case SYSCTL_PLL1:
-        clock = SYSCTL_CLOCK_PLL1;
+        v_pll_t = (sysctl_general_pll_t *)(&sysctl->pll1);
         break;
     case SYSCTL_PLL2:
-        clock = SYSCTL_CLOCK_PLL2;
+        v_pll_t = (sysctl_general_pll_t *)(&sysctl->pll2);
         break;
     default:
         return 0;
+        break;
     }
 
     /* 1. Change CPU CLK to XTAL */
@@ -1770,28 +1771,35 @@ uint32_t sysctl_pll_set_freq(sysctl_pll_t pll, uint32_t pll_freq)
         sysctl_clock_set_clock_select(SYSCTL_CLOCK_SELECT_ACLK, SYSCTL_SOURCE_IN0);
 
     /* 2. Disable PLL output */
-    sysctl_clock_disable(clock);
+    v_pll_t->pll_out_en = 0;
 
     /* 3. Turn off PLL */
-    sysctl_pll_disable(pll);
+    v_pll_t->pll_pwrd = 0;
 
     /* 4. Set PLL new value */
     uint32_t result;
     if (pll == SYSCTL_PLL2)
-        result = sysctl_pll_source_set_freq(pll, sysctl->pll2.pll_ckin_sel2, pll_freq);
+        result = sysctl_pll_source_set_freq(pll, v_pll_t->pll_ckin_sel, pll_freq);
     else
         result = sysctl_pll_source_set_freq(pll, SYSCTL_SOURCE_IN0, pll_freq);
 
     /* 5. Power on PLL */
+    v_pll_t->pll_pwrd = 1;
+
     /* 6. Reset PLL then Release Reset*/
-    sysctl_pll_enable(pll);
+    v_pll_t->pll_reset = 0;
+    v_pll_t->pll_reset = 1;
+    /* wait 100ns */
+    asm volatile ("nop");
+    asm volatile ("nop");
+    v_pll_t->pll_reset = 0;
 
     /* 7. Get lock status, wait PLL stable */
     while (sysctl_pll_is_lock(pll) == 0)
         sysctl_pll_clear_slip(pll);
 
     /* 8. Enable PLL output */
-    sysctl_clock_enable(clock);
+    v_pll_t->pll_out_en = 1;
 
     /* 9. Change CPU CLK to PLL */
     if (pll == SYSCTL_PLL0)
