@@ -496,23 +496,120 @@ void sccb_dev_write_byte(handle_t file, uint16_t reg_address, uint8_t value)
 
 /* FFT */
 
-void fft_complex_uint16(fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output)
+void fft_complex_uint16(uint16_t shift, fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output)
 {
     COMMON_ENTRY_FILE(fft_file_, fft, FFT);
-    fft->complex_uint16(direction, input, point_num, output, fft->base.userdata);
+    fft->complex_uint16(shift, direction, input, point_num, output, fft->base.userdata);
 }
 
 /* AES */
 
-void aes_hard_decrypt(const aes_param_t *param)
+void aes_ecb128_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
 {
     COMMON_ENTRY_FILE(aes_file_, aes, AES);
-    aes->hard_decrypt(param, aes->base.userdata);
+    aes->aes_ecb128_hard_decrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
 }
-void aes_hard_encrypt(const aes_param_t *param)
+
+void aes_ecb128_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
 {
     COMMON_ENTRY_FILE(aes_file_, aes, AES);
-    aes->hard_encrypt(param, aes->base.userdata);
+    aes->aes_ecb128_hard_encrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_ecb192_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_ecb192_hard_decrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_ecb192_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_ecb192_hard_encrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_ecb256_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_ecb256_hard_decrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_ecb256_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_ecb256_hard_encrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc128_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc128_hard_decrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc128_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc128_hard_encrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc192_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc192_hard_decrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc192_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc192_hard_encrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc256_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc256_hard_decrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc256_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc256_hard_encrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_gcm128_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm128_hard_decrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm128_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm128_hard_encrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm192_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm192_hard_decrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm192_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm192_hard_encrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm256_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm256_hard_decrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm256_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm256_hard_encrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
 }
 
 /* SHA */

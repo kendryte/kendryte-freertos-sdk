@@ -12,13 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <FreeRTOS.h>
-#include <driver.h>
-#include <hal.h>
-#include <fft.h>
-#include <sysctl.h>
-
-#define FFT_BASE_ADDR (0x42000000)
+#include "FreeRTOS.h"
+#include "driver.h"
+#include "hal.h"
+#include "fft.h"
+#include "sysctl.h"
 
 #define COMMON_ENTRY                                    \
     fft_dev_data *data = (fft_dev_data *)userdata;      \
@@ -59,11 +57,10 @@ static void exit_exclusive(fft_dev_data *data)
     xSemaphoreGive(data->free_mutex);
 }
 
-static void fft_complex_uint16(fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata)
+static void fft_complex_uint16(uint16_t shift, fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata)
 {
     COMMON_ENTRY;
     entry_exclusive(data);
-    uint16_t shift = (direction == FFT_DIR_FORWARD) ? 0x1ff : 0x0;
     fft_point_t point = FFT_512;
     switch(point_num)
     {

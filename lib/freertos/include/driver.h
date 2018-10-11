@@ -286,13 +286,14 @@ typedef struct tag_fft_data
 typedef enum tag_fft_direction
 {
     FFT_DIR_BACKWARD,
-    FFT_DIR_FORWARD
+    FFT_DIR_FORWARD,
+    FFT_DIR_MAX,
 } fft_direction_t;
 
 typedef struct tag_fft_driver
 {
     driver_base_t base;
-    void (*complex_uint16)(fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata);
+    void (*complex_uint16)(uint16_t shift, fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata);
 } fft_driver_t;
 
 typedef enum
@@ -316,26 +317,48 @@ typedef enum
     AES_HARD_DECRYPTION = 1,
 } aes_encrypt_sel_t;
 
-typedef struct tag_aes_param
+typedef struct _gcm_context
 {
-    uint8_t *input_data;
-    size_t input_data_len;
+    /* The buffer holding the encryption or decryption key. */
     uint8_t *input_key;
-    size_t input_key_len;
+    /* The initialization vector. must be 96 bit */
     uint8_t *iv;
-    size_t iv_len;
-    uint8_t* gcm_add;
-    size_t gcm_add_len;
-    aes_cipher_mode_t cipher_mode;
-    uint8_t *output_data;
-    uint8_t *gcm_tag;
-} aes_param_t;
+    /* The buffer holding the Additional authenticated data. or NULL */
+    uint8_t *gcm_aad;
+    /* The length of the Additional authenticated data. or 0L */
+    size_t gcm_aad_len;
+} gcm_context_t;
+
+typedef struct _cbc_context
+{
+    /* The buffer holding the encryption or decryption key. */
+    uint8_t *input_key;
+    /* The initialization vector. must be 128 bit */
+    uint8_t *iv;
+} cbc_context_t;
+
 
 typedef struct tag_aes_driver
 {
     driver_base_t base;
-    void (*hard_decrypt)(const aes_param_t *param, void *userdata);
-    void (*hard_encrypt)(const aes_param_t *param, void *userdata);
+    void (*aes_ecb128_hard_decrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb128_hard_encrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb192_hard_decrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb192_hard_encrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb256_hard_decrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb256_hard_encrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc128_hard_decrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc128_hard_encrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc192_hard_decrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc192_hard_encrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc256_hard_decrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc256_hard_encrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_gcm128_hard_decrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm128_hard_encrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm192_hard_decrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm192_hard_encrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm256_hard_decrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm256_hard_encrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
 } aes_driver_t;
 
 typedef struct tag_sha256_driver
