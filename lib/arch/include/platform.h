@@ -113,8 +113,8 @@
  * | 17        | SPI0_SCLK        | SPI0 Serial Clock                 |
  * | 18        | UARTHS_RX        | UART High speed Receiver          |
  * | 19        | UARTHS_TX        | UART High speed Transmitter       |
- * | 20        | CLK_IN1          | Clock Input 1                     |
- * | 21        | CLK_IN2          | Clock Input 2                     |
+ * | 20        | RESV6            | Reserved function                 |
+ * | 21        | RESV7            | Reserved function                 |
  * | 22        | CLK_SPI1         | Clock SPI1                        |
  * | 23        | CLK_I2C1         | Clock I2C1                        |
  * | 24        | GPIOHS0          | GPIO High speed 0                 |
@@ -378,8 +378,8 @@ typedef enum _fpioa_function
     FUNC_SPI0_SCLK        = 17, /*!< SPI0 Serial Clock */
     FUNC_UARTHS_RX        = 18, /*!< UART High speed Receiver */
     FUNC_UARTHS_TX        = 19, /*!< UART High speed Transmitter */
-    FUNC_CLK_IN1          = 20, /*!< Clock Input 1 */
-    FUNC_CLK_IN2          = 21, /*!< Clock Input 2 */
+    FUNC_RESV6            = 20, /*!< Reserved function */
+    FUNC_RESV7            = 21, /*!< Reserved function */
     FUNC_CLK_SPI1         = 22, /*!< Clock SPI1 */
     FUNC_CLK_I2C1         = 23, /*!< Clock I2C1 */
     FUNC_GPIOHS0          = 24, /*!< GPIO High speed 0 */
