@@ -332,10 +332,10 @@ static int is_memory(uintptr_t address)
 {
     enum
     {
-        mem_len = 6 * 1024 * 1024
+        mem_len = 6 * 1024 * 1024,
+        mem_no_cache_len = 8 * 1024 * 1024,
     };
-
-    return ((address >= 0x80000000) && (address < 0x80000000 + mem_len)) || ((address >= 0x40000000) && (address < 0x40000000 + mem_len)) || (address == 0x50450040);
+    return ((address >= 0x80000000) && (address < 0x80000000 + mem_len)) || ((address >= 0x40000000) && (address < 0x40000000 + mem_no_cache_len)) || (address == 0x50450040);
 }
 
 static void dma_loop_async_imp(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata)
