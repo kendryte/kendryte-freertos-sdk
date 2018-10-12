@@ -12,13 +12,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _FPIOA_CFG_H
-#define _FPIOA_CFG_H
+#ifndef _PIN_CFG_H
+#define _PIN_CFG_H
 
 #include <platform.h>
+#include <stdbool.h>
 #include <stdint.h>
 
-#define FPIOA_CFG_VERSION 1
+#define PIN_CFG_VERSION 1
 
 typedef struct _fpioa_cfg_item
 {
@@ -33,6 +34,27 @@ typedef struct _fpioa_cfg
     fpioa_cfg_item_t functions[];
 } fpioa_cfg_t;
 
+typedef struct _power_bank_item
+{
+    sysctl_power_bank_t power_bank;
+    sysctl_io_power_mode_t io_power_mode;
+} power_bank_item_t;
+
+typedef struct _power_bank_cfg
+{
+    uint32_t version;
+    uint32_t power_banks_count;
+    power_bank_item_t power_banks[];
+} power_bank_cfg_t;
+
+typedef struct _io_cfg
+{
+    uint32_t version;
+    bool set_spi0_dvp_data;
+} io_cfg_t;
+
 extern const fpioa_cfg_t g_fpioa_cfg;
+extern const power_bank_cfg_t g_power_bank_cfg;
+extern const io_cfg_t g_io_cfg;
 
 #endif

@@ -12,24 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <fpioa_cfg.h>
-#include <fpioa.h>
-#include <FreeRTOS.h>
+#ifndef _PIN_CFG_PRIV_H
+#define _PIN_CFG_PRIV_H
 
-const fpioa_cfg_t __attribute__((weak)) g_fpioa_cfg =
-{
-    .version = FPIOA_CFG_VERSION,
-    .functions_count = 0
-};
+#include <pin_cfg.h>
 
-void fpioa_setup()
-{
-    configASSERT(g_fpioa_cfg.version == FPIOA_CFG_VERSION);
+void bsp_pin_setup();
 
-    uint32_t i;
-    for (i = 0; i < g_fpioa_cfg.functions_count; i++)
-    {
-        fpioa_cfg_item_t item = g_fpioa_cfg.functions[i];
-        fpioa_set_function(item.number, item.function);
-    }
-}
+#endif

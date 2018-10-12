@@ -23,7 +23,6 @@
 #include <stdio.h>
 #include <sysctl.h>
 #include <timer.h>
-#include "fpioa_cfg.h"
 
 #define COMMON_ENTRY                                                                 \
     timer_data *data = (timer_data *)userdata;                                       \

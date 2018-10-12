@@ -20,7 +20,6 @@
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
-#include "fpioa_cfg.h"
 
 #define COMMON_ENTRY                                                         \
     gpio_data *data = (gpio_data *)userdata;                                 \

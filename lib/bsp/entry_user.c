@@ -20,7 +20,7 @@
 #include <string.h>
 #include <sysctl.h>
 #include <uarths.h>
-#include "fpioa_cfg_priv.h"
+#include "pin_cfg_priv.h"
 #include <stdio.h>
 
 #define PLL1_OUTPUT_FREQ 160000000UL
@@ -77,7 +77,7 @@ void _init_bsp(int core_id, int number_of_cores)
         __libc_init_array();
         /* Init FPIOA */
         fpioa_init();
-        fpioa_setup();
+        bsp_pin_setup();
         /* Setup clocks */
         setup_clocks();
         /* Init UART */

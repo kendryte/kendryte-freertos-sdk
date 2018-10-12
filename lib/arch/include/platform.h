@@ -804,4 +804,26 @@ typedef enum _sysctl_dma_select_t
     SYSCTL_DMA_SELECT_MAX
 } sysctl_dma_select_t;
 
+typedef enum _sysctl_power_bank
+{
+    SYSCTL_POWER_BANK0,
+    SYSCTL_POWER_BANK1,
+    SYSCTL_POWER_BANK2,
+    SYSCTL_POWER_BANK3,
+    SYSCTL_POWER_BANK4,
+    SYSCTL_POWER_BANK5,
+    SYSCTL_POWER_BANK6,
+    SYSCTL_POWER_BANK7,
+    SYSCTL_POWER_BANK_MAX,
+} sysctl_power_bank_t;
+
+/**
+ * @brief      System controller reset control id
+ */
+typedef enum _sysctl_io_power_mode
+{
+    SYSCTL_POWER_V33,
+    SYSCTL_POWER_V18
+} sysctl_io_power_mode_t;
+
 #endif /* _BSP_PLATFORM_H */

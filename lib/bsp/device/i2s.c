@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysctl.h>
-#include "fpioa_cfg.h"
 
 #define BUFFER_COUNT 2
 #define COMMON_ENTRY                                                      \

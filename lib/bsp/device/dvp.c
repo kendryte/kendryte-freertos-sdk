@@ -22,7 +22,6 @@
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
-#include "fpioa_cfg.h"
 
 #define COMMON_ENTRY                                                      \
     dvp_data *data = (dvp_data *)userdata;                                \

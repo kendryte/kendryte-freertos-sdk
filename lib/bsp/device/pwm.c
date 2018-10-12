@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <sysctl.h>
 #include <timer.h>
-#include "fpioa_cfg.h"
 
 #define COMMON_ENTRY                                                                            \
     pwm_data *data = (pwm_data *)userdata;                                                      \

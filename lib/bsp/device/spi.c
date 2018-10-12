@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysctl.h>
-#include "fpioa_cfg.h"
 
 /* SPI Controller */
 
