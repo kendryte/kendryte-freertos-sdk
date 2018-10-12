@@ -135,34 +135,36 @@ static void i2sc_set_mask_interrupt(volatile i2s_channel_t *i2sc,
     writel(u_imr.reg_data, &i2sc->imr);
 }
 
-static void extract_params(const audio_format_t *format, i2s_word_select_cycles_t *wsc, i2s_word_length_t *wlen, size_t *block_align, uint32_t *dma_divide16)
+static void extract_params(const audio_format_t *format, uint32_t *threshold, i2s_word_select_cycles_t *wsc, i2s_word_length_t *wlen, size_t *block_align, uint32_t *dma_divide16)
 {
-    configASSERT(format->sample_rate == 44100);
-
+    uint32_t pll2_clock = 0;
+    pll2_clock = sysctl_pll_get_freq(SYSCTL_PLL2);
+    configASSERT((format->sample_rate > pll2_clock / (1 << 23)) && (format->sample_rate < pll2_clock / (1 << 7)));
     switch (format->bits_per_sample)
     {
-    case 16:
-        *wsc = SCLK_CYCLES_32;
-        *wlen = RESOLUTION_16_BIT;
-        *block_align = format->channels * 2;
-        *dma_divide16 = 1;
-        break;
-    case 24:
-        *wsc = SCLK_CYCLES_32;
-        *wlen = RESOLUTION_24_BIT;
-        *block_align = format->channels * 4;
-        *dma_divide16 = 0;
-        break;
-    case 32:
-        *wsc = SCLK_CYCLES_32;
-        *wlen = RESOLUTION_32_BIT;
-        *block_align = format->channels * 4;
-        *dma_divide16 = 0;
-        break;
-    default:
-        configASSERT(!"Invlid bits per sample");
-        break;
+        case 16:
+            *wsc = SCLK_CYCLES_32;
+            *wlen = RESOLUTION_16_BIT;
+            *block_align = format->channels * 2;
+            *dma_divide16 = 1;
+            break;
+        case 24:
+            *wsc = SCLK_CYCLES_32;
+            *wlen = RESOLUTION_24_BIT;
+            *block_align = format->channels * 4;
+            *dma_divide16 = 0;
+            break;
+        case 32:
+            *wsc = SCLK_CYCLES_32;
+            *wlen = RESOLUTION_32_BIT;
+            *block_align = format->channels * 4;
+            *dma_divide16 = 0;
+            break;
+        default:
+            configASSERT(!"Invlid bits per sample");
+            break;
     }
+    *threshold = pll2_clock / (format->sample_rate * 128) - 1;
 }
 
 static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata)
@@ -189,14 +191,15 @@ static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, 
         break;
     }
 
+    uint32_t threshold;
     i2s_word_select_cycles_t wsc;
     i2s_word_length_t wlen;
     size_t block_align;
     uint32_t dma_divide16;
 
-    extract_params(format, &wsc, &wlen, &block_align, &dma_divide16);
+    extract_params(format, &threshold, &wsc, &wlen, &block_align, &dma_divide16);
 
-    sysctl_clock_set_threshold(data->clock_threshold, 7);
+    sysctl_clock_set_threshold(data->clock_threshold, threshold);
 
     i2s_transmit_set_enable(I2S_RECEIVE, 0, userdata);
     i2s_transmit_set_enable(I2S_SEND, 0, userdata);
@@ -294,15 +297,16 @@ static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms,
         break;
     }
 
+    uint32_t threshold;
     i2s_word_select_cycles_t wsc;
     i2s_word_length_t wlen;
     size_t block_align;
     uint32_t dma_divide16;
 
     configASSERT(format->bits_per_sample != 16);
-    extract_params(format, &wsc, &wlen, &block_align, &dma_divide16);
+    extract_params(format, &threshold, &wsc, &wlen, &block_align, &dma_divide16);
 
-    sysctl_clock_set_threshold(data->clock_threshold, 7);
+    sysctl_clock_set_threshold(data->clock_threshold, threshold);
 
     i2s_transmit_set_enable(I2S_RECEIVE, 0, userdata);
     i2s_transmit_set_enable(I2S_SEND, 0, userdata);
