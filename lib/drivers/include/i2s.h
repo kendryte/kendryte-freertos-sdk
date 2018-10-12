@@ -16,7 +16,8 @@
 #define _DRIVER_I2S_H
 
 #include <stdint.h>
-#include "platform.h"
+#include <stddef.h>
+#include <platform.h>
 #include "io.h"
 #include "dmac.h"
 
@@ -24,40 +25,41 @@
 extern "C" {
 #endif
 
+
 #define I2S0_IN_D0  90
 #define I2S0_SCLK   88
 #define I2S0_WS    89
 
-enum i2s_device_num_t
+typedef enum _i2s_device_number
 {
     I2S_DEVICE_0 = 0,
     I2S_DEVICE_1 = 1,
     I2S_DEVICE_2 = 2,
     I2S_DEVICE_MAX
-};
+} i2s_device_number_t;
 
-enum i2s_channel_num_t
+typedef enum _i2s_channel_num
 {
-    CHANNEL_0 = 0,
-    CHANNEL_1 = 1,
-    CHANNEL_2 = 2,
-    CHANNEL_3 = 3
-};
+    I2S_CHANNEL_0 = 0,
+    I2S_CHANNEL_1 = 1,
+    I2S_CHANNEL_2 = 2,
+    I2S_CHANNEL_3 = 3
+} i2s_channel_num_t;
 
-enum i2s_transmit_t
+typedef enum _i2s_transmit
 {
-    TRANSMITTER = 0,
-    RECEIVER = 1
-};
+    I2S_TRANSMITTER = 0,
+    I2S_RECEIVER = 1
+} i2s_transmit_t;
 
-enum i2s_work_mode_t
+typedef enum _i2s_work_mode
 {
     STANDARD_MODE = 1,
     RIGHT_JUSTIFYING_MODE = 2,
     LEFT_JUSTIFYING_MODE = 4
-};
+} i2s_work_mode_t;
 
-enum sclk_gating_cycles_t
+typedef enum _sclk_gating_cycles
 {
     /* Clock gating is diable */
     NO_CLOCK_GATING = 0x0,
@@ -69,9 +71,9 @@ enum sclk_gating_cycles_t
     CLOCK_CYCLES_20 = 0x3,
     /* Gating after 24 sclk cycles */
     CLOCK_CYCLES_24 = 0x4
-};
+} i2s_sclk_gating_cycles_t;
 
-enum word_select_cycles_t
+typedef enum _word_select_cycles
 {
     /* 16 sclk cycles */
     SCLK_CYCLES_16 = 0x0,
@@ -79,26 +81,25 @@ enum word_select_cycles_t
     SCLK_CYCLES_24 = 0x1,
     /* 32 sclk cycles */
     SCLK_CYCLES_32 = 0x2
+} i2s_word_select_cycles_t;
 
-};
-
-enum word_length_t
+typedef enum _word_length
 {
     /* Ignore the word length */
     IGNORE_WORD_LENGTH = 0x0,
-    /* 12-bit data resolution of the receiver */
+    /* 12-bit data resolution of the I2S_RECEIVER */
     RESOLUTION_12_BIT = 0x1,
-    /* 16-bit data resolution of the receiver */
+    /* 16-bit data resolution of the I2S_RECEIVER */
     RESOLUTION_16_BIT = 0x2,
-    /* 20-bit data resolution of the receiver */
+    /* 20-bit data resolution of the I2S_RECEIVER */
     RESOLUTION_20_BIT = 0x3,
-    /* 24-bit data resolution of the receiver */
+    /* 24-bit data resolution of the I2S_RECEIVER */
     RESOLUTION_24_BIT = 0x4,
-    /* 32-bit data resolution of the receiver */
+    /* 32-bit data resolution of the I2S_RECEIVER */
     RESOLUTION_32_BIT = 0x5
-};
+} i2s_word_length_t;
 
-enum fifo_threshold_t
+typedef enum _fifo_threshold
 {
     /* Interrupt trigger when FIFO level is 1 */
     TRIGGER_LEVEL_1 = 0x0,
@@ -132,58 +133,58 @@ enum fifo_threshold_t
     TRIGGER_LEVEL_15 = 0xe,
     /* Interrupt trigger when FIFO level is 16 */
     TRIGGER_LEVEL_16 = 0xf
-};
+} i2s_fifo_threshold_t;
 
 
-struct i2s_ier_t
+typedef struct _i2s_ier
 {
     /* Bit 0 is ien, 0 for disable i2s and 1 for enable i2s */
     uint32_t ien : 1;
     /* Bits [31:1] is reserved */
     uint32_t resv : 31;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_ier_t;
 
-union ier_u
+typedef union _ier_u
 {
-    struct i2s_ier_t ier;
+    i2s_ier_t ier;
     uint32_t reg_data;
-};
+} ier_t;
 
-struct i2s_irer_t
+typedef struct _i2s_irer
 {
-    /* Bit 0 is receiver block  enable,
-     * 0 for receiver disable
-     * 1 for receiver enable
+    /* Bit 0 is I2S_RECEIVER block  enable,
+     * 0 for I2S_RECEIVER disable
+     * 1 for I2S_RECEIVER enable
      */
     uint32_t rxen : 1;
     /* Bits [31:1] is reserved */
     uint32_t resv : 31;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_irer_t;
 
-union irer_u
+typedef union _irer_u
 {
-    struct i2s_irer_t irer;
+    i2s_irer_t irer;
     uint32_t reg_data;
-};
+} irer_t;
 
-struct i2s_iter_t
+typedef struct _i2s_iter
 {
     uint32_t txen : 1;
-    /* Bit 0 is transmitter block  enable,
-     * 0 for transmitter disable
-     * 1 for transmitter enable
+    /* Bit 0 is I2S_TRANSMITTER block  enable,
+     * 0 for I2S_TRANSMITTER disable
+     * 1 for I2S_TRANSMITTER enable
      */
     uint32_t resv : 31;
     /* Bits [31:1] is reserved */
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_iter_t;
 
-union iter_u
+typedef union _iter_u
 {
-    struct i2s_iter_t iter;
+    i2s_iter_t iter;
     uint32_t reg_data;
-};
+} iter_t;
 
-struct i2s_cer_t
+typedef struct _i2s_cer
 {
     uint32_t clken : 1;
     /* Bit 0 is clock generation enable/disable,
@@ -192,15 +193,15 @@ struct i2s_cer_t
      */
     uint32_t resv : 31;
     /* Bits [31:1] is reserved */
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_cer_t;
 
-union cer_u
+typedef union _cer_u
 {
-    struct i2s_cer_t cer;
+    i2s_cer_t cer;
     uint32_t reg_data;
-};
+} cer_t;
 
-struct i2s_ccr_t
+typedef struct _i2s_ccr
 {
     /* Bits [2:0] is used to program  the gating of sclk,
      * 0x0 for clock gating is diable,
@@ -233,44 +234,44 @@ struct i2s_ccr_t
     uint32_t sign_expand_en : 1;
     uint32_t resv : 20;
     /* Bits [31:11] is reseved */
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_ccr_t;
 
-union ccr_u
+typedef union _ccr_u
 {
-    struct i2s_ccr_t ccr;
+    i2s_ccr_t ccr;
     uint32_t reg_data;
-};
+} ccr_t;
 
-struct i2s_rxffr_t
+typedef struct _i2s_rxffr
 {
     uint32_t rxffr : 1;
-    /* Bit 0 is receiver FIFO reset,
+    /* Bit 0 is I2S_RECEIVER FIFO reset,
      * 0 for does not flush RX FIFO, 1 for flush RX FIFO
      */
     uint32_t resv : 31;
     /* Bits [31:1] is reserved */
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_rxffr_t;
 
-union rxffr_u
+typedef union _rxffr_u
 {
-    struct i2s_rxffr_t rxffr;
+    i2s_rxffr_t rxffr;
     uint32_t reg_data;
-};
+} rxffr_t;
 
-struct i2s_lrbrthr
+typedef struct _i2s_lrbrthr
 {
     uint32_t fifo : 16;
     /* Bits [15:0] if used data receive or transmit */
     uint32_t resv : 16;
-};
+} i2s_lrbrthr_t;
 
-union lrbthr_u
+typedef union _lrbthr_u
 {
-    struct i2s_lrbrthr buffer;
+    i2s_lrbrthr_t buffer;
     uint32_t reg_data;
-};
+} lrbthr_t;
 
-struct i2s_rthr_t
+typedef struct _i2s_rthr
 {
     /* Bits  [15:0] is right stereo data transmitted serially
      * from transmit channel input
@@ -278,15 +279,15 @@ struct i2s_rthr_t
     uint32_t rthrx : 16;
     /* Bits [31:16] is reserved */
     uint32_t resv : 16;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_rthr_t;
 
-union rthr_u
+typedef union _rthr_u
 {
-    struct i2s_rthr_t rthr;
+    i2s_rthr_t rthr;
     uint32_t reg_data;
-};
+} rthr_t;
 
-struct i2s_rer_t
+typedef struct _i2s_rer
 {
     /* Bit 0 is receive channel enable/disable, 0 for receive channel disable,
      *1 for receive channel enable
@@ -294,15 +295,15 @@ struct i2s_rer_t
     uint32_t rxchenx : 1;
     /* Bits [31:1] is reseved */
     uint32_t resv : 31;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_rer_t;
 
-union rer_u
+typedef union _rer_u
 {
-    struct i2s_rer_t rer;
+    i2s_rer_t rer;
     uint32_t reg_data;
-};
+} rer_t;
 
-struct i2s_ter_t
+typedef struct _i2s_ter
 {
     /* Bit 0 is transmit channel enable/disable, 0 for transmit channel disable,
      * 1 for transmit channel enable
@@ -310,37 +311,38 @@ struct i2s_ter_t
     uint32_t txchenx : 1;
     /* Bits [31:1] is reseved */
     uint32_t resv : 31;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_ter_t;
 
-union ter_u
+typedef union _ter_u
 {
-    struct i2s_ter_t ter;
+    i2s_ter_t ter;
     uint32_t reg_data;
-};
+} ter_t;
 
-struct i2s_rcr_tcr_t
+typedef struct _i2s_rcr_tcr
 {
     /* Bits [2:0] is used to program desired data resolution of
-     * receiver/transmitter,
+     * I2S_RECEIVER/I2S_TRANSMITTER,
      * 0x0 for ignore the word length
-     * 0x1 for 12-bit data resolution of the receiver/transmitter,
-     * 0x2 for 16-bit data resolution of the receiver/transmitter,
-     * 0x3 for 20-bit data resolution of the receiver/transmitter,
-     * 0x4 for 24-bit data resolution of the receiver/transmitter,
-     * 0x5 for 32-bit data resolution of the receiver/transmitter
+     * 0x1 for 12-bit data resolution of the I2S_RECEIVER/I2S_TRANSMITTER,
+     * 0x2 for 16-bit data resolution of the I2S_RECEIVER/I2S_TRANSMITTER,
+     * 0x3 for 20-bit data resolution of the I2S_RECEIVER/I2S_TRANSMITTER,
+     * 0x4 for 24-bit data resolution of the I2S_RECEIVER/I2S_TRANSMITTER,
+     * 0x5 for 32-bit data resolution of the I2S_RECEIVER/I2S_TRANSMITTER
      */
     uint32_t wlen : 3;
     /* Bits [31:3] is reseved */
     uint32_t resv : 29;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_rcr_tcr_t;
 
-union rcr_tcr_u {
-    struct i2s_rcr_tcr_t rcr_tcr;
+typedef union _rcr_tcr_u {
+    i2s_rcr_tcr_t rcr_tcr;
     uint32_t reg_data;
-};
+} rcr_tcr_t;
 
-struct i2s_isr_t {
-    /* Bit 0 is status of receiver data avaliable interrupt
+typedef struct _i2s_isr
+{
+    /* Bit 0 is status of I2S_RECEIVER data avaliable interrupt
      * 0x0 for RX FIFO trigger level not reached
      * 0x1 for RX FIFO trigger level is reached
      */
@@ -364,14 +366,15 @@ struct i2s_isr_t {
     uint32_t txfo : 1;
     /* BIts [31:6] is reserved */
     uint32_t resv2 : 26;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_isr_t;
 
-union isr_u {
-    struct i2s_isr_t isr;
+typedef union _isr_u
+{
+    i2s_isr_t isr;
     uint32_t reg_data;
-};
+} isr_t;
 
-struct i2s_imr_t
+typedef struct _i2s_imr
 {
     /* Bit 0 is mask RX FIFO data available interrupt
      * 0x0 for unmask RX FIFO data available interrupt
@@ -397,15 +400,15 @@ struct i2s_imr_t
     uint32_t txfom : 1;
     /* Bits [31:6] is reserved */
     uint32_t resv2 : 26;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_imr_t;
 
-union imr_u
+typedef union _imr_u
 {
-    struct i2s_imr_t imr;
+    i2s_imr_t imr;
     uint32_t reg_data;
-};
+} imr_t;
 
-struct i2s_ror_t
+typedef struct _i2s_ror
 {
     /* Bit 0 is read this bit to clear RX FIFO data overrun interrupt
      * 0x0 for RX FIFO write valid,
@@ -414,15 +417,15 @@ struct i2s_ror_t
     uint32_t rxcho : 1;
     /* Bits [31:1] is reserved */
     uint32_t resv : 31;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_ror_t;
 
-union ror_u
+typedef union _ror_u
 {
-    struct i2s_ror_t ror;
+    i2s_ror_t ror;
     uint32_t reg_data;
-};
+} ror_t;
 
-struct i2s_tor_t
+typedef struct _i2s_tor
 {
     /* Bit 0 is read this bit to clear TX FIFO data overrun interrupt
      * 0x0 for TX FIFO write valid,
@@ -431,18 +434,18 @@ struct i2s_tor_t
     uint32_t txcho : 1;
     /* Bits [31:1] is reserved */
     uint32_t resv : 31;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_tor_t;
 
-union tor_u
+typedef union _tor_u
 {
-    struct i2s_tor_t tor;
+    i2s_tor_t tor;
     uint32_t reg_data;
-};
+} tor_t;
 
-struct i2s_rfcr_t
+typedef struct _i2s_rfcr
 {
     /* Bits [3:0] is used program the trigger level in the RX FIFO at
-     * which the receiver data available interrupt generate,
+     * which the I2S_RECEIVER data available interrupt generate,
      * 0x0 for interrupt trigger when FIFO level is 1,
      * 0x2 for interrupt trigger when FIFO level is 2,
      * 0x3 for interrupt trigger when FIFO level is 4,
@@ -462,18 +465,18 @@ struct i2s_rfcr_t
     uint32_t rxchdt : 4;
     /* Bits [31:4] is reserved */
     uint32_t rsvd_rfcrx : 28;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_rfcr_t;
 
-union rfcr_u
+typedef union _rfcr_u
 {
-    struct i2s_rfcr_t rfcr;
+    i2s_rfcr_t rfcr;
     uint32_t reg_data;
-};
+} rfcr_t;
 
-struct i2s_tfcr_t
+typedef struct _i2s_tfcr
 {
     /* Bits [3:0] is used program the trigger level in the TX FIFO at
-     * which the receiver data available interrupt generate,
+     * which the I2S_RECEIVER data available interrupt generate,
      * 0x0 for interrupt trigger when FIFO level is 1,
      * 0x2 for interrupt trigger when FIFO level is 2,
      * 0x3 for interrupt trigger when FIFO level is 4,
@@ -493,32 +496,32 @@ struct i2s_tfcr_t
     uint32_t txchet : 4;
     /* Bits [31:4] is reserved */
     uint32_t rsvd_tfcrx : 28;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_tfcr_t;
 
-union tfcr_u
+typedef union _tfcr_u
 {
-    struct i2s_tfcr_t tfcr;
+    i2s_tfcr_t tfcr;
     uint32_t reg_data;
-};
+} tfcr_t;
 
-struct i2s_rff_t
+typedef struct _i2s_rff
 {
-    /* Bit  0 is receiver channel FIFO reset,
+    /* Bit  0 is I2S_RECEIVER channel FIFO reset,
      * 0x0 for does not flush an individual RX FIFO,
      * 0x1 for flush an indiviadual RX FIFO
      */
     uint32_t rxchfr : 1;
     /*< Bits [31:1] is reserved ,write only */
     uint32_t rsvd_rffx : 31;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_rff_t;
 
-union rff_u
+typedef union _rff_u
 {
-    struct i2s_rff_t rff;
+    i2s_rff_t rff;
     uint32_t reg_data;
-};
+} rff_t;
 
-struct i2s_tff_t
+typedef struct _i2s_tff
 {
     /* Bit  0 is transmit channel FIFO reset,
      * 0x0 for does not flush an individual TX FIFO,
@@ -527,15 +530,15 @@ struct i2s_tff_t
     uint32_t rtxchfr : 1;
     /*< Bits [31:1] is reserved ,write only */
     uint32_t rsvd_rffx : 31;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_tff_t;
 
-union tff_u
+typedef union tff_u
 {
-    struct i2s_tff_t tff;
+    i2s_tff_t tff;
     uint32_t reg_data;
-};
+} tff_t;
 
-struct i2s_channel_t
+typedef struct _i2s_channel
 {
     /* Left  Receive or Left Transmit Register      (0x20) */
     volatile uint32_t left_rxtx;
@@ -567,7 +570,7 @@ struct i2s_channel_t
     volatile uint32_t tff;
     /* reserved                                (0x58-0x5c) */
     volatile uint32_t reserved1[2];
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_channel_t;
 
 /****is* i2s.api/dw_i2s_portmap
  * NAME
@@ -580,34 +583,34 @@ struct i2s_channel_t
  *  portmap = (struct dw_i2s_portmap *) DW_APB_I2S_BASE;
  * SOURCE
  */
-struct i2s_t
+typedef struct _i2s
 {
     /* I2S Enable Register                          (0x00) */
     volatile uint32_t ier;
-    /* I2S Receiver Block Enable Register           (0x04) */
+    /* I2S I2S_RECEIVER Block Enable Register           (0x04) */
     volatile uint32_t irer;
-    /* I2S Transmitter Block Enable Register        (0x08) */
+    /* I2S I2S_TRANSMITTER Block Enable Register        (0x08) */
     volatile uint32_t iter;
     /* Clock Enable Register                        (0x0c) */
     volatile uint32_t cer;
     /* Clock Configuration Register                 (0x10) */
     volatile uint32_t ccr;
-    /* Receiver Block FIFO Reset Register           (0x04) */
+    /* I2S_RECEIVER Block FIFO Reset Register           (0x04) */
     volatile uint32_t rxffr;
-    /* Transmitter Block FIFO Reset Register        (0x18) */
+    /* I2S_TRANSMITTER Block FIFO Reset Register        (0x18) */
     volatile uint32_t txffr;
     /* reserved                                     (0x1c) */
     volatile uint32_t reserved1;
-    volatile struct i2s_channel_t channel[4];
+    volatile i2s_channel_t channel[4];
     /* reserved                               (0x118-0x1bc) */
     volatile uint32_t reserved2[40];
-    /*  Receiver Block DMA Register                 (0x1c0) */
+    /*  I2S_RECEIVER Block DMA Register                 (0x1c0) */
     volatile uint32_t rxdma;
-    /* Reset Receiver Block DMA Register            (0x1c4) */
+    /* Reset I2S_RECEIVER Block DMA Register            (0x1c4) */
     volatile uint32_t rrxdma;
-    /* Transmitter Block DMA Register               (0x1c8) */
+    /* I2S_TRANSMITTER Block DMA Register               (0x1c8) */
     volatile uint32_t txdma;
-    /* Reset Transmitter Block DMA Register         (0x1cc) */
+    /* Reset I2S_TRANSMITTER Block DMA Register         (0x1cc) */
     volatile uint32_t rtxdma;
     /* reserved                               (0x1d0-0x1ec) */
     volatile uint32_t reserved3[8];
@@ -619,7 +622,7 @@ struct i2s_t
     volatile uint32_t i2s_comp_version_1;
     /* I2S Component Type Register                  (0x1fc) */
     volatile uint32_t i2s_comp_type;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2s_t;
 
 #ifdef __cplusplus
 }

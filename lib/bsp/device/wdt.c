@@ -25,27 +25,27 @@
 #include <sysctl.h>
 #include <wdt.h>
 
-#define COMMON_ENTRY                                              \
-    wdt_data* data = (wdt_data*)userdata;                         \
-    volatile wdt_t* wdt = (volatile wdt_t*)data->base_addr;       \
+#define COMMON_ENTRY                                               \
+    wdt_data *data = (wdt_data *)userdata;                         \
+    volatile wdt_t *wdt = (volatile wdt_t *)data->base_addr;       \
     (void)wdt;
 
 typedef struct
 {
     uintptr_t base_addr;
-    enum sysctl_clock_e clock;
-    enum plic_irq_t irq;
+    sysctl_clock_t clock;
+    plic_irq_t irq;
 
     struct
     {
         wdt_on_timeout_t on_timeout;
-        void* on_timeout_data;
+        void *on_timeout_data;
     };
 } wdt_data;
 
-static void wdt_isr(void* userdata);
+static void wdt_isr(void *userdata);
 
-static void wdt_install(void* userdata)
+static void wdt_install(void *userdata)
 {
     COMMON_ENTRY;
     sysctl_clock_enable(data->clock);
@@ -53,17 +53,17 @@ static void wdt_install(void* userdata)
     pic_set_irq_priority(data->irq, 1);
 }
 
-static int wdt_open(void* userdata)
+static int wdt_open(void *userdata)
 {
     COMMON_ENTRY;
     return 1;
 }
 
-static void wdt_close(void* userdata)
+static void wdt_close(void *userdata)
 {
 }
 
-static void wdt_set_response_mode(wdt_response_mode_t mode, void* userdata)
+static void wdt_set_response_mode(wdt_response_mode_t mode, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -84,7 +84,7 @@ static void wdt_set_response_mode(wdt_response_mode_t mode, void* userdata)
     wdt->cr |= rmode;
 }
 
-static size_t wdt_set_timeout(size_t nanoseconds, void* userdata)
+static size_t wdt_set_timeout(size_t nanoseconds, void *userdata)
 {
     COMMON_ENTRY;
     uint32_t clk_freq = sysctl_clock_get_freq(data->clock);
@@ -95,7 +95,7 @@ static size_t wdt_set_timeout(size_t nanoseconds, void* userdata)
     return (size_t)(min_step * value);
 }
 
-static void wdt_set_on_timeout(wdt_on_timeout_t on_timeout, void* on_timeout_data, void* userdata)
+static void wdt_set_on_timeout(wdt_on_timeout_t on_timeout, void *on_timeout_data, void *userdata)
 {
     COMMON_ENTRY;
     data->on_timeout_data = on_timeout_data;
@@ -104,13 +104,13 @@ static void wdt_set_on_timeout(wdt_on_timeout_t on_timeout, void* on_timeout_dat
     pic_set_irq_enable(data->irq, on_timeout_data ? 1 : 0);
 }
 
-static void wdt_restart_counter(void* userdata)
+static void wdt_restart_counter(void *userdata)
 {
     COMMON_ENTRY;
     wdt->crr = WDT_CRR_MASK;
 }
 
-static void wdt_set_enable(int enable, void* userdata)
+static void wdt_set_enable(bool enable, void *userdata)
 {
     COMMON_ENTRY;
     if (enable)
@@ -125,7 +125,7 @@ static void wdt_set_enable(int enable, void* userdata)
     }
 }
 
-static void wdt_isr(void* userdata)
+static void wdt_isr(void *userdata)
 {
     COMMON_ENTRY;
     if (data->on_timeout)

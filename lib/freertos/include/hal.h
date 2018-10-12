@@ -44,7 +44,7 @@ void system_install_custom_driver(const char *name, const custom_driver_t *drive
  * @param[in]   irq         IRQ number
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void pic_set_irq_enable(uint32_t irq, int enable);
+void pic_set_irq_enable(uint32_t irq, bool enable);
 
 /**
  * @brief       Set handler of IRQ
@@ -93,7 +93,7 @@ void dma_set_request_source(handle_t file, uint32_t request);
  * @param[in]   burst_size              Element count to transmit per request
  * @param[in]   completion_event        Event to signal when this transmition is completed
  */
-void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event);
+void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event);
 
 /**
  * @brief       DMA synchrnonously
@@ -106,7 +106,7 @@ void dma_transmit_async(handle_t file, const volatile void *src, volatile void *
  * @param[in]   count               Element count to transmit
  * @param[in]   burst_size          Element count to transmit per request
  */
-void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size);
+void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size);
 
 /**
  * @brief       DMA loop asynchronously
@@ -125,7 +125,7 @@ void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, 
  * @param[in]   completion_event                    Event to signal when this transmition is completed
  * @param[in]   stop_signal                         The address of signal indicating whether to stop the transmition, set to 1 to stop
  */
-void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal);
+void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal);
 
 #ifdef __cplusplus
 }

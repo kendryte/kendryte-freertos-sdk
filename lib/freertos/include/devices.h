@@ -15,9 +15,9 @@
 #ifndef _FREERTOS_DEVICES_H
 #define _FREERTOS_DEVICES_H
 
-#include <driver.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "driver.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -158,11 +158,20 @@ void gpio_set_pin_value(handle_t file, uint32_t pin, gpio_pin_value_t value);
  * @param[in]   name                Specify the path to access the device
  * @param[in]   slave_address       The address of slave
  * @param[in]   address_width       The bits width of address
- * @param[in]   bus_speed_mode      The bus clock_rate mode selection
  *
  * @return      The I2C device handle
  */
-handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode);
+handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width);
+
+/**
+ * @brief       Set the clock rate of a I2C device
+ *
+ * @param[in]   file            The I2C device handle
+ * @param[in]   clock_rate      The desired clock rate in Hz
+ *
+ * @return      The actual clock rate after set
+ */
+double i2c_dev_set_clock_rate(handle_t file, double clock_rate);
 
 /**
  * @brief       Write to then read from a I2C device
@@ -183,10 +192,19 @@ int i2c_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size
  * @param[in]   file                The I2C controller handle
  * @param[in]   slave_address       The address of slave
  * @param[in]   address_width       The bits width of address
- * @param[in]   bus_speed_mode      The bus clock_rate mode selection
  * @param[in]   handler             The slave handler
  */
-void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t *handler);
+void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_slave_handler_t *handler);
+
+/**
+ * @brief       Set the clock rate of a slave I2C controller
+ *
+ * @param[in]   file            The I2C controller handle
+ * @param[in]   clock_rate      The desired clock rate in Hz
+ *
+ * @return      The actual clock rate after set
+ */
+double i2c_slave_set_clock_rate(handle_t file, double clock_rate);
 
 /**
  * @brief       Configure a I2S controller with render mode
@@ -267,7 +285,7 @@ handle_t spi_get_device(handle_t file, const char *name, spi_mode_t mode, spi_fr
 void spi_dev_config_non_standard(handle_t file, uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode);
 
 /**
- * @brief       Set the clock_rate of a SPI device
+ * @brief       Set the clock rate of a SPI device
  *
  * @param[in]   file            The SPI device handle
  * @param[in]   clock_rate      The desired clock rate in Hz
@@ -322,7 +340,7 @@ void spi_dev_fill(handle_t file, uint32_t instruction, uint32_t address, uint32_
  * @param[in]   height          The frame height
  * @param[in]   auto_enable     Process frames automatically
  */
-void dvp_config(handle_t file, uint32_t width, uint32_t height, int auto_enable);
+void dvp_config(handle_t file, uint32_t width, uint32_t height, bool auto_enable);
 
 /**
  * @brief       Enable to process of current frame
@@ -347,7 +365,7 @@ uint32_t dvp_get_output_num(handle_t file);
  * @param[in]   type        The signal type
  * @param[in]   value       1 is set, 0 is unset
  */
-void dvp_set_signal(handle_t file, dvp_signal_type_t type, int value);
+void dvp_set_signal(handle_t file, dvp_signal_type_t type, bool value);
 
 /**
  * @brief       Enable or disable a output of a DVP device
@@ -356,7 +374,7 @@ void dvp_set_signal(handle_t file, dvp_signal_type_t type, int value);
  * @param[in]   index       The output index
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void dvp_set_output_enable(handle_t file, uint32_t index, int enable);
+void dvp_set_output_enable(handle_t file, uint32_t index, bool enable);
 
 /**
  * @brief       Set output attributes of a DVP device
@@ -375,7 +393,7 @@ void dvp_set_output_attributes(handle_t file, uint32_t index, video_format_t for
  * @param[in]   event       The frame event
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, int enable);
+void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, bool enable);
 
 /**
  * @brief       Set the frame event handler of a DVP device
@@ -389,14 +407,14 @@ void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void *u
 /**
  * @brief       Register and open a SCCB device
  *
- * @param[in]   file                The SCCB controller handle
- * @param[in]   name                Specify the path to access the device
- * @param[in]   slave_address       The address of slave
- * @param[in]   address_width       The bits width of address
+ * @param[in]   file                    The SCCB controller handle
+ * @param[in]   name                    Specify the path to access the device
+ * @param[in]   slave_address           The address of slave
+ * @param[in]   reg_address_width       The bits width of register address
  *
  * @return      The SCCB device handle
  */
-handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width);
+handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t reg_address_width);
 
 /**
  * @brief       Read a byte from a SCCB device
@@ -420,47 +438,247 @@ void sccb_dev_write_byte(handle_t file, uint16_t reg_address, uint8_t value);
 /**
  * @brief       Do 16bit quantized complex FFT
  *
- * @param[in]   point           The FFT points count
+ * @param[in]   shift           The shifts selection in 9 stage
  * @param[in]   direction       The direction
- * @param[in]   shifts_mask     The shifts selection in 9 stage
  * @param[in]   input           The input data
+ * @param[in]   point           The FFT points count
  * @param[out]  output          The output data
  */
-void fft_complex_uint16(fft_direction_t direction, const uint64_t *input, size_t point, uint64_t *output);
+void fft_complex_uint16(uint16_t shift, fft_direction_t direction, const uint64_t *input, size_t point, uint64_t *output);
 
 /**
-* @brief       Do aes decrypt
-*
-* @param[in]   input_data          The aes input decrypt data
-* @param[in]   input_data_len      The input data size
-* @param[in]   input_key           The aes key address
-* @param[in]   input_key_len       The aes key length.16:AES_128 24:AES_192 32:AES_256
-* @param[in]   iv                  The gcm iv address
-* @param[in]   iv_len              The gcm iv length
-* @param[in]   gcm_add             The gcm add address
-* @param[in]   gcm_add_len         The gcm add length
-* @param[in]   cipher_mode         The cipher mode. 00:AES_CIPHER_ECB 01:AES_CIPHER_CBC 10:AES_CIPHER_GCM
-* @param[out]  output_data         The output data
-* @param[out]  gcm_tag             The output tag
-*/
-void aes_hard_decrypt(const aes_param_t *param);
-
-/**
- * @brief       Do aes encrypt
+ * @brief       AES-ECB-128 decryption
  *
- * @param[in]   input_data          The aes input encrypt data
- * @param[in]   input_data_len      The input data size
- * @param[in]   input_key           The aes key address
- * @param[in]   input_key_len       The aes key length.16:AES_128 24:AES_192 32:AES_256
- * @param[in]   iv                  The gcm iv address
- * @param[in]   iv_len              The gcm iv length
- * @param[in]   gcm_add             The gcm add address
- * @param[in]   gcm_add_len         The gcm add length
- * @param[in]   cipher_mode         The cipher mode. 00:AES_CIPHER_ECB 01:AES_CIPHER_CBC 10:AES_CIPHER_GCM
- * @param[out]  output_data         The output data
- * @param[out]  gcm_tag             The output tag
+ * @param[in]   input_key       The decryption key. must be 16bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
  */
-void aes_hard_encrypt(const aes_param_t *param);
+void aes_ecb128_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-ECB-128 encryption
+ *
+ * @param[in]   input_key       The encryption key. must be 16bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_ecb128_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-ECB-192 decryption
+ *
+ * @param[in]   input_key       The decryption key. must be 24bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_ecb192_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-ECB-192 encryption
+ *
+ * @param[in]   input_key       The encryption key. must be 24bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_ecb192_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-ECB-256 decryption
+ *
+ * @param[in]   input_key       The decryption key. must be 32bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_ecb256_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-ECB-256 encryption
+ *
+ * @param[in]   input_key       The encryption key. must be 32bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_ecb256_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-CBC-128 decryption
+ *
+ * @param[in]   context         The cbc context to use for encryption or decryption.
+ * @param[in]   input_key       The decryption key. must be 16bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_cbc128_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-CBC-128 encryption
+ *
+ * @param[in]   context         The cbc context to use for encryption or decryption.
+ * @param[in]   input_key       The encryption key. must be 16bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_cbc128_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-CBC-192 decryption
+ *
+ * @param[in]   context         The cbc context to use for encryption or decryption.
+ * @param[in]   input_key       The decryption key. must be 24bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_cbc192_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-CBC-192 encryption
+ *
+ * @param[in]   context         The cbc context to use for encryption or decryption.
+ * @param[in]   input_key       The encryption key. must be 24bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_cbc192_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-CBC-256 decryption
+ *
+ * @param[in]   context         The cbc context to use for encryption or decryption.
+ * @param[in]   input_key       The decryption key. must be 32bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_cbc256_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-CBC-256 encryption
+ *
+ * @param[in]   context         The cbc context to use for encryption or decryption.
+ * @param[in]   input_key       The encryption key. must be 32bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ */
+void aes_cbc256_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data);
+
+/**
+ * @brief       AES-GCM-128 decryption
+ *
+ * @param[in]   context         The gcm context to use for encryption or decryption.
+ * @param[in]   input_key       The decryption key. must be 16bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ * @param[out]  gcm_tag         The buffer for holding the tag.The length of the tag must be 4 bytes.
+ */
+void aes_gcm128_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag);
+
+/**
+ * @brief       AES-GCM-128 encryption
+ *
+ * @param[in]   context         The gcm context to use for encryption or decryption.
+ * @param[in]   input_key       The encryption key. must be 16bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ * @param[out]  gcm_tag         The buffer for holding the tag.The length of the tag must be 4 bytes.
+ */
+void aes_gcm128_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag);
+
+/**
+ * @brief       AES-GCM-192 decryption
+ *
+ * @param[in]   context         The gcm context to use for encryption or decryption.
+ * @param[in]   input_key       The decryption key. must be 24bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ * @param[out]  gcm_tag         The buffer for holding the tag.The length of the tag must be 4 bytes.
+ */
+void aes_gcm192_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag);
+
+/**
+ * @brief       AES-GCM-192 encryption
+ *
+ * @param[in]   context         The gcm context to use for encryption or decryption.
+ * @param[in]   input_key       The encryption key. must be 24bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ * @param[out]  gcm_tag         The buffer for holding the tag.The length of the tag must be 4 bytes.
+ */
+void aes_gcm192_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag);
+
+/**
+ * @brief       AES-GCM-256 decryption
+ *
+ * @param[in]   context         The gcm context to use for encryption or decryption.
+ * @param[in]   input_key       The decryption key. must be 32bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ * @param[out]  gcm_tag         The buffer for holding the tag.The length of the tag must be 4 bytes.
+ */
+void aes_gcm256_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag);
+
+/**
+ * @brief       AES-GCM-256 encryption
+ *
+ * @param[in]   context         The gcm context to use for encryption or decryption.
+ * @param[in]   input_key       The encryption key. must be 32bytes.
+ * @param[in]   input_data      The buffer holding the input data.
+ * @param[in]   input_len       The length of a data unit in bytes.
+ *                              This can be any length between 16 bytes and 2^31 bytes inclusive
+ *                              (between 1 and 2^27 block cipher blocks).
+ * @param[out]  output_data     The buffer holding the output data.
+ * @param[out]  gcm_tag         The buffer for holding the tag.The length of the tag must be 4 bytes.
+ */
+void aes_gcm256_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag);
 
 /**
  * @brief       Do sha256
@@ -496,7 +714,7 @@ void timer_set_on_tick(handle_t file, timer_on_tick_t on_tick, void *userdata);
  * @param[in]   file        The TIMER controller handle
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void timer_set_enable(handle_t file, int enable);
+void timer_set_enable(handle_t file, bool enable);
 
 /**
  * @brief       Get the pin count of a PWM controller
@@ -535,7 +753,7 @@ double pwm_set_active_duty_cycle_percentage(handle_t file, uint32_t pin, double 
  * @param[in]   pin         The PWM pin
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void pwm_set_enable(handle_t file, uint32_t pin, int enable);
+void pwm_set_enable(handle_t file, uint32_t pin, bool enable);
 
 /**
  * @brief       Set the response mode of a WDT device
@@ -577,7 +795,7 @@ void wdt_restart_counter(handle_t file);
  * @param[in]   file        The WDT device handle
  * @param[in]   enable      1 is enable, 0 is disable
  */
-void wdt_set_enable(handle_t file, int enable);
+void wdt_set_enable(handle_t file, bool enable);
 
 /**
  * @brief       Get the datetime of a RTC device

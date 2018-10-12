@@ -17,7 +17,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include <plic.h>
+#include "plic.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -78,7 +78,7 @@ typedef struct _wdt
 #define WDT_CCVR_MASK                                       0xFFFFFFFFU
 /* WDT Counter Restart Register */
 #define WDT_CRR_MASK                                        0x00000076U
-/* WDT Interrupt Status Register */                                   
+/* WDT Interrupt Status Register */
 #define WDT_STAT_MASK                                       0x00000001U
 /* WDT Interrupt Clear Register */
 #define WDT_EOI_MASK                                        0x00000001U
@@ -110,6 +110,7 @@ typedef struct _wdt
 #define WDT_COMP_VERSION_MASK                               0xFFFFFFFFU
 /* WDT Component Type Register */
 #define WDT_COMP_TYPE_MASK                                  0xFFFFFFFFU
+/* clang-format on */
 
 #ifdef __cplusplus
 }

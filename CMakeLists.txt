@@ -13,6 +13,7 @@ cmake_minimum_required(VERSION 3.0)
 include(./cmake/common.cmake)
 project(${PROJ})
 
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_LIST_DIR}/lib/arch/include ${CMAKE_CURRENT_LIST_DIR}/lib/utils/include)
 # config self use headers
 header_directories(${SDK_ROOT}/lib)
 # build library first

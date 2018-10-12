@@ -21,17 +21,16 @@
 #include <stdio.h>
 #include <sysctl.h>
 #include <timer.h>
-#include "fpioa_cfg.h"
 
-#define COMMON_ENTRY                                                          \
-    pwm_data* data = (pwm_data*)userdata;                                     \
-    volatile struct timer_t* pwm = (volatile struct timer_t*)data->base_addr; \
-    (void)pwm;                                                                \
+#define COMMON_ENTRY                                                                            \
+    pwm_data *data = (pwm_data *)userdata;                                                      \
+    volatile kendryte_timer_t *pwm = (volatile kendryte_timer_t *)data->base_addr;              \
+    (void)pwm;                                                                                  \
     (void)data;
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
     uint32_t pin_count;
     struct
@@ -40,21 +39,21 @@ typedef struct
     };
 } pwm_data;
 
-static void pwm_install(void* userdata)
+static void pwm_install(void *userdata)
 {
     COMMON_ENTRY;
 }
 
-static int pwm_open(void* userdata)
+static int pwm_open(void *userdata)
 {
     return 1;
 }
 
-static void pwm_close(void* userdata)
+static void pwm_close(void *userdata)
 {
 }
 
-static double pwm_set_frequency(double frequency, void* userdata)
+static double pwm_set_frequency(double frequency, void *userdata)
 {
     COMMON_ENTRY;
     uint32_t clk_freq = sysctl_clock_get_freq(data->clock);
@@ -67,7 +66,7 @@ static double pwm_set_frequency(double frequency, void* userdata)
     return frequency;
 }
 
-static double pwm_set_active_duty_cycle_percentage(uint32_t pin, double duty_cycle_percentage, void* userdata)
+static double pwm_set_active_duty_cycle_percentage(uint32_t pin, double duty_cycle_percentage, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(pin < data->pin_count);
@@ -79,7 +78,7 @@ static double pwm_set_active_duty_cycle_percentage(uint32_t pin, double duty_cyc
     return percent / 100.0;
 }
 
-static void pwm_set_enable(uint32_t pin, int enable, void* userdata)
+static void pwm_set_enable(uint32_t pin, bool enable, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(pin < data->pin_count);

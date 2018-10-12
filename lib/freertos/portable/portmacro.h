@@ -55,7 +55,7 @@ extern "C" {
  * These settings should not be altered.
  *-----------------------------------------------------------
  */
-#include "encoding.h"
+#include <encoding.h>
 /* Multi-Core */
 #define portNUM_PROCESSORS 2
 
@@ -135,6 +135,8 @@ void vPortAddNewTaskToReadyListAsync(UBaseType_t uxPsrId, void* pxNewTaskHandle)
 
 void vPortEnterCritical(void);
 void vPortExitCritical(void);
+
+UBaseType_t uxPortGetCPUClock();
 
 #define portGET_PROCESSOR_ID() uxPortGetProcessorId()
 

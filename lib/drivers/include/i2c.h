@@ -26,7 +26,7 @@ extern "C" {
 #define I2C_MAX_NUM 3
 
 /* clang-format off */
-struct i2c_t
+typedef struct _i2c
 {
     /* I2C Control Register                                 (0x00) */
     volatile uint32_t con;
@@ -112,7 +112,7 @@ struct i2c_t
     volatile uint32_t comp_version;
     /* I2C Component Type Register                          (0xfc) */
     volatile uint32_t comp_type;
-} __attribute__((packed, aligned(4)));
+} __attribute__((packed, aligned(4))) i2c_t;
 
 /* I2C Control Register*/
 #define I2C_CON_MASTER_MODE                     0x00000001U

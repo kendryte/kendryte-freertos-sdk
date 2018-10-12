@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef RISCV_CSR_ENCODING_H
-#define RISCV_CSR_ENCODING_H
+#ifndef _RISCV_CSR_ENCODING_H
+#define _RISCV_CSR_ENCODING_H
 
 #define MSTATUS_UIE         0x00000001
 #define MSTATUS_SIE         0x00000002

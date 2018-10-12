@@ -15,9 +15,9 @@
 #ifndef _FREERTOS_DEVICE_PRIV_H
 #define _FREERTOS_DEVICE_PRIV_H
 
-#include <driver.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "driver.h"
 
 #ifdef __cplusplus
 extern "C"

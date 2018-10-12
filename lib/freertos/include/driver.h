@@ -15,11 +15,12 @@
 #ifndef _FREERTOS_DRIVER_H
 #define _FREERTOS_DRIVER_H
 
-#include <FreeRTOS.h>
-#include <semphr.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <time.h>
+#include "FreeRTOS.h"
+#include "semphr.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -125,14 +126,10 @@ typedef struct tag_gpio_driver
     gpio_pin_value_t (*get_pin_value)(uint32_t pin, void *userdata);
 } gpio_driver_t;
 
-typedef enum
-{
-    I2C_BS_STANDARD
-} i2c_bus_speed_mode_t;
-
 typedef struct tag_i2c_device_driver
 {
     driver_base_t base;
+    double (*set_clock_rate)(double clock_rate, void *userdata);
     int (*read)(uint8_t *buffer, size_t len, void *userdata);
     int (*write)(const uint8_t *buffer, size_t len, void *userdata);
     int (*transfer_sequential)(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
@@ -155,8 +152,9 @@ typedef struct _i2c_slave_handler
 typedef struct tag_i2c_driver
 {
     driver_base_t base;
-    i2c_device_driver_t * (*get_device)(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, void *userdata);
-    void (*config_as_slave)(uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t *handler, void *userdata);
+    i2c_device_driver_t * (*get_device)(uint32_t slave_address, uint32_t address_width, void *userdata);
+    void (*config_as_slave)(uint32_t slave_address, uint32_t address_width, i2c_slave_handler_t *handler, void *userdata);
+    double (*slave_set_clock_rate)(double clock_rate, void *userdata);
 } i2c_driver_t;
 
 typedef enum _audio_format_type
@@ -255,12 +253,12 @@ typedef struct tag_dvp_driver
 {
     driver_base_t base;
     uint32_t output_num;
-    void (*config)(uint32_t width, uint32_t height, int auto_enable, void *userdata);
+    void (*config)(uint32_t width, uint32_t height, bool auto_enable, void *userdata);
     void (*enable_frame)(void* userdata);
-    void (*set_signal)(dvp_signal_type_t type, int value, void *userdata);
-    void (*set_output_enable)(uint32_t index, int enable, void *userdata);
+    void (*set_signal)(dvp_signal_type_t type, bool value, void *userdata);
+    void (*set_output_enable)(uint32_t index, bool enable, void *userdata);
     void (*set_output_attributes)(uint32_t index, video_format_t format, void *output_buffer, void *userdata);
-    void (*set_frame_event_enable)(dvp_frame_event_t event, int enable, void *userdata);
+    void (*set_frame_event_enable)(dvp_frame_event_t event, bool enable, void *userdata);
     void (*set_on_frame_event)(dvp_on_frame_event_t callback, void *callback_data, void *userdata);
 } dvp_driver_t;
 
@@ -274,7 +272,7 @@ typedef struct tag_sccb_device_driver
 typedef struct tag_sccb_driver
 {
     driver_base_t base;
-    sccb_device_driver_t* (*get_device)(uint32_t slave_address, uint32_t address_width, void *userdata);
+    sccb_device_driver_t* (*get_device)(uint32_t slave_address, uint32_t reg_address_width, void *userdata);
 } sccb_driver_t;
 
 typedef struct tag_fft_data
@@ -288,13 +286,14 @@ typedef struct tag_fft_data
 typedef enum tag_fft_direction
 {
     FFT_DIR_BACKWARD,
-    FFT_DIR_FORWARD
+    FFT_DIR_FORWARD,
+    FFT_DIR_MAX,
 } fft_direction_t;
 
 typedef struct tag_fft_driver
 {
     driver_base_t base;
-    void (*complex_uint16)(fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata);
+    void (*complex_uint16)(uint16_t shift, fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata);
 } fft_driver_t;
 
 typedef enum
@@ -318,26 +317,48 @@ typedef enum
     AES_HARD_DECRYPTION = 1,
 } aes_encrypt_sel_t;
 
-typedef struct tag_aes_param
+typedef struct _gcm_context
 {
-    uint8_t *input_data;
-    size_t input_data_len;
+    /* The buffer holding the encryption or decryption key. */
     uint8_t *input_key;
-    size_t input_key_len;
+    /* The initialization vector. must be 96 bit */
     uint8_t *iv;
-    size_t iv_len;
-    uint8_t* gcm_add;
-    size_t gcm_add_len;
-    aes_cipher_mode_t cipher_mode;
-    uint8_t *output_data;
-    uint8_t *gcm_tag;
-} aes_param_t;
+    /* The buffer holding the Additional authenticated data. or NULL */
+    uint8_t *gcm_aad;
+    /* The length of the Additional authenticated data. or 0L */
+    size_t gcm_aad_len;
+} gcm_context_t;
+
+typedef struct _cbc_context
+{
+    /* The buffer holding the encryption or decryption key. */
+    uint8_t *input_key;
+    /* The initialization vector. must be 128 bit */
+    uint8_t *iv;
+} cbc_context_t;
+
 
 typedef struct tag_aes_driver
 {
     driver_base_t base;
-    void (*hard_decrypt)(const aes_param_t *param, void *userdata);
-    void (*hard_encrypt)(const aes_param_t *param, void *userdata);
+    void (*aes_ecb128_hard_decrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb128_hard_encrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb192_hard_decrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb192_hard_encrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb256_hard_decrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_ecb256_hard_encrypt)(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc128_hard_decrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc128_hard_encrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc192_hard_decrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc192_hard_encrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc256_hard_decrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_cbc256_hard_encrypt)(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata);
+    void (*aes_gcm128_hard_decrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm128_hard_encrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm192_hard_decrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm192_hard_encrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm256_hard_decrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
+    void (*aes_gcm256_hard_encrypt)(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag, void *userdata);
 } aes_driver_t;
 
 typedef struct tag_sha256_driver
@@ -353,7 +374,7 @@ typedef struct tag_timer_driver
     driver_base_t base;
     size_t (*set_interval)(size_t nanoseconds, void *userdata);
     void (*set_on_tick)(timer_on_tick_t on_tick, void *ontick_data, void *userdata);
-    void (*set_enable)(int enable, void *userdata);
+    void (*set_enable)(bool enable, void *userdata);
 } timer_driver_t;
 
 typedef struct tag_pwm_driver
@@ -362,7 +383,7 @@ typedef struct tag_pwm_driver
     uint32_t pin_count;
     double (*set_frequency)(double frequency, void *userdata);
     double (*set_active_duty_cycle_percentage)(uint32_t pin, double duty_cycle_percentage, void *userdata);
-    void (*set_enable)(uint32_t pin, int enable, void *userdata);
+    void (*set_enable)(uint32_t pin, bool enable, void *userdata);
 } pwm_driver_t;
 
 typedef enum _wdt_response_mode
@@ -380,7 +401,7 @@ typedef struct tag_wdt_driver
     size_t (*set_timeout)(size_t nanoseconds, void *userdata);
     void (*set_on_timeout)(wdt_on_timeout_t handler, void *handler_userdata, void *userdata);
     void (*restart_counter)(void *userdata);
-    void (*set_enable)(int enable, void *userdata);
+    void (*set_enable)(bool enable, void *userdata);
 } wdt_driver_t;
 
 typedef struct tag_rtc_driver
@@ -404,7 +425,7 @@ void kernel_iface_pic_on_irq(uint32_t irq);
 typedef struct tag_pic_driver
 {
     driver_base_t base;
-    void (*set_irq_enable)(uint32_t irq, int enable, void *userdata);
+    void (*set_irq_enable)(uint32_t irq, bool enable, void *userdata);
     void (*set_irq_priority)(uint32_t irq, uint32_t priority, void *userdata);
 } pic_driver_t;
 
@@ -420,8 +441,8 @@ typedef struct tag_dma_driver
     driver_base_t base;
     void (*set_select_request)(uint32_t request, void *userdata);
     void (*config)(uint32_t priority, void *userdata);
-    void (*transmit_async)(const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata);
-    void (*loop_async)(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata);
+    void (*transmit_async)(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata);
+    void (*loop_async)(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata);
 } dma_driver_t;
 
 extern driver_registry_t g_hal_drivers[];

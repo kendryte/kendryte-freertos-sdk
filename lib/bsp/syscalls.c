@@ -12,12 +12,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <atomic.h>
+#include <clint.h>
+#include <devices.h>
+#include <errno.h>
+#include <dump.h>
+#include <fpioa.h>
+#include <interrupt.h>
+#include <limits.h>
 #include <machine/syscall.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/unistd.h>
-#include <errno.h>
-#include <limits.h>
+#include <sysctl.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -25,14 +32,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include "../freertos/device/devices.h"
-#include "atomic.h"
-#include "clint.h"
-#include "dump.h"
-#include "fpioa.h"
-#include "interrupt.h"
-#include "sysctl.h"
-#include "uarths.h"
+#include <uarths.h>
 
 /*
  * @note       System call list
@@ -99,7 +99,7 @@ return ret;
 
 typedef struct _syscall_ret
 {
-    int err;
+    uintptr_t err;
     uintptr_t epc;
 } syscall_ret_t;
 
@@ -113,14 +113,8 @@ void __attribute__((noreturn)) sys_exit(int code)
 {
     /* First print some diagnostic information. */
     LOGW(TAG, "sys_exit called with 0x%lx\n", (uint64_t)code);
-    /* Write exit register to pause netlist simulation */
-    volatile uint32_t* reg = (uint32_t*)&sysctl->peri;
-    /* Write stop bit and write back */
-    *reg = (*reg) | 0x80000000UL;
-    /* Send 0 to uart */
-    uarths_putchar(0);
     while (1)
-        continue;
+        ;
 }
 
 static int sys_nosys(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n)
@@ -129,11 +123,6 @@ static int sys_nosys(long a0, long a1, long a2, long a3, long a4, long a5, unsig
     UNUSED(a4);
     UNUSED(a5);
 
-    LOGE(TAG, "Unsupported syscall %ld: a0=%lx, a1=%lx, a2=%lx!\n", n, a0, a1, a2);
-    /* Send 0 to uart */
-    uarths_putchar(0);
-    while (1)
-        continue;
     return -ENOSYS;
 }
 
@@ -176,8 +165,6 @@ static size_t sys_brk(size_t pos)
         /* Call again */
         if ((uintptr_t)pos > (uintptr_t)&_heap_end[0])
         {
-            /* Memory out, return -ENOMEM */
-            LOGE(TAG, "Out of memory\n");
             res = -ENOMEM;
         }
         else
@@ -209,22 +196,21 @@ static ssize_t sys_write(int file, const void* ptr, size_t len)
 
     ssize_t res = -EBADF;
     /* Get size to write */
-    register size_t length = len;
+    size_t length = len;
     /* Get data pointer */
-    register uint8_t* data = (uint8_t*)ptr;
+    const uint8_t* data = (const uint8_t*)ptr;
 
     if (STDOUT_FILENO == file || STDERR_FILENO == file)
     {
         /* Write data */
-        while (length-- > 0 && *data != 0)
-            uarths_putchar(*(data++));
+        while (length--)
+            uarths_write_byte(*data++);
 
         /* Return the actual size written */
         res = len;
     }
     else
     {
-        /* Not support yet */
         res = io_write(file, data, length);
     }
 
@@ -393,7 +379,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
 #pragma GCC diagnostic warning "-Woverride-init"
 #endif
 
-    int err = syscall_table[syscall_id_table[0xFF & n]](
+    uintptr_t err = syscall_table[syscall_id_table[0xFF & n]](
         a0, /* a0 */
         a1, /* a1 */
         a2, /* a2 */

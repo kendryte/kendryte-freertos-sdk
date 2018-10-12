@@ -12,13 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <encoding.h>
 #include <stddef.h>
 #include <stdint.h>
-#include "encoding.h"
 #include "clint.h"
 #include "sysctl.h"
 
-volatile struct clint_t* const clint = (volatile struct clint_t*)CLINT_BASE_ADDR;
+volatile clint_t* const clint = (volatile clint_t*)CLINT_BASE_ADDR;
 
 int clint_ipi_init(void)
 {
@@ -45,7 +45,7 @@ int clint_ipi_disable(void)
 
 int clint_ipi_send(size_t core_id)
 {
-    if (core_id >= CLINT_NUM_HARTS)
+    if (core_id >= CLINT_NUM_CORES)
         return -1;
     clint->msip[core_id].msip = 1;
     return 0;
@@ -53,7 +53,7 @@ int clint_ipi_send(size_t core_id)
 
 int clint_ipi_clear(size_t core_id)
 {
-    if (core_id >= CLINT_NUM_HARTS)
+    if (core_id >= CLINT_NUM_CORES)
         return -1;
     if (clint->msip[core_id].msip)
     {

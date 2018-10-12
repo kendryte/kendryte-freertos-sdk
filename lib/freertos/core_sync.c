@@ -12,23 +12,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <FreeRTOS.h>
 #include <atomic.h>
 #include <clint.h>
 #include <core_sync.h>
 #include <encoding.h>
 #include <plic.h>
-#include "portable/portmacro.h"
+#include "FreeRTOS.h"
 #include "task.h"
 
-volatile UBaseType_t g_core_sync_events[portNUM_PROCESSORS] = { 0 };
+volatile UBaseType_t g_core_pending_switch[portNUM_PROCESSORS] = { 0 };
+static volatile UBaseType_t s_core_sync_events[portNUM_PROCESSORS] = { 0 };
 static volatile TaskHandle_t s_pending_to_add_tasks[portNUM_PROCESSORS] = { 0 };
 static volatile UBaseType_t s_core_awake[portNUM_PROCESSORS] = { 1, 0 };
+static volatile UBaseType_t s_core_sync_in_progress[portNUM_PROCESSORS] = { 0 };
 
 void handle_irq_m_soft(uintptr_t cause, uintptr_t epc)
 {
     uint64_t core_id = uxPortGetProcessorId();
-    switch (g_core_sync_events[core_id])
+    atomic_set(&s_core_sync_in_progress[core_id], 1);
+    switch (s_core_sync_events[core_id])
     {
     case CORE_SYNC_ADD_TCB:
     {
@@ -40,9 +42,6 @@ void handle_irq_m_soft(uintptr_t cause, uintptr_t epc)
         }
     }
     break;
-    case CORE_SYNC_CONTEXT_SWITCH:
-        configASSERT(!"Shouldn't process here");
-        break;
     case CORE_SYNC_WAKE_UP:
         atomic_set(&s_core_awake[core_id], 1);
         break;
@@ -66,34 +65,40 @@ void handle_irq_m_timer(uintptr_t cause, uintptr_t epc)
 
 void core_sync_request_context_switch(uint64_t core_id)
 {
-    while (1)
-    {
-        core_sync_event_t old = atomic_cas(&g_core_sync_events[core_id], CORE_SYNC_NONE, CORE_SYNC_CONTEXT_SWITCH);
-        if (old == CORE_SYNC_NONE)
-            break;
-        else if (old == CORE_SYNC_CONTEXT_SWITCH)
-            return;
-    }
-
+    atomic_set(&g_core_pending_switch[core_id], 1);
     clint_ipi_send(core_id);
 }
 
 void core_sync_complete(uint64_t core_id)
 {
-    clint_ipi_clear(core_id);
-    atomic_set(&g_core_sync_events[core_id], CORE_SYNC_NONE);
+    if (atomic_read(&g_core_pending_switch[core_id]) == 0)
+        clint_ipi_clear(core_id);
+    atomic_set(&s_core_sync_events[core_id], CORE_SYNC_NONE);
+    atomic_set(&s_core_sync_in_progress[core_id], 0);
 }
 
-int core_sync_is_awake(UBaseType_t uxPsrId)
+void core_sync_complete_context_switch(uint64_t core_id)
 {
-    return !!atomic_read(&s_core_awake[uxPsrId]);
+    if (atomic_read(&s_core_sync_events[core_id]) == CORE_SYNC_NONE)
+        clint_ipi_clear(core_id);
+    atomic_set(&g_core_pending_switch[core_id], 0);
 }
 
-void core_sync_awaken(UBaseType_t uxPsrId)
+int core_sync_is_awake(uint64_t core_id)
 {
-    while (atomic_cas(&g_core_sync_events[uxPsrId], CORE_SYNC_NONE, CORE_SYNC_WAKE_UP) != CORE_SYNC_NONE)
+    return !!atomic_read(&s_core_awake[core_id]);
+}
+
+void core_sync_awaken(uint64_t core_id)
+{
+    while (atomic_cas(&s_core_sync_events[core_id], CORE_SYNC_NONE, CORE_SYNC_WAKE_UP) != CORE_SYNC_NONE)
         ;
-    clint_ipi_send(uxPsrId);
+    clint_ipi_send(core_id);
+}
+
+int core_sync_is_in_progress(uint64_t core_id)
+{
+    return !!atomic_read(&s_core_sync_in_progress[core_id]);
 }
 
 void vPortAddNewTaskToReadyListAsync(UBaseType_t uxPsrId, void* pxNewTaskHandle)
@@ -102,7 +107,7 @@ void vPortAddNewTaskToReadyListAsync(UBaseType_t uxPsrId, void* pxNewTaskHandle)
     while (atomic_read(&s_pending_to_add_tasks[uxPsrId]));
     atomic_set(&s_pending_to_add_tasks[uxPsrId], pxNewTaskHandle);
 
-    while (atomic_cas(&g_core_sync_events[uxPsrId], CORE_SYNC_NONE, CORE_SYNC_ADD_TCB) != CORE_SYNC_NONE)
+    while (atomic_cas(&s_core_sync_events[uxPsrId], CORE_SYNC_NONE, CORE_SYNC_ADD_TCB) != CORE_SYNC_NONE)
         ;
     clint_ipi_send(uxPsrId);
 }

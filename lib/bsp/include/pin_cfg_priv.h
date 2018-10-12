@@ -12,14 +12,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <fpioa_cfg.h>
+#ifndef _PIN_CFG_PRIV_H
+#define _PIN_CFG_PRIV_H
 
-const fpioa_cfg_t g_fpioa_cfg =
-{
-    .version = 1,
-    .io_count = FPIOA_NUM_IO,
-    .io_functions =
-    {
-        [0] = FUNC_JTAG_TCLK,
-    }
-};
+#include <pin_cfg.h>
+
+void bsp_pin_setup();
+
+#endif

@@ -22,30 +22,29 @@
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
-#include "fpioa_cfg.h"
 
 #define COMMON_ENTRY                                                      \
-    dvp_data* data = (dvp_data*)userdata;                                 \
-    volatile struct dvp_t* dvp = (volatile struct dvp_t*)data->base_addr; \
+    dvp_data *data = (dvp_data *)userdata;                                \
+    volatile dvp_t *dvp = (volatile dvp_t *)data->base_addr;              \
     (void)dvp;
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
 
     struct
     {
         dvp_on_frame_event_t frame_event_callback;
-        void* frame_event_callback_data;
+        void *frame_event_callback_data;
         size_t width;
         size_t height;
     };
 } dvp_data;
 
-static void dvp_frame_event_isr(void* userdata);
+static void dvp_frame_event_isr(void *userdata);
 
-static void dvp_install(void* userdata)
+static void dvp_install(void *userdata)
 {
     COMMON_ENTRY;
 
@@ -54,16 +53,16 @@ static void dvp_install(void* userdata)
     pic_set_irq_priority(IRQN_DVP_INTERRUPT, 1);
 }
 
-static int dvp_open(void* userdata)
+static int dvp_open(void *userdata)
 {
     return 1;
 }
 
-static void dvp_close(void* userdata)
+static void dvp_close(void *userdata)
 {
 }
 
-static void dvp_config(uint32_t width, uint32_t height, int auto_enable, void* userdata)
+static void dvp_config(uint32_t width, uint32_t height, bool auto_enable, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(width % 8 == 0 && width && height);
@@ -94,13 +93,13 @@ static void dvp_config(uint32_t width, uint32_t height, int auto_enable, void* u
     data->height = height;
 }
 
-static void dvp_enable_frame(void* userdata)
+static void dvp_enable_frame(void *userdata)
 {
     COMMON_ENTRY;
     dvp->sts = DVP_STS_DVP_EN | DVP_STS_DVP_EN_WE;
 }
 
-static void dvp_set_signal(dvp_signal_type_t type, int value, void* userdata)
+static void dvp_set_signal(dvp_signal_type_t type, bool value, void *userdata)
 {
     COMMON_ENTRY;
     switch (type)
@@ -123,7 +122,7 @@ static void dvp_set_signal(dvp_signal_type_t type, int value, void* userdata)
     }
 }
 
-static void dvp_set_output_enable(uint32_t index, int enable, void* userdata)
+static void dvp_set_output_enable(uint32_t index, bool enable, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(index < 2);
@@ -144,7 +143,7 @@ static void dvp_set_output_enable(uint32_t index, int enable, void* userdata)
     }
 }
 
-static void dvp_set_output_attributes(uint32_t index, video_format_t format, void* output_buffer, void* userdata)
+static void dvp_set_output_attributes(uint32_t index, video_format_t format, void *output_buffer, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(index < 2);
@@ -165,7 +164,7 @@ static void dvp_set_output_attributes(uint32_t index, video_format_t format, voi
     }
 }
 
-static void dvp_frame_event_isr(void* userdata)
+static void dvp_frame_event_isr(void *userdata)
 {
     COMMON_ENTRY;
 
@@ -185,7 +184,7 @@ static void dvp_frame_event_isr(void* userdata)
     }
 }
 
-static void dvp_set_frame_event_enable(dvp_frame_event_t event, int enable, void* userdata)
+static void dvp_set_frame_event_enable(dvp_frame_event_t event, bool enable, void *userdata)
 {
     COMMON_ENTRY;
     switch (event)
@@ -220,7 +219,7 @@ static void dvp_set_frame_event_enable(dvp_frame_event_t event, int enable, void
     pic_set_irq_enable(IRQN_DVP_INTERRUPT, 1);
 }
 
-static void dvp_set_on_frame_event(dvp_on_frame_event_t callback, void* callback_data, void* userdata)
+static void dvp_set_on_frame_event(dvp_on_frame_event_t callback, void *callback_data, void *userdata)
 {
     COMMON_ENTRY;
 

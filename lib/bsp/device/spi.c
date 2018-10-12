@@ -24,13 +24,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysctl.h>
-#include "fpioa_cfg.h"
 
 /* SPI Controller */
 
 #define COMMON_ENTRY                                                      \
-    spi_data* data = (spi_data*)userdata;                                 \
-    volatile struct spi_t* spi = (volatile struct spi_t*)data->base_addr; \
+    spi_data *data = (spi_data *)userdata;                                \
+    volatile spi_t * spi = (volatile spi_t *)data->base_addr;             \
     (void)spi;
 
 #define TMOD_MASK (3 << data->tmod_off)
@@ -40,12 +39,13 @@
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
+    uint8_t mod_off;
     uint8_t dfs_off;
     uint8_t tmod_off;
     uint8_t frf_off;
-    enum sysctl_dma_select_e dma_req_base;
+    sysctl_dma_select_t dma_req_base;
 
     struct
     {
@@ -58,33 +58,33 @@ typedef struct
     };
 } spi_data;
 
-static void spi_install(void* userdata)
+static void spi_install(void *userdata)
 {
-    spi_data* data = (spi_data*)userdata;
+    COMMON_ENTRY;
 
     /* GPIO clock under APB0 clock, so enable APB0 clock firstly */
     sysctl_clock_enable(data->clock);
     data->free_mutex = xSemaphoreCreateMutex();
 }
 
-static int spi_open(void* userdata)
+static int spi_open(void *userdata)
 {
     return 1;
 }
 
-static void spi_close(void* userdata)
+static void spi_close(void *userdata)
 {
 }
 
 /* SPI Device */
 
-#define COMMON_DEV_ENTRY                              \
-    spi_dev_data* dev_data = (spi_dev_data*)userdata; \
-    spi_data* data = (spi_data*)dev_data->spi_data;
+#define COMMON_DEV_ENTRY                               \
+    spi_dev_data *dev_data = (spi_dev_data *)userdata; \
+    spi_data *data = (spi_data *)dev_data->spi_data;
 
 typedef struct
 {
-    spi_data* spi_data;
+    spi_data *spi_data;
     spi_mode_t mode;
     spi_frame_format_t frame_format;
     size_t chip_select_mask;
@@ -96,20 +96,20 @@ typedef struct
     uint32_t baud_rate;
 } spi_dev_data;
 
-static void spi_dev_install(void* userdata);
-static int spi_dev_open(void* userdata);
-static void spi_dev_close(void* userdata);
-static int spi_dev_read(uint8_t* buffer, size_t len, void* userdata);
-static int spi_dev_write(const uint8_t* buffer, size_t len, void* userdata);
-static void spi_dev_config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode, void* userdata);
-static double spi_dev_set_clock_rate(double clock_rate, void* userdata);
-static int spi_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata);
-static int spi_dev_transfer_full_duplex(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata);
-static void spi_dev_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count, void* userdata);
+static void spi_dev_install(void *userdata);
+static int spi_dev_open(void *userdata);
+static void spi_dev_close(void *userdata);
+static int spi_dev_read(uint8_t *buffer, size_t len, void *userdata);
+static int spi_dev_write(const uint8_t *buffer, size_t len, void *userdata);
+static void spi_dev_config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode, void *userdata);
+static double spi_dev_set_clock_rate(double clock_rate, void *userdata);
+static int spi_dev_transfer_sequential(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
+static int spi_dev_transfer_full_duplex(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata);
+static void spi_dev_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count, void *userdata);
 
-static spi_device_driver_t* spi_get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length, void* userdata)
+static spi_device_driver_t * spi_get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length, void *userdata)
 {
-    spi_device_driver_t* driver = (spi_device_driver_t*)malloc(sizeof(spi_device_driver_t));
+    spi_device_driver_t *driver = (spi_device_driver_t *)malloc(sizeof(spi_device_driver_t));
     memset(driver, 0, sizeof(spi_device_driver_t));
 
     spi_dev_data* dev_data = (spi_dev_data*)malloc(sizeof(spi_dev_data));
@@ -156,7 +156,7 @@ static int get_inst_addr_width(size_t length)
     return 4;
 }
 
-static void spi_config_as_master(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length, uint32_t baud_rate, void* userdata)
+static void spi_config_as_master(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length, uint32_t baud_rate, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(data_bit_length >= 4 && data_bit_length <= 32);
@@ -184,7 +184,7 @@ static void spi_config_as_master(spi_mode_t mode, spi_frame_format_t frame_forma
     spi->dmardlr = 0x0;
     spi->ser = 0x00;
     spi->ssienr = 0x00;
-    spi->ctrlr0 = (mode << 6) | (frame_format << data->frf_off) | ((data_bit_length - 1) << data->dfs_off);
+    spi->ctrlr0 = (mode << data->mod_off) | (frame_format << data->frf_off) | ((data_bit_length - 1) << data->dfs_off);
     spi->spi_ctrlr0 = 0;
 
     data->chip_select_mask = chip_select_mask;
@@ -194,7 +194,7 @@ static void spi_config_as_master(spi_mode_t mode, spi_frame_format_t frame_forma
     data->addr_width = 0;
 }
 
-static void spi_config(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode, void* userdata)
+static void spi_config(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(data->frame_format != SPI_FF_STANDARD);
@@ -251,7 +251,7 @@ static void write_inst_addr(volatile uint32_t* dr, const uint8_t** buffer, size_
     if (width)
     {
         uint32_t cmd = 0;
-        uint8_t* pcmd = (uint8_t*)&cmd;
+        uint8_t *pcmd = (uint8_t*)&cmd;
         size_t i;
         for (i = 0; i < width; i++)
         {
@@ -263,7 +263,7 @@ static void write_inst_addr(volatile uint32_t* dr, const uint8_t** buffer, size_
     }
 }
 
-static int spi_read(uint8_t* buffer, size_t len, void* userdata)
+static int spi_read(uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -271,7 +271,7 @@ static int spi_read(uint8_t* buffer, size_t len, void* userdata)
     uintptr_t dma_read = dma_open_free();
     dma_set_request_source(dma_read, data->dma_req_base);
 
-    uint8_t* ori_buffer = buffer;
+    uint8_t *ori_buffer = buffer;
 
     set_bit_mask(&spi->ctrlr0, TMOD_MASK, TMOD_VALUE(2));
     spi->ctrlr1 = frames - 1;
@@ -296,7 +296,7 @@ static int spi_read(uint8_t* buffer, size_t len, void* userdata)
     return len;
 }
 
-static int spi_write(const uint8_t* buffer, size_t len, void* userdata)
+static int spi_write(const uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -327,7 +327,7 @@ static int spi_write(const uint8_t* buffer, size_t len, void* userdata)
     return len;
 }
 
-void spi_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count, void* userdata)
+void spi_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -338,7 +338,7 @@ void spi_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t cou
     spi->dmacr = 0x2;
     spi->ssienr = 0x01;
 
-    const uint8_t* buffer = (const uint8_t*)&instruction;
+    const uint8_t *buffer = (const uint8_t*)&instruction;
     write_inst_addr(spi->dr, &buffer, data->inst_width);
     buffer = (const uint8_t*)&address;
     write_inst_addr(spi->dr, &buffer, data->addr_width);
@@ -358,7 +358,7 @@ void spi_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t cou
     spi->dmacr = 0x00;
 }
 
-static int spi_read_write(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
+static int spi_read_write(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(data->frame_format == SPI_FF_STANDARD);
@@ -395,7 +395,7 @@ static int spi_read_write(const uint8_t* write_buffer, size_t write_len, uint8_t
     return read_len;
 }
 
-static int spi_transfer_full_duplex(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
+static int spi_transfer_full_duplex(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(data->frame_format == SPI_FF_STANDARD);
@@ -403,7 +403,7 @@ static int spi_transfer_full_duplex(const uint8_t* write_buffer, size_t write_le
     return spi_read_write(write_buffer, write_len, read_buffer, read_len, userdata);
 }
 
-static int spi_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
+static int spi_transfer_sequential(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(data->frame_format == SPI_FF_STANDARD);
@@ -413,7 +413,7 @@ static int spi_transfer_sequential(const uint8_t* write_buffer, size_t write_len
 
 static void entry_exclusive(spi_dev_data* dev_data)
 {
-    spi_data* data = (spi_data*)dev_data->spi_data;
+    spi_data *data = (spi_data *)dev_data->spi_data;
     configASSERT(xSemaphoreTake(data->free_mutex, portMAX_DELAY) == pdTRUE);
     spi_config_as_master(dev_data->mode, dev_data->frame_format, dev_data->chip_select_mask, dev_data->data_bit_length, dev_data->baud_rate, data);
     if (dev_data->frame_format != SPI_FF_STANDARD)
@@ -422,24 +422,24 @@ static void entry_exclusive(spi_dev_data* dev_data)
 
 static void exit_exclusive(spi_dev_data* dev_data)
 {
-    spi_data* data = (spi_data*)dev_data->spi_data;
+    spi_data *data = (spi_data *)dev_data->spi_data;
     xSemaphoreGive(data->free_mutex);
 }
 
-static void spi_dev_install(void* userdata)
+static void spi_dev_install(void *userdata)
 {
 }
 
-static int spi_dev_open(void* userdata)
+static int spi_dev_open(void *userdata)
 {
     return 1;
 }
 
-static void spi_dev_close(void* userdata)
+static void spi_dev_close(void *userdata)
 {
 }
 
-static int spi_dev_read(uint8_t* buffer, size_t len, void* userdata)
+static int spi_dev_read(uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -448,7 +448,7 @@ static int spi_dev_read(uint8_t* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static int spi_dev_write(const uint8_t* buffer, size_t len, void* userdata)
+static int spi_dev_write(const uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -457,7 +457,7 @@ static int spi_dev_write(const uint8_t* buffer, size_t len, void* userdata)
     return ret;
 }
 
-static void spi_dev_config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode, void* userdata)
+static void spi_dev_config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode, void *userdata)
 {
     spi_dev_data* dev_data = (spi_dev_data*)userdata;
     dev_data->instruction_length = instruction_length;
@@ -466,7 +466,7 @@ static void spi_dev_config_non_standard(uint32_t instruction_length, uint32_t ad
     dev_data->trans_mode = trans_mode;
 }
 
-static double spi_dev_set_clock_rate(double clock_rate, void* userdata)
+static double spi_dev_set_clock_rate(double clock_rate, void *userdata)
 {
     COMMON_DEV_ENTRY;
     double clk = (double)sysctl_clock_get_freq(data->clock);
@@ -477,7 +477,7 @@ static double spi_dev_set_clock_rate(double clock_rate, void* userdata)
     return clk / div;
 }
 
-static int spi_dev_transfer_sequential(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
+static int spi_dev_transfer_sequential(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -486,7 +486,7 @@ static int spi_dev_transfer_sequential(const uint8_t* write_buffer, size_t write
     return ret;
 }
 
-static int spi_dev_transfer_full_duplex(const uint8_t* write_buffer, size_t write_len, uint8_t* read_buffer, size_t read_len, void* userdata)
+static int spi_dev_transfer_full_duplex(const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -495,7 +495,7 @@ static int spi_dev_transfer_full_duplex(const uint8_t* write_buffer, size_t writ
     return ret;
 }
 
-static void spi_dev_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count, void* userdata)
+static void spi_dev_fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count, void *userdata)
 {
     COMMON_DEV_ENTRY;
     entry_exclusive(dev_data);
@@ -503,9 +503,9 @@ static void spi_dev_fill(uint32_t instruction, uint32_t address, uint32_t value,
     exit_exclusive(dev_data);
 }
 
-static spi_data dev0_data = {SYSCTL_CLOCK_SPI0, SPI0_BASE_ADDR, 16, 8, 21, SYSCTL_DMA_SELECT_SSI0_RX_REQ, {0}};
-static spi_data dev1_data = {SYSCTL_CLOCK_SPI1, SPI1_BASE_ADDR, 16, 8, 21, SYSCTL_DMA_SELECT_SSI1_RX_REQ, {0}};
-static spi_data dev3_data = {SYSCTL_CLOCK_SPI3, SPI3_BASE_ADDR, 0, 10, 22, SYSCTL_DMA_SELECT_SSI3_RX_REQ, {0}};
+static spi_data dev0_data = {SYSCTL_CLOCK_SPI0, SPI0_BASE_ADDR, 6, 16, 8, 21, SYSCTL_DMA_SELECT_SSI0_RX_REQ, {0}};
+static spi_data dev1_data = {SYSCTL_CLOCK_SPI1, SPI1_BASE_ADDR, 6, 16, 8, 21, SYSCTL_DMA_SELECT_SSI1_RX_REQ, {0}};
+static spi_data dev3_data = {SYSCTL_CLOCK_SPI3, SPI3_BASE_ADDR, 8, 0, 10, 22, SYSCTL_DMA_SELECT_SSI3_RX_REQ, {0}};
 
 const spi_driver_t g_spi_driver_spi0 = {{&dev0_data, spi_install, spi_open, spi_close}, spi_get_device};
 const spi_driver_t g_spi_driver_spi1 = {{&dev1_data, spi_install, spi_open, spi_close}, spi_get_device};

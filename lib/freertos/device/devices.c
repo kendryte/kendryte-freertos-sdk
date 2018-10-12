@@ -12,9 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <FreeRTOS.h>
+#include "FreeRTOS.h"
 #include <atomic.h>
-#include <device_priv.h>
+#include "device_priv.h"
 #include <devices.h>
 #include <driver.h>
 #include <hal.h>
@@ -312,12 +312,18 @@ void gpio_set_pin_value(handle_t file, uint32_t pin, gpio_pin_value_t value)
 
 /* I2C */
 
-handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode)
+handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width)
 {
     COMMON_ENTRY(i2c, I2C);
-    i2c_device_driver_t *driver = i2c->get_device(slave_address, address_width, bus_speed_mode, i2c->base.userdata);
+    i2c_device_driver_t *driver = i2c->get_device(slave_address, address_width, i2c->base.userdata);
     driver_registry_t *reg = install_custom_driver_core(name, DRIVER_I2C_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
+}
+
+double i2c_dev_set_clock_rate(handle_t file, double clock_rate)
+{
+    COMMON_ENTRY(i2c_device, I2C_DEVICE);
+    return i2c_device->set_clock_rate(clock_rate, i2c_device->base.userdata);
 }
 
 int i2c_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
@@ -326,10 +332,16 @@ int i2c_dev_transfer_sequential(handle_t file, const uint8_t *write_buffer, size
     return i2c_device->transfer_sequential(write_buffer, write_len, read_buffer, read_len, i2c_device->base.userdata);
 }
 
-void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_bus_speed_mode_t bus_speed_mode, i2c_slave_handler_t *handler)
+void i2c_config_as_slave(handle_t file, uint32_t slave_address, uint32_t address_width, i2c_slave_handler_t *handler)
 {
     COMMON_ENTRY(i2c, I2C);
-    i2c->config_as_slave(slave_address, address_width, bus_speed_mode, handler, i2c->base.userdata);
+    i2c->config_as_slave(slave_address, address_width, handler, i2c->base.userdata);
+}
+
+double i2c_slave_set_clock_rate(handle_t file, double clock_rate)
+{
+    COMMON_ENTRY(i2c, I2C);
+    return i2c->slave_set_clock_rate(clock_rate, i2c->base.userdata);
 }
 
 /* I2S */
@@ -412,7 +424,7 @@ void spi_dev_fill(handle_t file, uint32_t instruction, uint32_t address, uint32_
 
 /* DVP */
 
-void dvp_config(handle_t file, uint32_t width, uint32_t height, int auto_enable)
+void dvp_config(handle_t file, uint32_t width, uint32_t height, bool auto_enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->config(width, height, auto_enable, dvp->base.userdata);
@@ -430,13 +442,13 @@ uint32_t dvp_get_output_num(handle_t file)
     return dvp->output_num;
 }
 
-void dvp_set_signal(handle_t file, dvp_signal_type_t type, int value)
+void dvp_set_signal(handle_t file, dvp_signal_type_t type, bool value)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_signal(type, value, dvp->base.userdata);
 }
 
-void dvp_set_output_enable(handle_t file, uint32_t index, int enable)
+void dvp_set_output_enable(handle_t file, uint32_t index, bool enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_output_enable(index, enable, dvp->base.userdata);
@@ -448,7 +460,7 @@ void dvp_set_output_attributes(handle_t file, uint32_t index, video_format_t for
     dvp->set_output_attributes(index, format, output_buffer, dvp->base.userdata);
 }
 
-void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, int enable)
+void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, bool enable)
 {
     COMMON_ENTRY(dvp, DVP);
     dvp->set_frame_event_enable(event, enable, dvp->base.userdata);
@@ -462,10 +474,10 @@ void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void *u
 
 /* SSCB */
 
-handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width)
+handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t reg_address_width)
 {
     COMMON_ENTRY(sccb, SCCB);
-    sccb_device_driver_t *driver = sccb->get_device(slave_address, address_width, sccb->base.userdata);
+    sccb_device_driver_t *driver = sccb->get_device(slave_address, reg_address_width, sccb->base.userdata);
     driver_registry_t *reg = install_custom_driver_core(name, DRIVER_SCCB_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
@@ -484,23 +496,120 @@ void sccb_dev_write_byte(handle_t file, uint16_t reg_address, uint8_t value)
 
 /* FFT */
 
-void fft_complex_uint16(fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output)
+void fft_complex_uint16(uint16_t shift, fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output)
 {
     COMMON_ENTRY_FILE(fft_file_, fft, FFT);
-    fft->complex_uint16(direction, input, point_num, output, fft->base.userdata);
+    fft->complex_uint16(shift, direction, input, point_num, output, fft->base.userdata);
 }
 
 /* AES */
 
-void aes_hard_decrypt(const aes_param_t *param)
+void aes_ecb128_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
 {
     COMMON_ENTRY_FILE(aes_file_, aes, AES);
-    aes->hard_decrypt(param, aes->base.userdata);
+    aes->aes_ecb128_hard_decrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
 }
-void aes_hard_encrypt(const aes_param_t *param)
+
+void aes_ecb128_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
 {
     COMMON_ENTRY_FILE(aes_file_, aes, AES);
-    aes->hard_encrypt(param, aes->base.userdata);
+    aes->aes_ecb128_hard_encrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_ecb192_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_ecb192_hard_decrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_ecb192_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_ecb192_hard_encrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_ecb256_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_ecb256_hard_decrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_ecb256_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_ecb256_hard_encrypt(input_key, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc128_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc128_hard_decrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc128_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc128_hard_encrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc192_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc192_hard_decrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc192_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc192_hard_encrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc256_hard_decrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc256_hard_decrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_cbc256_hard_encrypt(cbc_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_cbc256_hard_encrypt(context, input_data, input_len, output_data, aes->base.userdata);
+}
+
+void aes_gcm128_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm128_hard_decrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm128_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm128_hard_encrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm192_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm192_hard_decrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm192_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm192_hard_encrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm256_hard_decrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm256_hard_decrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
+}
+
+void aes_gcm256_hard_encrypt(gcm_context_t *context, const uint8_t *input_data, size_t input_len, uint8_t *output_data, uint8_t *gcm_tag)
+{
+    COMMON_ENTRY_FILE(aes_file_, aes, AES);
+    aes->aes_gcm256_hard_encrypt(context, input_data, input_len, output_data, gcm_tag, aes->base.userdata);
 }
 
 /* SHA */
@@ -525,7 +634,7 @@ void timer_set_on_tick(handle_t file, timer_on_tick_t on_tick, void *ontick_data
     timer->set_on_tick(on_tick, ontick_data, timer->base.userdata);
 }
 
-void timer_set_enable(handle_t file, int enable)
+void timer_set_enable(handle_t file, bool enable)
 {
     COMMON_ENTRY(timer, TIMER);
     timer->set_enable(enable, timer->base.userdata);
@@ -551,7 +660,7 @@ double pwm_set_active_duty_cycle_percentage(handle_t file, uint32_t pin, double 
     return pwm->set_active_duty_cycle_percentage(pin, duty_cycle_percentage, pwm->base.userdata);
 }
 
-void pwm_set_enable(handle_t file, uint32_t pin, int enable)
+void pwm_set_enable(handle_t file, uint32_t pin, bool enable)
 {
     COMMON_ENTRY(pwm, PWM);
     pwm->set_enable(pin, enable, pwm->base.userdata);
@@ -582,7 +691,7 @@ void wdt_restart_counter(handle_t file)
     wdt->restart_counter(wdt->base.userdata);
 }
 
-void wdt_set_enable(handle_t file, int enable)
+void wdt_set_enable(handle_t file, bool enable)
 {
     COMMON_ENTRY(wdt, WDT);
     wdt->set_enable(enable, wdt->base.userdata);
@@ -640,7 +749,7 @@ void install_hal()
 
 /* PIC */
 
-void pic_set_irq_enable(uint32_t irq, int enable)
+void pic_set_irq_enable(uint32_t irq, bool enable)
 {
     COMMON_ENTRY_FILE(pic_file_, pic, PIC);
     pic->set_irq_enable(irq, enable, pic->base.userdata);
@@ -705,13 +814,13 @@ void dma_set_request_source(handle_t file, uint32_t request)
     dma->set_select_request(request, dma->base.userdata);
 }
 
-void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event)
+void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event)
 {
     COMMON_ENTRY(dma, DMA);
     dma->transmit_async(src, dest, src_inc, dest_inc, element_size, count, burst_size, completion_event, dma->base.userdata);
 }
 
-void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size)
+void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size)
 {
     SemaphoreHandle_t event = xSemaphoreCreateBinary();
     dma_transmit_async(file, src, dest, src_inc, dest_inc, element_size, count, burst_size, event);
@@ -720,7 +829,7 @@ void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, 
     vSemaphoreDelete(event);
 }
 
-void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, int src_inc, int dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal)
+void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal)
 {
     COMMON_ENTRY(dma, DMA);
     dma->loop_async(srcs, src_num, dests, dest_num, src_inc, dest_inc, element_size, count, burst_size, stage_completion_handler, stage_completion_handler_data, completion_event, stop_signal, dma->base.userdata);
@@ -737,16 +846,7 @@ void system_install_custom_driver(const char *name, const custom_driver_t *drive
 
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {
-    sysctl_clock_set_clock_select(SYSCTL_CLOCK_SELECT_ACLK, SYSCTL_SOURCE_IN0);
-
-    sysctl_pll_disable(SYSCTL_PLL0);
-    sysctl_pll_enable(SYSCTL_PLL0);
-    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, SYSCTL_SOURCE_IN0, frequency  *2);
-
-    while (sysctl_pll_is_lock(SYSCTL_PLL0) == 0)
-        sysctl_pll_clear_slip(SYSCTL_PLL0);
-    sysctl_clock_enable(SYSCTL_PLL0);
-    sysctl_clock_set_clock_select(SYSCTL_CLOCK_SELECT_ACLK, SYSCTL_SOURCE_PLL0);
+    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, (sysctl->clk_sel0.aclk_divider_sel + 1) * 2 * frequency);
     uarths_init();
     return result;
 }

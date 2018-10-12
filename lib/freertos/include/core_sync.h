@@ -29,14 +29,15 @@ typedef enum
 {
     CORE_SYNC_NONE,
     CORE_SYNC_ADD_TCB,
-    CORE_SYNC_CONTEXT_SWITCH,
     CORE_SYNC_WAKE_UP
 } core_sync_event_t;
 
 void core_sync_request_context_switch(uint64_t core_id);
+void core_sync_complete_context_switch(uint64_t core_id);
 void core_sync_complete(uint64_t core_id);
 int core_sync_is_awake(uint64_t core_id);
 void core_sync_awaken(uint64_t core_id);
+int core_sync_is_in_progress(uint64_t core_id);
 
 #ifdef __cplusplus
 }

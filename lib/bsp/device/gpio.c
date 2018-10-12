@@ -20,11 +20,10 @@
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
-#include "fpioa_cfg.h"
 
 #define COMMON_ENTRY                                                         \
-    gpio_data* data = (gpio_data*)userdata;                                  \
-    volatile gpio_t* gpio = (volatile gpio_t*)data->base_addr;               \
+    gpio_data *data = (gpio_data *)userdata;                                 \
+    volatile gpio_t *gpio = (volatile gpio_t *)data->base_addr;              \
     configASSERT(pin < data->pin_count);                                     \
     (void)data;                                                              \
     (void)gpio;
@@ -35,7 +34,7 @@ typedef struct
     uintptr_t base_addr;
 } gpio_data;
 
-static void gpio_install(void* userdata)
+static void gpio_install(void *userdata)
 {
     /* GPIO clock under APB0 clock, so enable APB0 clock firstly */
     sysctl_clock_enable(SYSCTL_CLOCK_APB0);
@@ -43,22 +42,22 @@ static void gpio_install(void* userdata)
     sysctl_clock_enable(SYSCTL_CLOCK_GPIO);
 }
 
-static int gpio_open(void* userdata)
+static int gpio_open(void *userdata)
 {
     return 1;
 }
 
-static void gpio_close(void* userdata)
+static void gpio_close(void *userdata)
 {
 }
 
-static void gpio_set_drive_mode(uint32_t pin, gpio_drive_mode_t mode, void* userdata)
+static void gpio_set_drive_mode(uint32_t pin, gpio_drive_mode_t mode, void *userdata)
 {
     COMMON_ENTRY;
-    int io_number = fpioa_get_io_by_func(FUNC_GPIO0 + pin);
+    int io_number = fpioa_get_io_by_function(FUNC_GPIO0 + pin);
     configASSERT(io_number > 0);
 
-    enum fpioa_pull_e pull = 0;
+    fpioa_pull_t pull = 0;
     uint32_t dir = 0;
 
     switch (mode)
@@ -88,19 +87,19 @@ static void gpio_set_drive_mode(uint32_t pin, gpio_drive_mode_t mode, void* user
     set_bit_idx(gpio->direction.u32, pin, dir);
 }
 
-static void gpio_set_pin_edge(uint32_t pin, gpio_pin_edge_t edge, void* userdata)
+static void gpio_set_pin_edge(uint32_t pin, gpio_pin_edge_t edge, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(!"Not supported.");
 }
 
-static void gpio_set_on_changed(uint32_t pin, gpio_on_changed_t callback, void* callback_data, void* userdata)
+static void gpio_set_on_changed(uint32_t pin, gpio_on_changed_t callback, void *callback_data, void *userdata)
 {
     COMMON_ENTRY;
     configASSERT(!"Not supported.");
 }
 
-static gpio_pin_value_t gpio_get_pin_value(uint32_t pin, void* userdata)
+static gpio_pin_value_t gpio_get_pin_value(uint32_t pin, void *userdata)
 {
     COMMON_ENTRY;
 
@@ -109,7 +108,7 @@ static gpio_pin_value_t gpio_get_pin_value(uint32_t pin, void* userdata)
     return get_bit_idx(reg, pin);
 }
 
-static void gpio_set_pin_value(uint32_t pin, gpio_pin_value_t value, void* userdata)
+static void gpio_set_pin_value(uint32_t pin, gpio_pin_value_t value, void *userdata)
 {
     COMMON_ENTRY;
 

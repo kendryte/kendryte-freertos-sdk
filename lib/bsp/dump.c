@@ -13,11 +13,11 @@
  * limitations under the License.
  */
 #include <atomic.h>
-#include <dump.h>
 #include <stdlib.h>
 #include <string.h>
-#include "syslog.h"
-#include "uarths.h"
+#include <syslog.h>
+#include <uarths.h>
+#include "dump.h"
 
 #define DUMP_PRINTF printk
 

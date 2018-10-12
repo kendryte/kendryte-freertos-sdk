@@ -14,8 +14,8 @@
  */
 #include <FreeRTOS.h>
 #include <task.h>
+#include <sleep.h>
 #include <sysctl.h>
-#include "sleep.h"
 
 int nanosleep(const struct timespec* req, struct timespec* rem)
 {

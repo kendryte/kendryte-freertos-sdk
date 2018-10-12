@@ -45,15 +45,16 @@
 
 /* Scheduler includes. */
 #include <atomic.h>
-#include <core_sync.h>
+#include <clint.h>
+#include <encoding.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sysctl.h>
 #include <syslog.h>
+#include "core_sync.h"
 #include "FreeRTOS.h"
-#include "clint.h"
-#include "encoding.h"
 #include "portmacro.h"
-#include "stdio.h"
 #include "task.h"
 
 /* A variable is used to keep track of the critical section nesting.  This
@@ -167,21 +168,23 @@ StackType_t* pxPortInitialiseStack(StackType_t* pxTopOfStack, TaskFunction_t pxC
 /*-----------------------------------------------------------*/
 void vPortSysTickHandler(void)
 {
-    core_sync_complete(uxPortGetProcessorId());
+    core_sync_complete_context_switch(uxPortGetProcessorId());
     vTaskSwitchContext();
 }
 /*-----------------------------------------------------------*/
 
 void vPortEnterCritical(void)
 {
-    vTaskEnterCritical();
+    if (!core_sync_is_in_progress(uxPortGetProcessorId()))
+        vTaskEnterCritical();
     corelock_lock(&xCoreLock);
 }
 
 void vPortExitCritical(void)
 {
     corelock_unlock(&xCoreLock);
-    vTaskExitCritical();
+    if (!core_sync_is_in_progress(uxPortGetProcessorId()))
+        vTaskExitCritical();
 }
 
 void vPortYield()
@@ -194,7 +197,13 @@ void vPortFatal(const char* file, int line, const char* message)
     portDISABLE_INTERRUPTS();
     corelock_lock(&xCoreLock);
     LOGE("FreeRTOS", "(%s:%d) %s", file, line, message);
+    while (1);
     exit(-1);
     while (1)
         ;
+}
+
+UBaseType_t uxPortGetCPUClock()
+{
+    return sysctl_clock_get_freq(SYSCTL_CLOCK_CPU);
 }

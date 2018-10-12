@@ -19,14 +19,14 @@
 #include <stdio.h>
 #include <sysctl.h>
 
-#define plic ((volatile struct plic_t*)PLIC_BASE_ADDR)
+#define plic ((volatile plic_t *)PLIC_BASE_ADDR)
 
 static void plic_install(void* userdata)
 {
     int i = 0;
     size_t core_id;
 
-    for (core_id = 0; core_id < PLIC_NUM_HARTS; core_id++)
+    for (core_id = 0; core_id < PLIC_NUM_CORES; core_id++)
     {
         /* Disable all interrupts for the current core. */
         for (i = 0; i < ((PLIC_NUM_SOURCES + 32u) / 32u); i++)
@@ -38,7 +38,7 @@ static void plic_install(void* userdata)
         plic->source_priorities.priority[i] = 0;
 
     /* Set the threshold to zero. */
-    for (core_id = 0; core_id < PLIC_NUM_HARTS; core_id++)
+    for (core_id = 0; core_id < PLIC_NUM_CORES; core_id++)
     {
         plic->targets.target[core_id].priority_threshold = 0;
     }
@@ -56,7 +56,7 @@ static void plic_close(void* userdata)
 {
 }
 
-static void plic_set_irq_enable(uint32_t irq, int enable, void* userdata)
+static void plic_set_irq_enable(uint32_t irq, bool enable, void* userdata)
 {
     configASSERT(irq <= PLIC_NUM_SOURCES);
 

@@ -22,10 +22,10 @@
 extern "C" {
 #endif
 
-#define readb(addr) (*(volatile uint8_t*)(addr))
-#define readw(addr) (*(volatile uint16_t*)(addr))
-#define readl(addr) (*(volatile uint32_t*)(addr))
-#define readq(addr) (*(volatile uint64_t*)(addr))
+#define readb(addr) (*(volatile uint8_t *)(addr))
+#define readw(addr) (*(volatile uint16_t *)(addr))
+#define readl(addr) (*(volatile uint32_t *)(addr))
+#define readq(addr) (*(volatile uint64_t *)(addr))
 
 #define writeb(v, addr)                     \
     {                                       \

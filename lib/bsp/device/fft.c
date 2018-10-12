@@ -18,15 +18,13 @@
 #include <fft.h>
 #include <sysctl.h>
 
-#define FFT_BASE_ADDR (0x42000000)
-
 #define COMMON_ENTRY                                    \
     fft_dev_data *data = (fft_dev_data *)userdata;      \
     volatile fft_t *fft = (volatile fft_t *)data->base_addr;
 
 typedef struct
 {
-    enum sysctl_clock_e clock;
+    sysctl_clock_t clock;
     uintptr_t base_addr;
     SemaphoreHandle_t free_mutex;
 } fft_dev_data;
@@ -59,11 +57,10 @@ static void exit_exclusive(fft_dev_data *data)
     xSemaphoreGive(data->free_mutex);
 }
 
-static void fft_complex_uint16(fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata)
+static void fft_complex_uint16(uint16_t shift, fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output, void *userdata)
 {
     COMMON_ENTRY;
     entry_exclusive(data);
-    uint16_t shift = (direction==FFT_DIR_FORWARD) ? 0x1ff : 0x0;
     fft_point_t point = FFT_512;
     switch(point_num)
     {

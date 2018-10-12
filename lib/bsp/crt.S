@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# include "encoding.h"
+# include <encoding.h>
 
 # define REGBYTES 8
 # define STKSHIFT 15
@@ -130,7 +130,7 @@ trap_entry:
   # Get event
   addi sp, sp, -REGBYTES
   sd t1, 0x0(sp)
-  la   t0, g_core_sync_events
+  la   t0, g_core_pending_switch
   csrr t1, mhartid
   slli t1, t1, 3
   add  t0, t0, t1
@@ -138,8 +138,7 @@ trap_entry:
   addi sp, sp, REGBYTES
   # Test ContextSwitch event
   ld   t0, 0x0(t0)
-  addi t0, t0, -2 # CORE_SYNC_CONTEXT_SWITCH
-  bnez t0, .handle_irq
+  beqz t0, .handle_irq
 
   ld t0, 0x0(sp)
   addi sp, sp, REGBYTES
@@ -400,6 +399,16 @@ _fini:
   ret
   .size  _init, .-_init
   .size  _fini, .-_fini
+
+.global __register_frame_info
+.type   __register_frame_info, @function
+.global __deregister_frame_info
+.type   __deregister_frame_info, @function
+__register_frame_info:
+__deregister_frame_info:
+  ret
+  .size  __register_frame_info, .-__register_frame_info
+  .size  __deregister_frame_info, .-__deregister_frame_info
 
 .section ".tdata.begin"
 .globl _tdata_begin

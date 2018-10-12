@@ -17,8 +17,8 @@
 
 #include <stdint.h>
 #include <stdio.h>
-#include "printf.h"
-#include "encoding.h"
+#include <printf.h>
+#include <encoding.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -15,7 +15,7 @@
 
 /**
  * @file
- * @brief       Universal Asynchronous Receiver/Transmitter (UART)
+ * @brief       Universal Asynchronous I2S_RECEIVER/I2S_TRANSMITTER (UART)
  *
  *              The UART peripheral supports the following features:
  *
@@ -38,69 +38,69 @@
 #define _DRIVER_APBUART_H
 
 #include <stdint.h>
-#include "platform.h"
+#include <platform.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct
+typedef struct _uart
 {
     union
     {
-        volatile uint32_t RBR;
-        volatile uint32_t DLL;
-        volatile uint32_t THR;
+        uint32_t RBR;
+        uint32_t DLL;
+        uint32_t THR;
     };
 
     union
     {
-        volatile uint32_t DLH;
-        volatile uint32_t IER;
+        uint32_t DLH;
+        uint32_t IER;
     };
 
     union
     {
-        volatile uint32_t FCR;
-        volatile uint32_t IIR;
+        uint32_t FCR;
+        uint32_t IIR;
     };
 
-    volatile uint32_t LCR;
-    volatile uint32_t MCR;
-    volatile uint32_t LSR;
-    volatile uint32_t MSR;
-    volatile uint32_t SCR;
-    volatile uint32_t LPDLL;
-    volatile uint32_t LPDLH;
-    volatile uint32_t reserve[18];
-    volatile uint32_t FAR;
-    volatile uint32_t TFR;
-    volatile uint32_t RFW;
-    volatile uint32_t USR;
-    volatile uint32_t TFL;
-    volatile uint32_t RFL;
-    volatile uint32_t SRR;
-    volatile uint32_t SRTS;
-    volatile uint32_t SBCR;
-    volatile uint32_t SDMAM;
-    volatile uint32_t SFE;
-    volatile uint32_t SRT;
-    volatile uint32_t STET;
-    volatile uint32_t HTX;
-    volatile uint32_t DMASA;
-    volatile uint32_t TCR;
-    volatile uint32_t DE_EN;
-    volatile uint32_t RE_EN;
-    volatile uint32_t DET;
-    volatile uint32_t TAT;
-    volatile uint32_t DLF;
-    volatile uint32_t RAR;
-    volatile uint32_t TAR;
-    volatile uint32_t LCR_EXT;
-    volatile uint32_t R[5];
-    volatile uint32_t CPR;
-    volatile uint32_t UCV;
-    volatile uint32_t CTR;
+    uint32_t LCR;
+    uint32_t MCR;
+    uint32_t LSR;
+    uint32_t MSR;
+    uint32_t SCR;
+    uint32_t LPDLL;
+    uint32_t LPDLH;
+    uint32_t reserve[18];
+    uint32_t FAR;
+    uint32_t TFR;
+    uint32_t RFW;
+    uint32_t USR;
+    uint32_t TFL;
+    uint32_t RFL;
+    uint32_t SRR;
+    uint32_t SRTS;
+    uint32_t SBCR;
+    uint32_t SDMAM;
+    uint32_t SFE;
+    uint32_t SRT;
+    uint32_t STET;
+    uint32_t HTX;
+    uint32_t DMASA;
+    uint32_t TCR;
+    uint32_t DE_EN;
+    uint32_t RE_EN;
+    uint32_t DET;
+    uint32_t TAT;
+    uint32_t DLF;
+    uint32_t RAR;
+    uint32_t TAR;
+    uint32_t LCR_EXT;
+    uint32_t R[5];
+    uint32_t CPR;
+    uint32_t UCV;
+    uint32_t CTR;
 } uart_t;
 
 #ifdef __cplusplus
