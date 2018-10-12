@@ -196,15 +196,15 @@ static ssize_t sys_write(int file, const void* ptr, size_t len)
 
     ssize_t res = -EBADF;
     /* Get size to write */
-    register size_t length = len;
+    size_t length = len;
     /* Get data pointer */
-    register uint8_t* data = (uint8_t*)ptr;
+    const uint8_t* data = (const uint8_t*)ptr;
 
     if (STDOUT_FILENO == file || STDERR_FILENO == file)
     {
         /* Write data */
-        while (length-- > 0 && *data != 0)
-            uarths_write_byte(*(data++));
+        while (length--)
+            uarths_write_byte(*data++);
 
         /* Return the actual size written */
         res = len;

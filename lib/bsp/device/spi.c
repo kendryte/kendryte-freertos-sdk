@@ -42,6 +42,7 @@ typedef struct
 {
     sysctl_clock_t clock;
     uintptr_t base_addr;
+    uint8_t mod_off;
     uint8_t dfs_off;
     uint8_t tmod_off;
     uint8_t frf_off;
@@ -184,7 +185,7 @@ static void spi_config_as_master(spi_mode_t mode, spi_frame_format_t frame_forma
     spi->dmardlr = 0x0;
     spi->ser = 0x00;
     spi->ssienr = 0x00;
-    spi->ctrlr0 = (mode << 6) | (frame_format << data->frf_off) | ((data_bit_length - 1) << data->dfs_off);
+    spi->ctrlr0 = (mode << data->mod_off) | (frame_format << data->frf_off) | ((data_bit_length - 1) << data->dfs_off);
     spi->spi_ctrlr0 = 0;
 
     data->chip_select_mask = chip_select_mask;
@@ -503,9 +504,9 @@ static void spi_dev_fill(uint32_t instruction, uint32_t address, uint32_t value,
     exit_exclusive(dev_data);
 }
 
-static spi_data dev0_data = {SYSCTL_CLOCK_SPI0, SPI0_BASE_ADDR, 16, 8, 21, SYSCTL_DMA_SELECT_SSI0_RX_REQ, {0}};
-static spi_data dev1_data = {SYSCTL_CLOCK_SPI1, SPI1_BASE_ADDR, 16, 8, 21, SYSCTL_DMA_SELECT_SSI1_RX_REQ, {0}};
-static spi_data dev3_data = {SYSCTL_CLOCK_SPI3, SPI3_BASE_ADDR, 0, 10, 22, SYSCTL_DMA_SELECT_SSI3_RX_REQ, {0}};
+static spi_data dev0_data = {SYSCTL_CLOCK_SPI0, SPI0_BASE_ADDR, 6, 16, 8, 21, SYSCTL_DMA_SELECT_SSI0_RX_REQ, {0}};
+static spi_data dev1_data = {SYSCTL_CLOCK_SPI1, SPI1_BASE_ADDR, 6, 16, 8, 21, SYSCTL_DMA_SELECT_SSI1_RX_REQ, {0}};
+static spi_data dev3_data = {SYSCTL_CLOCK_SPI3, SPI3_BASE_ADDR, 8, 0, 10, 22, SYSCTL_DMA_SELECT_SSI3_RX_REQ, {0}};
 
 const spi_driver_t g_spi_driver_spi0 = {{&dev0_data, spi_install, spi_open, spi_close}, spi_get_device};
 const spi_driver_t g_spi_driver_spi1 = {{&dev1_data, spi_install, spi_open, spi_close}, spi_get_device};
