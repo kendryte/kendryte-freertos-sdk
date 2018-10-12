@@ -47,14 +47,14 @@ typedef struct _power_bank_cfg
     power_bank_item_t power_banks[];
 } power_bank_cfg_t;
 
-typedef struct _io_cfg
+typedef struct _pin_cfg
 {
     uint32_t version;
     bool set_spi0_dvp_data;
-} io_cfg_t;
+} pin_cfg_t;
 
 extern const fpioa_cfg_t g_fpioa_cfg;
 extern const power_bank_cfg_t g_power_bank_cfg;
-extern const io_cfg_t g_io_cfg;
+extern const pin_cfg_t g_pin_cfg;
 
 #endif

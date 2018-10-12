@@ -29,7 +29,7 @@ const power_bank_cfg_t __attribute__((weak)) g_power_bank_cfg =
     .power_banks_count = 0
 };
 
-const io_cfg_t __attribute__((weak)) g_io_cfg =
+const pin_cfg_t __attribute__((weak)) g_pin_cfg =
 {
     .version = PIN_CFG_VERSION,
     .set_spi0_dvp_data = 0
@@ -59,16 +59,16 @@ static void power_bank_setup()
     }
 }
 
-static void io_setup()
+static void pin_setup()
 {
-    configASSERT(g_io_cfg.version == PIN_CFG_VERSION);
+    configASSERT(g_pin_cfg.version == PIN_CFG_VERSION);
 
-    sysctl_set_spi0_dvp_data(g_io_cfg.set_spi0_dvp_data);
+    sysctl_set_spi0_dvp_data(g_pin_cfg.set_spi0_dvp_data);
 }
 
 void bsp_pin_setup()
 {
     fpioa_setup();
     power_bank_setup();
-    io_setup();
+    pin_setup();
 }
