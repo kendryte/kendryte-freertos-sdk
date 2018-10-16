@@ -405,6 +405,16 @@ void dvp_set_frame_event_enable(handle_t file, dvp_frame_event_t event, bool ena
 void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void *userdata);
 
 /**
+ * @brief       Set the rate of the DVP XCLK
+ *
+ * @param[in]   file            The DVP device handle
+ * @param[in]   clock_rate      The desired clock rate in Hz
+ *
+ * @return      The actual clock rate after set
+ */
+double dvp_xclk_set_clock_rate(handle_t file, double clock_rate);
+
+/**
  * @brief       Register and open a SCCB device
  *
  * @param[in]   file                    The SCCB controller handle

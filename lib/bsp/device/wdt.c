@@ -70,14 +70,15 @@ static void wdt_set_response_mode(wdt_response_mode_t mode, void *userdata)
     uint8_t rmode = 0;
     switch (mode)
     {
-    case WDT_RESP_RESET:
-        rmode = WDT_CR_RMOD_RESET;
-        break;
-    case WDT_RESP_INTERRUPT:
-        rmode = WDT_CR_RMOD_INTERRUPT;
-    default:
-        configASSERT(!"Invalid wdt response mode.");
-        break;
+        case WDT_RESP_RESET:
+            rmode = WDT_CR_RMOD_RESET;
+            break;
+        case WDT_RESP_INTERRUPT:
+            rmode = WDT_CR_RMOD_INTERRUPT;
+            break;
+        default:
+            configASSERT(!"Invalid wdt response mode.");
+            break;
     }
 
     wdt->cr &= (~WDT_CR_RMOD_MASK);
@@ -89,10 +90,11 @@ static size_t wdt_set_timeout(size_t nanoseconds, void *userdata)
     COMMON_ENTRY;
     uint32_t clk_freq = sysctl_clock_get_freq(data->clock);
     double min_step = 1e9 / clk_freq;
-    double value = (int32_t)log2(nanoseconds / min_step);
-    configASSERT(value >= 0 && value <= 0xF);
+    double set_step = nanoseconds / min_step;
+    uint32_t value  = (uint32_t)log2((uint64_t)set_step >> 16);
+    configASSERT(value <= 0xF);
     wdt->torr = WDT_TORR_TOP((uint8_t)value);
-    return (size_t)(min_step * value);
+    return (uint64_t)min_step << (16 + value);
 }
 
 static void wdt_set_on_timeout(wdt_on_timeout_t on_timeout, void *on_timeout_data, void *userdata)
@@ -101,7 +103,7 @@ static void wdt_set_on_timeout(wdt_on_timeout_t on_timeout, void *on_timeout_dat
     data->on_timeout_data = on_timeout_data;
     data->on_timeout = on_timeout;
 
-    pic_set_irq_enable(data->irq, on_timeout_data ? 1 : 0);
+    pic_set_irq_enable(data->irq, on_timeout ? 1 : 0);
 }
 
 static void wdt_restart_counter(void *userdata)
@@ -138,7 +140,7 @@ static void wdt_isr(void *userdata)
 }
 
 static wdt_data dev0_data = {WDT0_BASE_ADDR, SYSCTL_CLOCK_WDT0, IRQN_WDT0_INTERRUPT, {0}};
-static wdt_data dev1_data = {WDT1_BASE_ADDR, SYSCTL_CLOCK_WDT1, IRQN_WDT0_INTERRUPT, {0}};
+static wdt_data dev1_data = {WDT1_BASE_ADDR, SYSCTL_CLOCK_WDT1, IRQN_WDT1_INTERRUPT, {0}};
 
 const wdt_driver_t g_wdt_driver_wdt0 = {{&dev0_data, wdt_install, wdt_open, wdt_close}, wdt_set_response_mode, wdt_set_timeout, wdt_set_on_timeout, wdt_restart_counter, wdt_set_enable};
 const wdt_driver_t g_wdt_driver_wdt1 = {{&dev1_data, wdt_install, wdt_open, wdt_close}, wdt_set_response_mode, wdt_set_timeout, wdt_set_on_timeout, wdt_restart_counter, wdt_set_enable};

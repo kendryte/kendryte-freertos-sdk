@@ -39,6 +39,7 @@ typedef struct
         void *frame_event_callback_data;
         size_t width;
         size_t height;
+        uint32_t xclk_devide;
     };
 } dvp_data;
 
@@ -88,7 +89,7 @@ static void dvp_config(uint32_t width, uint32_t height, bool auto_enable, void *
         dvp_cfg &= ~DVP_CFG_AUTO_ENABLE;
 
     dvp->dvp_cfg = dvp_cfg;
-    dvp->cmos_cfg |= DVP_CMOS_CLK_DIV(0) | DVP_CMOS_CLK_ENABLE;
+    dvp->cmos_cfg |= DVP_CMOS_CLK_DIV(data->xclk_devide) | DVP_CMOS_CLK_ENABLE;
     data->width = width;
     data->height = height;
 }
@@ -104,21 +105,21 @@ static void dvp_set_signal(dvp_signal_type_t type, bool value, void *userdata)
     COMMON_ENTRY;
     switch (type)
     {
-    case DVP_SIG_POWER_DOWN:
-        if (value)
-            dvp->cmos_cfg |= DVP_CMOS_POWER_DOWN;
-        else
-            dvp->cmos_cfg &= ~DVP_CMOS_POWER_DOWN;
-        break;
-    case DVP_SIG_RESET:
-        if (value)
-            dvp->cmos_cfg |= DVP_CMOS_RESET;
-        else
-            dvp->cmos_cfg &= ~DVP_CMOS_RESET;
-        break;
-    default:
-        configASSERT(!"Invalid signal type.");
-        break;
+        case DVP_SIG_POWER_DOWN:
+            if (value)
+                dvp->cmos_cfg |= DVP_CMOS_POWER_DOWN;
+            else
+                dvp->cmos_cfg &= ~DVP_CMOS_POWER_DOWN;
+            break;
+        case DVP_SIG_RESET:
+            if (value)
+                dvp->cmos_cfg |= DVP_CMOS_RESET;
+            else
+                dvp->cmos_cfg &= ~DVP_CMOS_RESET;
+            break;
+        default:
+            configASSERT(!"Invalid signal type.");
+            break;
     }
 }
 
@@ -189,31 +190,31 @@ static void dvp_set_frame_event_enable(dvp_frame_event_t event, bool enable, voi
     COMMON_ENTRY;
     switch (event)
     {
-    case VIDEO_FE_BEGIN:
-        if (enable)
-        {
-            dvp->sts |= DVP_STS_FRAME_START | DVP_STS_FRAME_START_WE;
-            dvp->dvp_cfg |= DVP_CFG_START_INT_ENABLE;
-        }
-        else
-        {
-            dvp->dvp_cfg &= ~DVP_CFG_START_INT_ENABLE;
-        }
-        break;
-    case VIDEO_FE_END:
-        if (enable)
-        {
-            dvp->sts |= DVP_STS_FRAME_FINISH | DVP_STS_FRAME_FINISH_WE;
-            dvp->dvp_cfg |= DVP_CFG_FINISH_INT_ENABLE;
-        }
-        else
-        {
-            dvp->dvp_cfg &= ~DVP_CFG_FINISH_INT_ENABLE;
-        }
-        break;
-    default:
-        configASSERT(!"Invalid event.");
-        break;
+        case VIDEO_FE_BEGIN:
+            if (enable)
+            {
+                dvp->sts |= DVP_STS_FRAME_START | DVP_STS_FRAME_START_WE;
+                dvp->dvp_cfg |= DVP_CFG_START_INT_ENABLE;
+            }
+            else
+            {
+                dvp->dvp_cfg &= ~DVP_CFG_START_INT_ENABLE;
+            }
+            break;
+        case VIDEO_FE_END:
+            if (enable)
+            {
+                dvp->sts |= DVP_STS_FRAME_FINISH | DVP_STS_FRAME_FINISH_WE;
+                dvp->dvp_cfg |= DVP_CFG_FINISH_INT_ENABLE;
+            }
+            else
+            {
+                dvp->dvp_cfg &= ~DVP_CFG_FINISH_INT_ENABLE;
+            }
+            break;
+        default:
+            configASSERT(!"Invalid event.");
+            break;
     }
 
     pic_set_irq_enable(IRQN_DVP_INTERRUPT, 1);
@@ -227,6 +228,17 @@ static void dvp_set_on_frame_event(dvp_on_frame_event_t callback, void *callback
     data->frame_event_callback = callback;
 }
 
+static double dvp_xclk_set_clock_rate(double clock_rate, void *userdata)
+{
+    COMMON_ENTRY;
+
+    uint32_t apb1_pclk = sysctl_clock_get_freq(SYSCTL_CLOCK_APB1);
+    int16_t xclk_divide = apb1_pclk / clock_rate / 2 -1;
+    configASSERT((xclk_divide >= 0) && ( xclk_divide <(1 << 8)));
+    data->xclk_devide = xclk_divide;
+    return apb1_pclk / (xclk_divide + 1);
+}
+
 static dvp_data dev0_data = {SYSCTL_CLOCK_DVP, DVP_BASE_ADDR, {0}};
 
-const dvp_driver_t g_dvp_driver_dvp0 = {{&dev0_data, dvp_install, dvp_open, dvp_close}, 2, dvp_config, dvp_enable_frame, dvp_set_signal, dvp_set_output_enable, dvp_set_output_attributes, dvp_set_frame_event_enable, dvp_set_on_frame_event};
+const dvp_driver_t g_dvp_driver_dvp0 = {{&dev0_data, dvp_install, dvp_open, dvp_close}, 2, dvp_config, dvp_enable_frame, dvp_set_signal, dvp_set_output_enable, dvp_set_output_attributes, dvp_set_frame_event_enable, dvp_set_on_frame_event, dvp_xclk_set_clock_rate};

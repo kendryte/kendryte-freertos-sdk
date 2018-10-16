@@ -472,6 +472,12 @@ void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void *u
     dvp->set_on_frame_event(handler, userdata, dvp->base.userdata);
 }
 
+double dvp_xclk_set_clock_rate(handle_t file, double clock_rate)
+{
+    COMMON_ENTRY(dvp, DVP);
+    return dvp->xclk_set_clock_rate(clock_rate, dvp->base.userdata);
+}
+
 /* SSCB */
 
 handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t reg_address_width)
