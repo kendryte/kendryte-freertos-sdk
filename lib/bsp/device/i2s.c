@@ -17,6 +17,7 @@
 #include <fpioa.h>
 #include <hal.h>
 #include <i2s.h>
+#include <math.h>
 #include <semphr.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -164,7 +165,7 @@ static void extract_params(const audio_format_t *format, uint32_t *threshold, i2
             configASSERT(!"Invlid bits per sample");
             break;
     }
-    *threshold = pll2_clock / (format->sample_rate * 128) - 1;
+    *threshold = round(pll2_clock / (format->sample_rate * 128.0) - 1);
 }
 
 static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata)
@@ -454,6 +455,8 @@ static void i2s_stage_completion_isr(void *userdata)
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xSemaphoreGiveFromISR(data->stage_completion_event, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken)
+        portYIELD();
 }
 
 static void i2s_start(void *userdata)
