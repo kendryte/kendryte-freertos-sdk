@@ -17,11 +17,11 @@
 #include <dvp.h>
 #include <fpioa.h>
 #include <hal.h>
-#include <io.h>
 #include <plic.h>
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
+#include <utility.h>
 
 #define COMMON_ENTRY                                                      \
     dvp_data *data = (dvp_data *)userdata;                                \

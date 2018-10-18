@@ -12,7 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "io.h"
+#include "clint.h"
+#include "sysctl.h"
+#include "utility.h"
+#include <printf.h>
 
 uint32_t get_bit_mask(volatile uint32_t* bits, uint32_t mask)
 {
@@ -34,4 +37,13 @@ void set_bit_idx(volatile uint32_t* bits, uint32_t idx, uint32_t value)
 {
     uint32_t org = (*bits) & ~(1 << idx);
     *bits = org | (value << idx);
+}
+
+void busy_wait(uint64_t millionseconds)
+{
+    uint64_t clint_time = clint->mtime;
+    uint64_t nop_all = millionseconds * (sysctl_clock_get_freq(SYSCTL_CLOCK_CPU) / CLINT_CLOCK_DIV / 1000000UL) + 1;
+
+    while (clint->mtime - clint_time < nop_all)
+        ;
 }

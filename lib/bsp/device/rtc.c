@@ -16,7 +16,6 @@
 #include <driver.h>
 #include <fpioa.h>
 #include <hal.h>
-#include <io.h>
 #include <limits.h>
 #include <math.h>
 #include <plic.h>
@@ -24,6 +23,7 @@
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
+#include <utility.h>
 
 #define COMMON_ENTRY                                            \
     rtc_data* data = (rtc_data*)userdata;                       \

@@ -17,12 +17,12 @@
 #include <dvp.h>
 #include <fpioa.h>
 #include <hal.h>
-#include <io.h>
 #include <semphr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sysctl.h>
+#include <utility.h>
 
 /* SCCB Controller */
 

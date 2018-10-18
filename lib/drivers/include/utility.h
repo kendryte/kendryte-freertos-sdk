@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _DRIVER_IO_H
-#define _DRIVER_IO_H
+#ifndef _DRIVER_UTILITY_H
+#define _DRIVER_UTILITY_H
 
 #include <stdint.h>
 #include <stddef.h>
@@ -48,9 +48,10 @@ uint32_t get_bit_mask(volatile uint32_t* bits, uint32_t mask);
 void set_bit_mask(volatile uint32_t* bits, uint32_t mask, uint32_t value);
 uint32_t get_bit_idx(volatile uint32_t* bits, uint32_t idx);
 void set_bit_idx(volatile uint32_t* bits, uint32_t idx, uint32_t value);
+void busy_wait(uint64_t millionseconds);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _DRIVER_IO_H */
+#endif /* _DRIVER_UTILITY_H */

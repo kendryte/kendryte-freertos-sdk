@@ -17,11 +17,11 @@
 #include <fpioa.h>
 #include <gpiohs.h>
 #include <hal.h>
-#include <io.h>
 #include <plic.h>
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
+#include <utility.h>
 
 #define COMMON_ENTRY_NO_PIN                                                        \
     gpiohs_data *data = (gpiohs_data *)userdata;                                   \

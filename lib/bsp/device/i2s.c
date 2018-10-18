@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysctl.h>
+#include <utility.h>
 
 #define BUFFER_COUNT 2
 #define COMMON_ENTRY                                                      \

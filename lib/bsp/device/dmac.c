@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sysctl.h>
 #include <task.h>
+#include <utility.h>
 
 /* DMAC */
 
