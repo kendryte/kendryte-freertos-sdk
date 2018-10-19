@@ -1775,6 +1775,7 @@ uint32_t sysctl_pll_set_freq(sysctl_pll_t pll, uint32_t pll_freq)
 
     /* 3. Turn off PLL */
     sysctl_pll_disable(pll);
+    busy_wait(1);
 
     /* 4. Set PLL new value */
     uint32_t result;
