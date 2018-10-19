@@ -260,6 +260,7 @@ typedef struct tag_dvp_driver
     void (*set_output_attributes)(uint32_t index, video_format_t format, void *output_buffer, void *userdata);
     void (*set_frame_event_enable)(dvp_frame_event_t event, bool enable, void *userdata);
     void (*set_on_frame_event)(dvp_on_frame_event_t callback, void *callback_data, void *userdata);
+    double (*xclk_set_clock_rate)(double clock_rate, void *userdata);
 } dvp_driver_t;
 
 typedef struct tag_sccb_device_driver

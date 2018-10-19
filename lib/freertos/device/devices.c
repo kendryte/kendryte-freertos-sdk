@@ -54,6 +54,8 @@ uintptr_t fft_file_;
 uintptr_t aes_file_;
 uintptr_t sha256_file_;
 
+extern UBaseType_t uxCPUClockRate;
+
 DEFINE_INSTALL_DRIVER(hal);
 DEFINE_INSTALL_DRIVER(dma);
 DEFINE_INSTALL_DRIVER(system);
@@ -472,6 +474,12 @@ void dvp_set_on_frame_event(handle_t file, dvp_on_frame_event_t handler, void *u
     dvp->set_on_frame_event(handler, userdata, dvp->base.userdata);
 }
 
+double dvp_xclk_set_clock_rate(handle_t file, double clock_rate)
+{
+    COMMON_ENTRY(dvp, DVP);
+    return dvp->xclk_set_clock_rate(clock_rate, dvp->base.userdata);
+}
+
 /* SSCB */
 
 handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t reg_address_width)
@@ -739,6 +747,7 @@ static void init_dma_system()
 
 void install_hal()
 {
+    uxCPUClockRate = sysctl_clock_get_freq(SYSCTL_CLOCK_CPU);
     install_hal_drivers();
     pic_file_ = io_open("/dev/pic0");
     configASSERT(pic_file_);
@@ -847,6 +856,7 @@ void system_install_custom_driver(const char *name, const custom_driver_t *drive
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {
     uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, (sysctl->clk_sel0.aclk_divider_sel + 1) * 2 * frequency);
+    uxCPUClockRate = result;
     uarths_init();
     return result;
 }

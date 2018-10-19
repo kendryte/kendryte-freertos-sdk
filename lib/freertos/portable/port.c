@@ -65,6 +65,8 @@ automatically be set to 0 when the first task is started. */
 static UBaseType_t uxCriticalNesting[portNUM_PROCESSORS] = {[0 ... portNUM_PROCESSORS - 1] = 0xaaaaaaaa};
 PRIVILEGED_DATA static corelock_t xCoreLock = CORELOCK_INIT;
 
+UBaseType_t uxCPUClockRate = 390000000;
+
 /* Contains context when starting scheduler, save all 31 registers */
 #ifdef __gracefulExit
 #error Not ported
@@ -197,7 +199,6 @@ void vPortFatal(const char* file, int line, const char* message)
     portDISABLE_INTERRUPTS();
     corelock_lock(&xCoreLock);
     LOGE("FreeRTOS", "(%s:%d) %s", file, line, message);
-    while (1);
     exit(-1);
     while (1)
         ;
@@ -205,5 +206,5 @@ void vPortFatal(const char* file, int line, const char* message)
 
 UBaseType_t uxPortGetCPUClock()
 {
-    return sysctl_clock_get_freq(SYSCTL_CLOCK_CPU);
+    return uxCPUClockRate;
 }

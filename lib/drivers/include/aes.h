@@ -22,6 +22,7 @@
 extern "C" {
 #endif
 
+#define AES_TRANSMISSION_THRESHOLD  (896UL)
 typedef enum _aes_iv_len
 {
     IV_LEN_96 = 12,

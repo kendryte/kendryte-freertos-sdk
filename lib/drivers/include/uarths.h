@@ -201,6 +201,7 @@ void uarths_write_byte(uint8_t value);
  */
 void uarths_puts(const char *s);
 
+size_t uarths_read(uint8_t* buffer, size_t len);
 
 #ifdef __cplusplus
 }

@@ -16,10 +16,10 @@
 #include <driver.h>
 #include <fpioa.h>
 #include <gpio.h>
-#include <io.h>
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
+#include <utility.h>
 
 #define COMMON_ENTRY                                                         \
     gpio_data *data = (gpio_data *)userdata;                                 \

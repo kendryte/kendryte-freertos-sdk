@@ -16,13 +16,13 @@
 #include <driver.h>
 #include <fpioa.h>
 #include <hal.h>
-#include <io.h>
 #include <limits.h>
 #include <plic.h>
 #include <semphr.h>
 #include <stdio.h>
 #include <sysctl.h>
 #include <timer.h>
+#include <utility.h>
 
 #define COMMON_ENTRY                                                                 \
     timer_data *data = (timer_data *)userdata;                                       \

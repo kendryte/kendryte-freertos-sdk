@@ -17,10 +17,12 @@
 #include <fpioa.h>
 #include <hal.h>
 #include <i2s.h>
+#include <math.h>
 #include <semphr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sysctl.h>
+#include <utility.h>
 
 #define BUFFER_COUNT 2
 #define COMMON_ENTRY                                                      \
@@ -49,8 +51,8 @@ typedef struct
         size_t block_align;
         size_t channels;
         size_t buffer_ptr;
-        int next_free_buffer;
-        int dma_in_use_buffer;
+        volatile int next_free_buffer;
+        volatile int dma_in_use_buffer;
         int stop_signal;
         uintptr_t transmit_dma;
         SemaphoreHandle_t stage_completion_event;
@@ -163,7 +165,7 @@ static void extract_params(const audio_format_t *format, uint32_t *threshold, i2
             configASSERT(!"Invlid bits per sample");
             break;
     }
-    *threshold = pll2_clock / (format->sample_rate * 128) - 1;
+    *threshold = round(pll2_clock / (format->sample_rate * 128.0) - 1);
 }
 
 static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata)
@@ -244,7 +246,7 @@ static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, 
             u_tcr.rcr_tcr.wlen = wlen;
             writel(u_tcr.reg_data, &i2sc->tcr);
 
-            i2s_set_threshold(i2sc, I2S_SEND, TRIGGER_LEVEL_4);
+            i2s_set_threshold(i2sc, I2S_SEND, TRIGGER_LEVEL_8);
             enabled_channel++;
         }
         else
@@ -260,7 +262,7 @@ static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, 
 
     data->channels = format->channels;
     data->block_align = block_align;
-    data->buffer_frames = 44100 * delay_ms / 1000;
+    data->buffer_frames = format->sample_rate * delay_ms / 1000;
     configASSERT(data->buffer_frames >= 100);
     free(data->buffer);
     data->buffer_size = data->block_align * data->buffer_frames;
@@ -368,7 +370,7 @@ static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms,
 
     data->channels = format->channels;
     data->block_align = block_align;
-    data->buffer_frames = 44100 * delay_ms / 1000;
+    data->buffer_frames = format->sample_rate * delay_ms / 1000;
     configASSERT(data->buffer_frames >= 100);
     free(data->buffer);
     data->buffer_size = data->block_align * data->buffer_frames;
@@ -453,6 +455,8 @@ static void i2s_stage_completion_isr(void *userdata)
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xSemaphoreGiveFromISR(data->stage_completion_event, &xHigherPriorityTaskWoken);
+    if (xHigherPriorityTaskWoken)
+        portYIELD();
 }
 
 static void i2s_start(void *userdata)
@@ -476,7 +480,7 @@ static void i2s_start(void *userdata)
         volatile void *dests[1] = {
             &i2s->txdma};
 
-        dma_loop_async(data->transmit_dma, srcs, BUFFER_COUNT, dests, 1, 1, 0, sizeof(uint32_t), data->buffer_size >> 2, 4, i2s_stage_completion_isr, userdata, data->completion_event, &data->stop_signal);
+        dma_loop_async(data->transmit_dma, srcs, BUFFER_COUNT, dests, 1, 1, 0, sizeof(uint32_t), data->buffer_size >> 2, 1, i2s_stage_completion_isr, userdata, data->completion_event, &data->stop_signal);
     }
     else
     {

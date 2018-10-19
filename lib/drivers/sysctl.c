@@ -19,6 +19,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "sysctl.h"
+#include "utility.h"
 
 #define SYSCTRL_CLOCK_FREQ_IN0 (26000000UL)
 
@@ -840,6 +841,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
          * 1 is power on
          */
         sysctl->pll0.pll_pwrd0 = 1;
+        busy_wait(1);
         /*
          * Reset trigger of the PLL, connected RESET
          * 0 is free
@@ -847,8 +849,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
          */
         sysctl->pll0.pll_reset0 = 0;
         sysctl->pll0.pll_reset0 = 1;
-        asm volatile ("nop");
-        asm volatile ("nop");
+        busy_wait(1);
         sysctl->pll0.pll_reset0 = 0;
         break;
 
@@ -861,6 +862,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
          * 1 is power on
          */
         sysctl->pll1.pll_pwrd1 = 1;
+        busy_wait(1);
         /*
          * Reset trigger of the PLL, connected RESET
          * 0 is free
@@ -868,8 +870,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
          */
         sysctl->pll1.pll_reset1 = 0;
         sysctl->pll1.pll_reset1 = 1;
-        asm volatile ("nop");
-        asm volatile ("nop");
+        busy_wait(1);
         sysctl->pll1.pll_reset1 = 0;
         break;
 
@@ -882,6 +883,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
          * 1 is power on
          */
         sysctl->pll2.pll_pwrd2 = 1;
+        busy_wait(1);
         /*
          * Reset trigger of the PLL, connected RESET
          * 0 is free
@@ -889,8 +891,7 @@ int sysctl_pll_enable(sysctl_pll_t pll)
          */
         sysctl->pll2.pll_reset2 = 0;
         sysctl->pll2.pll_reset2 = 1;
-        asm volatile ("nop");
-        asm volatile ("nop");
+        busy_wait(1);
         sysctl->pll2.pll_reset2 = 0;
         break;
 
@@ -1774,6 +1775,7 @@ uint32_t sysctl_pll_set_freq(sysctl_pll_t pll, uint32_t pll_freq)
 
     /* 3. Turn off PLL */
     sysctl_pll_disable(pll);
+    busy_wait(1);
 
     /* 4. Set PLL new value */
     uint32_t result;

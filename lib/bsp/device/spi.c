@@ -16,7 +16,6 @@
 #include <driver.h>
 #include <fpioa.h>
 #include <hal.h>
-#include <io.h>
 #include <math.h>
 #include <semphr.h>
 #include <spi.h>
@@ -24,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sysctl.h>
+#include <utility.h>
 
 /* SPI Controller */
 

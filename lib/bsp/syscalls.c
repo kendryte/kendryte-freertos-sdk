@@ -217,6 +217,22 @@ static ssize_t sys_write(int file, const void* ptr, size_t len)
     return res;
 }
 
+static ssize_t sys_read(int file, void* ptr, size_t len)
+{
+    ssize_t res = -EBADF;
+
+    if (STDIN_FILENO == file)
+    {
+        return uarths_read((uint8_t*)ptr, len);
+    }
+    else
+    {
+        res = io_read(file, (uint8_t*)ptr, len);
+    }
+
+    return res;
+}
+
 static int sys_open(const char* name, int flags, int mode)
 {
     UNUSED(flags);
@@ -308,6 +324,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         SYS_ID_SUCCESS,
         SYS_ID_EXIT,
         SYS_ID_BRK,
+        SYS_ID_READ,
         SYS_ID_WRITE,
         SYS_ID_OPEN,
         SYS_ID_FSTAT,
@@ -321,6 +338,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         [SYS_ID_SUCCESS] = (void*)sys_success,
         [SYS_ID_EXIT] = (void*)sys_exit,
         [SYS_ID_BRK] = (void*)sys_brk,
+        [SYS_ID_READ] = (void*)sys_read,
         [SYS_ID_WRITE] = (void*)sys_write,
         [SYS_ID_OPEN] = (void*)sys_open,
         [SYS_ID_FSTAT] = (void*)sys_fstat,
@@ -337,7 +355,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         [0xFF & SYS_exit_group] = SYS_ID_EXIT,
         [0xFF & SYS_getpid] = SYS_ID_NOSYS,
         [0xFF & SYS_kill] = SYS_ID_NOSYS,
-        [0xFF & SYS_read] = SYS_ID_NOSYS,
+        [0xFF & SYS_read] = SYS_ID_READ,
         [0xFF & SYS_write] = SYS_ID_WRITE,
         [0xFF & SYS_open] = SYS_ID_OPEN,
         [0xFF & SYS_openat] = SYS_ID_NOSYS,

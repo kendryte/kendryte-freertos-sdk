@@ -43,6 +43,29 @@ void uarths_puts(const char *s)
         uarths_write_byte(*s++);
 }
 
+size_t uarths_read(uint8_t* buffer, size_t len)
+{
+    size_t read = 0;
+
+    uarths_rxdata_t recv = uarths->rxdata;
+    while (len && !recv.empty)
+    {
+        *buffer++ = recv.data;
+        read++;
+        len--;
+        recv = uarths->rxdata;
+    }
+
+    if (len && !read)
+    {
+        *buffer++ = uarths_read_byte();
+        read++;
+        len--;
+    }
+
+    return read;
+}
+
 void uarths_init()
 {
     uint32_t freq = sysctl_clock_get_freq(SYSCTL_CLOCK_CPU);
