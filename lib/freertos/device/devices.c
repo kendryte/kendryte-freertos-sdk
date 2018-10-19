@@ -54,6 +54,8 @@ uintptr_t fft_file_;
 uintptr_t aes_file_;
 uintptr_t sha256_file_;
 
+extern UBaseType_t uxCPUClockRate;
+
 DEFINE_INSTALL_DRIVER(hal);
 DEFINE_INSTALL_DRIVER(dma);
 DEFINE_INSTALL_DRIVER(system);
@@ -745,6 +747,7 @@ static void init_dma_system()
 
 void install_hal()
 {
+    uxCPUClockRate = sysctl_clock_get_freq(SYSCTL_CLOCK_CPU);
     install_hal_drivers();
     pic_file_ = io_open("/dev/pic0");
     configASSERT(pic_file_);
@@ -853,6 +856,7 @@ void system_install_custom_driver(const char *name, const custom_driver_t *drive
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {
     uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, (sysctl->clk_sel0.aclk_divider_sel + 1) * 2 * frequency);
+    uxCPUClockRate = result;
     uarths_init();
     return result;
 }
