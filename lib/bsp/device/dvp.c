@@ -105,21 +105,21 @@ static void dvp_set_signal(dvp_signal_type_t type, bool value, void *userdata)
     COMMON_ENTRY;
     switch (type)
     {
-        case DVP_SIG_POWER_DOWN:
-            if (value)
-                dvp->cmos_cfg |= DVP_CMOS_POWER_DOWN;
-            else
-                dvp->cmos_cfg &= ~DVP_CMOS_POWER_DOWN;
-            break;
-        case DVP_SIG_RESET:
-            if (value)
-                dvp->cmos_cfg |= DVP_CMOS_RESET;
-            else
-                dvp->cmos_cfg &= ~DVP_CMOS_RESET;
-            break;
-        default:
-            configASSERT(!"Invalid signal type.");
-            break;
+    case DVP_SIG_POWER_DOWN:
+        if (value)
+            dvp->cmos_cfg |= DVP_CMOS_POWER_DOWN;
+        else
+            dvp->cmos_cfg &= ~DVP_CMOS_POWER_DOWN;
+        break;
+    case DVP_SIG_RESET:
+        if (value)
+            dvp->cmos_cfg |= DVP_CMOS_RESET;
+        else
+            dvp->cmos_cfg &= ~DVP_CMOS_RESET;
+        break;
+    default:
+        configASSERT(!"Invalid signal type.");
+        break;
     }
 }
 
@@ -190,31 +190,31 @@ static void dvp_set_frame_event_enable(dvp_frame_event_t event, bool enable, voi
     COMMON_ENTRY;
     switch (event)
     {
-        case VIDEO_FE_BEGIN:
-            if (enable)
-            {
-                dvp->sts |= DVP_STS_FRAME_START | DVP_STS_FRAME_START_WE;
-                dvp->dvp_cfg |= DVP_CFG_START_INT_ENABLE;
-            }
-            else
-            {
-                dvp->dvp_cfg &= ~DVP_CFG_START_INT_ENABLE;
-            }
-            break;
-        case VIDEO_FE_END:
-            if (enable)
-            {
-                dvp->sts |= DVP_STS_FRAME_FINISH | DVP_STS_FRAME_FINISH_WE;
-                dvp->dvp_cfg |= DVP_CFG_FINISH_INT_ENABLE;
-            }
-            else
-            {
-                dvp->dvp_cfg &= ~DVP_CFG_FINISH_INT_ENABLE;
-            }
-            break;
-        default:
-            configASSERT(!"Invalid event.");
-            break;
+    case VIDEO_FE_BEGIN:
+        if (enable)
+        {
+            dvp->sts |= DVP_STS_FRAME_START | DVP_STS_FRAME_START_WE;
+            dvp->dvp_cfg |= DVP_CFG_START_INT_ENABLE;
+        }
+        else
+        {
+            dvp->dvp_cfg &= ~DVP_CFG_START_INT_ENABLE;
+        }
+        break;
+    case VIDEO_FE_END:
+        if (enable)
+        {
+            dvp->sts |= DVP_STS_FRAME_FINISH | DVP_STS_FRAME_FINISH_WE;
+            dvp->dvp_cfg |= DVP_CFG_FINISH_INT_ENABLE;
+        }
+        else
+        {
+            dvp->dvp_cfg &= ~DVP_CFG_FINISH_INT_ENABLE;
+        }
+        break;
+    default:
+        configASSERT(!"Invalid event.");
+        break;
     }
 
     pic_set_irq_enable(IRQN_DVP_INTERRUPT, 1);
