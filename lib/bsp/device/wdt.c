@@ -75,15 +75,15 @@ static void wdt_set_response_mode(wdt_response_mode_t mode, void *userdata)
     uint8_t rmode = 0;
     switch (mode)
     {
-        case WDT_RESP_RESET:
-            rmode = WDT_CR_RMOD_RESET;
-            break;
-        case WDT_RESP_INTERRUPT:
-            rmode = WDT_CR_RMOD_INTERRUPT;
-            break;
-        default:
-            configASSERT(!"Invalid wdt response mode.");
-            break;
+    case WDT_RESP_RESET:
+        rmode = WDT_CR_RMOD_RESET;
+        break;
+    case WDT_RESP_INTERRUPT:
+        rmode = WDT_CR_RMOD_INTERRUPT;
+        break;
+    default:
+        configASSERT(!"Invalid wdt response mode.");
+        break;
     }
 
     wdt->cr &= (~WDT_CR_RMOD_MASK);

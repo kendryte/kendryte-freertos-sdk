@@ -228,21 +228,22 @@ static void os_aes_init(const uint8_t *input_key,
         {
             switch (remainder)
             {
-                case 1:
+            case 1:
                 uint8_data[0] = gcm_aad[uint8_num];
-                    break;
-                case 2:
+                break;
+            case 2:
                 uint8_data[0] = gcm_aad[uint8_num];
                 uint8_data[1] = gcm_aad[uint8_num + 1];
-                    break;
-                case 3:
+                break;
+            case 3:
                 uint8_data[0] = gcm_aad[uint8_num];
                 uint8_data[1] = gcm_aad[uint8_num + 1];
                 uint8_data[2] = gcm_aad[uint8_num + 2];
-                    break;
-                default:
-                    break;
+                break;
+            default:
+                break;
             }
+
             uint32_data = *((uint32_t *)(&uint8_data[0]));
             while (!os_aes_get_data_in_flag(userdata))
                 ;
@@ -272,21 +273,22 @@ static void aes_input_bytes(const uint8_t *input_data, size_t input_data_len, ae
     {
         switch (remainder)
         {
-            case 1:
-                uint8_data[0] = input_data[uint8_num];
-                break;
-            case 2:
-                uint8_data[0] = input_data[uint8_num];
-                uint8_data[1] = input_data[uint8_num + 1];
-                break;
-            case 3:
-                uint8_data[0] = input_data[uint8_num];
-                uint8_data[1] = input_data[uint8_num + 1];
-                uint8_data[2] = input_data[uint8_num + 2];
-                break;
-            default:
-                break;
+        case 1:
+            uint8_data[0] = input_data[uint8_num];
+            break;
+        case 2:
+            uint8_data[0] = input_data[uint8_num];
+            uint8_data[1] = input_data[uint8_num + 1];
+            break;
+        case 3:
+            uint8_data[0] = input_data[uint8_num];
+            uint8_data[1] = input_data[uint8_num + 1];
+            uint8_data[2] = input_data[uint8_num + 2];
+            break;
+        default:
+            break;
         }
+
         uint32_data = *((uint32_t *)(&uint8_data[0]));
         while (!os_aes_get_data_in_flag(userdata))
             ;
@@ -330,21 +332,22 @@ static void aes_process_less_80_bytes(const uint8_t *input_data,
     {
         switch (remainder)
         {
-            case 1:
-                uint8_data[0] = input_data[uint8_num];
-                break;
-            case 2:
-                uint8_data[0] = input_data[uint8_num];
-                uint8_data[1] = input_data[uint8_num + 1];
-                break;
-            case 3:
-                uint8_data[0] = input_data[uint8_num];
-                uint8_data[1] = input_data[uint8_num + 1];
-                uint8_data[2] = input_data[uint8_num + 2];
-                break;
-            default:
-                break;
+        case 1:
+            uint8_data[0] = input_data[uint8_num];
+            break;
+        case 2:
+            uint8_data[0] = input_data[uint8_num];
+            uint8_data[1] = input_data[uint8_num + 1];
+            break;
+        case 3:
+            uint8_data[0] = input_data[uint8_num];
+            uint8_data[1] = input_data[uint8_num + 1];
+            uint8_data[2] = input_data[uint8_num + 2];
+            break;
+        default:
+            break;
         }
+
         uint32_data = *((uint32_t *)(&uint8_data[0]));
         while (!os_aes_get_data_in_flag(userdata))
             ;
@@ -374,20 +377,20 @@ static void aes_process_less_80_bytes(const uint8_t *input_data,
         *((uint32_t *)(&uint8_data[0])) = os_aes_read_out_data(userdata);
         switch (remainder)
         {
-            case 1:
-                output_data[uint32_num * 4] = uint8_data[0];
-                break;
-            case 2:
-                output_data[uint32_num * 4] = uint8_data[0];
-                output_data[(i * 4) + 1] = uint8_data[1];
-                break;
-            case 3:
-                output_data[uint32_num * 4] = uint8_data[0];
-                output_data[(i * 4) + 1] = uint8_data[1];
-                output_data[(i * 4) + 2] = uint8_data[2];
-                break;
-            default:
-                break;
+        case 1:
+            output_data[uint32_num * 4] = uint8_data[0];
+            break;
+        case 2:
+            output_data[uint32_num * 4] = uint8_data[0];
+            output_data[(i * 4) + 1] = uint8_data[1];
+            break;
+        case 3:
+            output_data[uint32_num * 4] = uint8_data[0];
+            output_data[(i * 4) + 1] = uint8_data[1];
+            output_data[(i * 4) + 2] = uint8_data[2];
+            break;
+        default:
+            break;
         }
     }
 }
