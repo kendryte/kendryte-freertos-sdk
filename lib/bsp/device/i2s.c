@@ -47,10 +47,12 @@ typedef struct
     {
         i2s_transmit transmit;
         uint8_t *buffer;
+        uint8_t *buffer_16to32;
         size_t buffer_frames;
         size_t buffer_size;
         size_t block_align;
         size_t channels;
+        bool use_low_16bits;
         size_t buffer_ptr;
         volatile int next_free_buffer;
         volatile int dma_in_use_buffer;
@@ -275,6 +277,7 @@ static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, 
     data->stop_signal = 0;
     data->transmit_dma = NULL_HANDLE;
     data->dma_in_use_buffer = 0;
+    data->use_low_16bits = false;
 }
 
 static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata)
@@ -307,7 +310,6 @@ static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms,
     size_t block_align;
     uint32_t dma_divide16;
 
-    configASSERT(format->bits_per_sample != 16);
     extract_params(format, &threshold, &wsc, &wlen, &block_align, &dma_divide16);
 
     sysctl_clock_set_threshold(data->clock_threshold, threshold);
@@ -384,6 +386,10 @@ static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms,
     data->stop_signal = 0;
     data->transmit_dma = NULL_HANDLE;
     data->dma_in_use_buffer = 0;
+    data->use_low_16bits = format->bits_per_sample == 16;
+    free(data->buffer_16to32);
+    if (data->use_low_16bits)
+        data->buffer_16to32 = (uint8_t*)malloc(data->buffer_size * 2 * BUFFER_COUNT);
 }
 
 static void i2s_get_buffer(uint8_t **buffer, size_t *frames, void *userdata)
@@ -458,7 +464,18 @@ static void i2s_stage_completion_isr(void *userdata)
 {
     COMMON_ENTRY;
 
-    int dma_in_use_buffer = data->dma_in_use_buffer + 1;
+    int dma_in_use_buffer = data->dma_in_use_buffer;
+    if (data->buffer_16to32)
+    {
+        const uint32_t *src = (uint32_t *)(data->buffer_16to32 + dma_in_use_buffer * data->buffer_size * 2);
+        uint16_t *dest = (uint32_t *)(data->buffer + dma_in_use_buffer * data->buffer_size);
+        size_t count = data->buffer_size / sizeof(uint16_t);
+        size_t i;
+        for (i = 0; i < count; i++)
+            *dest++ = (uint16_t)*src++;
+    }
+
+    dma_in_use_buffer++;
     if (dma_in_use_buffer == BUFFER_COUNT)
         dma_in_use_buffer = 0;
     data->dma_in_use_buffer = dma_in_use_buffer;
@@ -511,13 +528,27 @@ static void i2s_start(void *userdata)
         {
             &i2s->rxdma
         };
-        volatile void *dests[BUFFER_COUNT] =
-        {
-            data->buffer,
-            data->buffer + data->buffer_size
-        };
 
-        dma_loop_async(data->transmit_dma, srcs, 1, dests, BUFFER_COUNT, 0, 1, sizeof(uint32_t), data->buffer_size >> 2, 4, i2s_stage_completion_isr, userdata, data->completion_event, &data->stop_signal);
+        if (data->buffer_16to32)
+        {
+            volatile void *dests[BUFFER_COUNT] =
+            {
+                data->buffer_16to32,
+                data->buffer_16to32 + data->buffer_size * 2
+            };
+
+            dma_loop_async(data->transmit_dma, srcs, 1, dests, BUFFER_COUNT, 0, 1, sizeof(uint32_t), data->buffer_size * 2 >> 2, 4, i2s_stage_completion_isr, userdata, data->completion_event, &data->stop_signal);
+        }
+        else
+        {
+            volatile void *dests[BUFFER_COUNT] =
+            {
+                data->buffer,
+                data->buffer + data->buffer_size
+            };
+
+            dma_loop_async(data->transmit_dma, srcs, 1, dests, BUFFER_COUNT, 0, 1, sizeof(uint32_t), data->buffer_size >> 2, 4, i2s_stage_completion_isr, userdata, data->completion_event, &data->stop_signal);
+        }
     }
 
     i2s_transmit_set_enable(data->transmit, 1, i2s);
