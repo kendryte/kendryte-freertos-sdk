@@ -273,7 +273,7 @@ static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, 
     data->buffer = (uint8_t*)malloc(data->buffer_size * BUFFER_COUNT);
     memset(data->buffer, 0, data->buffer_size * BUFFER_COUNT);
     data->buffer_ptr = 0;
-    data->next_free_buffer = 1;
+    data->next_free_buffer = 0;
     data->stop_signal = 0;
     data->transmit_dma = NULL_HANDLE;
     data->dma_in_use_buffer = 0;
@@ -330,7 +330,7 @@ static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms,
     u_ccr.ccr.align_mode = am;
     u_ccr.ccr.dma_tx_en = 0;
     u_ccr.ccr.sign_expand_en = 1;
-    u_ccr.ccr.dma_divide_16 = dma_divide16;
+    u_ccr.ccr.dma_divide_16 = 0;
     u_ccr.ccr.dma_rx_en = 1;
     writel(u_ccr.reg_data, &i2s->ccr);
 
@@ -468,7 +468,7 @@ static void i2s_stage_completion_isr(void *userdata)
     if (data->buffer_16to32)
     {
         const uint32_t *src = (uint32_t *)(data->buffer_16to32 + dma_in_use_buffer * data->buffer_size * 2);
-        uint16_t *dest = (uint32_t *)(data->buffer + dma_in_use_buffer * data->buffer_size);
+        uint16_t *dest = (uint16_t *)(data->buffer + dma_in_use_buffer * data->buffer_size);
         size_t count = data->buffer_size / sizeof(uint16_t);
         size_t i;
         for (i = 0; i < count; i++)
