@@ -1,7 +1,3 @@
-if (NOT TOOLCHAIN)
-    message(FATAL_ERROR "TOOLCHAIN must be set, to absolute path of kendryte-toolchain dist/bin folder.")
-endif ()
-
 if (WIN32)
     set(EXT ".exe")
 else ()
@@ -11,10 +7,15 @@ endif ()
 message(STATUS "Check for RISCV toolchain ...")
 
 if(NOT TOOLCHAIN)
-    # do nothing
+	find_path(_TOOLCHAIN riscv64-unknown-elf-gcc${EXT})
+    global_set(TOOLCHAIN "${_TOOLCHAIN}")
 elseif(NOT "${TOOLCHAIN}" MATCHES "/$")
     global_set(TOOLCHAIN "${TOOLCHAIN}")
 endif()
+
+if (NOT TOOLCHAIN)
+    message(FATAL_ERROR "TOOLCHAIN must be set, to absolute path of kendryte-toolchain dist/bin folder.")
+endif ()
 
 message(STATUS "Using ${TOOLCHAIN} RISCV toolchain")
 
