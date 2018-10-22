@@ -468,7 +468,7 @@ static void i2s_stage_completion_isr(void *userdata)
     if (data->buffer_16to32)
     {
         const uint32_t *src = (uint32_t *)(data->buffer_16to32 + dma_in_use_buffer * data->buffer_size * 2);
-        uint16_t *dest = (uint32_t *)(data->buffer + dma_in_use_buffer * data->buffer_size);
+        uint16_t *dest = (uint16_t *)(data->buffer + dma_in_use_buffer * data->buffer_size);
         size_t count = data->buffer_size / sizeof(uint16_t);
         size_t i;
         for (i = 0; i < count; i++)
