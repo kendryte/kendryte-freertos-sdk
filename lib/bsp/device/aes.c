@@ -28,6 +28,7 @@
 typedef struct
 {
     sysctl_clock_t clock;
+    sysctl_reset_t reset;
     uintptr_t base_addr;
     sysctl_dma_select_t dma_req_base;
     SemaphoreHandle_t free_mutex;
@@ -41,6 +42,7 @@ typedef struct
 static void aes_install(void *userdata)
 {
     COMMON_ENTRY;
+    sysctl_reset(data->reset);
     sysctl_clock_enable(data->clock);
     data->free_mutex = xSemaphoreCreateMutex();
 }
@@ -185,6 +187,7 @@ static void os_aes_init(const uint8_t *input_key,
     void *userdata)
 {
     COMMON_ENTRY;
+    sysctl_reset(data->reset);
     size_t remainder, uint32_num, uint8_num, i;
     uint32_t uint32_data;
     uint8_t uint8_data[4] = {0};
@@ -740,14 +743,12 @@ static void aes_gcm128_hard_decrypt(gcm_context_t *context, const uint8_t *input
     }
     else
     {
-        configASSERT(input_len % 4 == 0);
-
         handle_t aes_read = dma_open_free();
         dma_set_request_source(aes_read, data->dma_req_base);
 
         SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
         aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
         aes_input_bytes(input_data, input_len, AES_GCM, userdata);
         configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
         dma_close(aes_read);
@@ -769,14 +770,12 @@ static void aes_gcm128_hard_encrypt(gcm_context_t *context, const uint8_t *input
     }
     else
     {
-        configASSERT(input_len % 4 == 0);
-
         handle_t aes_read = dma_open_free();
         dma_set_request_source(aes_read, data->dma_req_base);
 
         SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
         aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
         aes_input_bytes(input_data, input_len, AES_GCM, userdata);
         configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
         dma_close(aes_read);
@@ -798,14 +797,12 @@ static void aes_gcm192_hard_decrypt(gcm_context_t *context, const uint8_t *input
     }
     else
     {
-        configASSERT(input_len % 4 == 0);
-
         handle_t aes_read = dma_open_free();
         dma_set_request_source(aes_read, data->dma_req_base);
 
         SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
         aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
         aes_input_bytes(input_data, input_len, AES_GCM, userdata);
         configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
         dma_close(aes_read);
@@ -827,14 +824,12 @@ static void aes_gcm192_hard_encrypt(gcm_context_t *context, const uint8_t *input
     }
     else
     {
-        configASSERT(input_len % 4 == 0);
-
         handle_t aes_read = dma_open_free();
         dma_set_request_source(aes_read, data->dma_req_base);
 
         SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
         aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
         aes_input_bytes(input_data, input_len, AES_GCM, userdata);
         configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
         dma_close(aes_read);
@@ -856,14 +851,12 @@ static void aes_gcm256_hard_decrypt(gcm_context_t *context, const uint8_t *input
     }
     else
     {
-        configASSERT(input_len % 4 == 0);
-
         handle_t aes_read = dma_open_free();
         dma_set_request_source(aes_read, data->dma_req_base);
 
         SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
         aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
         aes_input_bytes(input_data, input_len, AES_GCM, userdata);
         configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
         dma_close(aes_read);
@@ -885,14 +878,12 @@ static void aes_gcm256_hard_encrypt(gcm_context_t *context, const uint8_t *input
     }
     else
     {
-        configASSERT(input_len % 4 == 0);
-
         handle_t aes_read = dma_open_free();
         dma_set_request_source(aes_read, data->dma_req_base);
 
         SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
         aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
         aes_input_bytes(input_data, input_len, AES_GCM, userdata);
         configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
         dma_close(aes_read);
@@ -902,7 +893,7 @@ static void aes_gcm256_hard_encrypt(gcm_context_t *context, const uint8_t *input
     exit_exclusive(data);
 }
 
-static aes_dev_data dev0_data = {SYSCTL_CLOCK_AES, AES_BASE_ADDR, SYSCTL_DMA_SELECT_AES_REQ, 0, {{0}}};
+static aes_dev_data dev0_data = {SYSCTL_CLOCK_AES, SYSCTL_RESET_AES, AES_BASE_ADDR, SYSCTL_DMA_SELECT_AES_REQ, 0, {{0}}};
 
 const aes_driver_t g_aes_driver_aes0 =
 {
