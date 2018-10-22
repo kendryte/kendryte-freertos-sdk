@@ -21,6 +21,7 @@
 #include <semphr.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sysctl.h>
 #include <utility.h>
 
@@ -54,7 +55,7 @@ typedef struct
         volatile int next_free_buffer;
         volatile int dma_in_use_buffer;
         int stop_signal;
-        uintptr_t transmit_dma;
+        handle_t transmit_dma;
         SemaphoreHandle_t stage_completion_event;
         SemaphoreHandle_t completion_event;
     };
@@ -165,6 +166,7 @@ static void extract_params(const audio_format_t *format, uint32_t *threshold, i2
             configASSERT(!"Invlid bits per sample");
             break;
     }
+
     *threshold = round(pll2_clock / (format->sample_rate * 128.0) - 1);
 }
 
@@ -246,7 +248,7 @@ static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, 
             u_tcr.rcr_tcr.wlen = wlen;
             writel(u_tcr.reg_data, &i2sc->tcr);
 
-            i2s_set_threshold(i2sc, I2S_SEND, TRIGGER_LEVEL_8);
+            i2s_set_threshold(i2sc, I2S_SEND, TRIGGER_LEVEL_4);
             enabled_channel++;
         }
         else
@@ -267,11 +269,12 @@ static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, 
     free(data->buffer);
     data->buffer_size = data->block_align * data->buffer_frames;
     data->buffer = (uint8_t*)malloc(data->buffer_size * BUFFER_COUNT);
+    memset(data->buffer, 0, data->buffer_size * BUFFER_COUNT);
     data->buffer_ptr = 0;
-    data->next_free_buffer = 0;
+    data->next_free_buffer = 1;
     data->stop_signal = 0;
-    data->transmit_dma = 0;
-    data->dma_in_use_buffer = -1;
+    data->transmit_dma = NULL_HANDLE;
+    data->dma_in_use_buffer = 0;
 }
 
 static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata)
@@ -375,10 +378,11 @@ static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms,
     free(data->buffer);
     data->buffer_size = data->block_align * data->buffer_frames;
     data->buffer = (uint8_t*)malloc(data->buffer_size * BUFFER_COUNT);
+    memset(data->buffer, 0, data->buffer_size * BUFFER_COUNT);
     data->buffer_ptr = 0;
     data->next_free_buffer = 0;
     data->stop_signal = 0;
-    data->transmit_dma = 0;
+    data->transmit_dma = NULL_HANDLE;
     data->dma_in_use_buffer = 0;
 }
 
@@ -386,12 +390,14 @@ static void i2s_get_buffer(uint8_t **buffer, size_t *frames, void *userdata)
 {
     COMMON_ENTRY;
 
-    while (data->next_free_buffer == data->dma_in_use_buffer)
+    int next_free_buffer = data->next_free_buffer;
+    while (next_free_buffer == data->dma_in_use_buffer)
     {
         xSemaphoreTake(data->stage_completion_event, portMAX_DELAY);
+        next_free_buffer = data->next_free_buffer;
     }
 
-    *buffer = data->buffer + data->buffer_size * data->next_free_buffer + data->buffer_ptr;
+    *buffer = data->buffer + data->buffer_size * next_free_buffer + data->buffer_ptr;
     *frames = (data->buffer_size - data->buffer_ptr) / data->block_align;
 }
 
@@ -403,8 +409,10 @@ static void i2s_release_buffer(size_t frames, void *userdata)
     if (data->buffer_ptr >= data->buffer_size)
     {
         data->buffer_ptr = 0;
-        if (++data->next_free_buffer >= BUFFER_COUNT)
-            data->next_free_buffer = 0;
+        int next_free_buffer = data->next_free_buffer + 1;
+        if (next_free_buffer == BUFFER_COUNT)
+            next_free_buffer = 0;
+        data->next_free_buffer = next_free_buffer;
     }
 }
 
@@ -450,8 +458,10 @@ static void i2s_stage_completion_isr(void *userdata)
 {
     COMMON_ENTRY;
 
-    if (++data->dma_in_use_buffer >= BUFFER_COUNT)
-        data->dma_in_use_buffer = 0;
+    int dma_in_use_buffer = data->dma_in_use_buffer + 1;
+    if (dma_in_use_buffer == BUFFER_COUNT)
+        dma_in_use_buffer = 0;
+    data->dma_in_use_buffer = dma_in_use_buffer;
 
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     xSemaphoreGiveFromISR(data->stage_completion_event, &xHigherPriorityTaskWoken);
@@ -474,11 +484,15 @@ static void i2s_start(void *userdata)
         data->stage_completion_event = xSemaphoreCreateCounting(100, 0);
         data->completion_event = xSemaphoreCreateBinary();
 
-        const volatile void *srcs[BUFFER_COUNT] = {
+        const volatile void *srcs[BUFFER_COUNT] =
+        {
             data->buffer,
-            data->buffer + data->buffer_size};
-        volatile void *dests[1] = {
-            &i2s->txdma};
+            data->buffer + data->buffer_size
+        };
+        volatile void *dests[1] =
+        {
+            &i2s->txdma
+        };
 
         dma_loop_async(data->transmit_dma, srcs, BUFFER_COUNT, dests, 1, 1, 0, sizeof(uint32_t), data->buffer_size >> 2, 1, i2s_stage_completion_isr, userdata, data->completion_event, &data->stop_signal);
     }
@@ -493,14 +507,19 @@ static void i2s_start(void *userdata)
         data->stage_completion_event = xSemaphoreCreateCounting(100, 0);
         data->completion_event = xSemaphoreCreateBinary();
 
-        const volatile void *srcs[1] = {
-            &i2s->rxdma};
-        volatile void *dests[BUFFER_COUNT] = {
+        const volatile void *srcs[1] =
+        {
+            &i2s->rxdma
+        };
+        volatile void *dests[BUFFER_COUNT] =
+        {
             data->buffer,
-            data->buffer + data->buffer_size};
+            data->buffer + data->buffer_size
+        };
 
         dma_loop_async(data->transmit_dma, srcs, 1, dests, BUFFER_COUNT, 0, 1, sizeof(uint32_t), data->buffer_size >> 2, 4, i2s_stage_completion_isr, userdata, data->completion_event, &data->stop_signal);
     }
+
     i2s_transmit_set_enable(data->transmit, 1, i2s);
 }
 

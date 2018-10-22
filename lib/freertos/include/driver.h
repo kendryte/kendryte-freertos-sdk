@@ -29,6 +29,8 @@ extern "C"
 
 typedef uintptr_t handle_t;
 
+#define NULL_HANDLE 0
+
 typedef struct _driver_base
 {
     void *userdata;
