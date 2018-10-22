@@ -86,8 +86,8 @@ static void gpiohs_set_drive_mode(uint32_t pin, gpio_drive_mode_t mode, void *us
     int io_number = fpioa_get_io_by_function(FUNC_GPIOHS0 + pin);
     configASSERT(io_number > 0);
 
-    fpioa_pull_t pull;
-    uint32_t dir;
+    fpioa_pull_t pull = 0;
+    uint32_t dir = 0;
 
     switch (mode)
     {
