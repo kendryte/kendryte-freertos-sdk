@@ -61,14 +61,16 @@ typedef enum
     DRIVER_PIC,
     DRIVER_DMAC,
     DRIVER_DMA,
+    DRIVER_BLOCK_STORAGE,
+    DRIVER_FILE,
     DRIVER_CUSTOM
-} driver_type;
+} driver_type_t;
 
 typedef struct tag_driver_registry
 {
     const char *name;
     const void *driver;
-    driver_type type;
+    driver_type_t type;
 } driver_registry_t;
 
 typedef enum _uart_stopbits
@@ -447,6 +449,15 @@ typedef struct tag_dma_driver
     void (*transmit_async)(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata);
     void (*loop_async)(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata);
 } dma_driver_t;
+
+typedef struct tag_block_storage_driver
+{
+    driver_base_t base;
+    uint32_t (*get_rw_block_size)(void *userdata);
+    uint32_t (*get_blocks_count)(void *userdata);
+    int (*read_blocks)(uint32_t start_block, uint32_t blocks_count, uint8_t *buffer, void *userdata);
+    int (*write_blocks)(uint32_t start_block, uint32_t blocks_count, const uint8_t *buffer, void *userdata);
+} block_storage_driver_t;
 
 extern driver_registry_t g_hal_drivers[];
 extern driver_registry_t g_dma_drivers[];

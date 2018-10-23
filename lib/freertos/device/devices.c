@@ -49,6 +49,7 @@ typedef struct
 
 static _file *handles_[MAX_HANDLES] = {0};
 static driver_registry_t g_custom_drivers[MAX_CUSTOM_DRIVERS] = {0};
+static const char dummy_driver_name[] = "";
 
 uintptr_t fft_file_;
 uintptr_t aes_file_;
@@ -77,25 +78,6 @@ driver_registry_t * find_free_driver(driver_registry_t *registry, const char *na
         head++;
     }
 
-    return NULL;
-}
-
-static driver_registry_t * install_custom_driver_core(const char *name, driver_type type, const void *driver)
-{
-    size_t i = 0;
-    driver_registry_t *head = g_custom_drivers;
-    for (i = 0; i < MAX_CUSTOM_DRIVERS; i++, head++)
-    {
-        if (!head->name)
-        {
-            head->name = strdup(name);
-            head->type = type;
-            head->driver = driver;
-            return head;
-        }
-    }
-
-    configASSERT(!"Max custom drivers exceeded.");
     return NULL;
 }
 
@@ -318,7 +300,7 @@ handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address,
 {
     COMMON_ENTRY(i2c, I2C);
     i2c_device_driver_t *driver = i2c->get_device(slave_address, address_width, i2c->base.userdata);
-    driver_registry_t *reg = install_custom_driver_core(name, DRIVER_I2C_DEVICE, driver);
+    driver_registry_t *reg = system_install_driver(name, DRIVER_I2C_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
 
@@ -390,7 +372,7 @@ handle_t spi_get_device(handle_t file, const char *name, spi_mode_t mode, spi_fr
 {
     COMMON_ENTRY(spi, SPI);
     spi_device_driver_t *driver = spi->get_device(mode, frame_format, chip_select_mask, data_bit_length, spi->base.userdata);
-    driver_registry_t *reg = install_custom_driver_core(name, DRIVER_SPI_DEVICE, driver);
+    driver_registry_t *reg = system_install_driver(name, DRIVER_SPI_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
 
@@ -486,7 +468,7 @@ handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address
 {
     COMMON_ENTRY(sccb, SCCB);
     sccb_device_driver_t *driver = sccb->get_device(slave_address, reg_address_width, sccb->base.userdata);
-    driver_registry_t *reg = install_custom_driver_core(name, DRIVER_SCCB_DEVICE, driver);
+    driver_registry_t *reg = system_install_driver(name, DRIVER_SCCB_DEVICE, driver);
     return io_alloc_handle(io_alloc_file(reg));
 }
 
@@ -846,9 +828,26 @@ void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, v
 
 /* Custom Driver */
 
-void system_install_custom_driver(const char *name, const custom_driver_t *driver)
+driver_registry_t * system_install_driver(const char *name, driver_type_t type, const void *driver)
 {
-    install_custom_driver_core(name, DRIVER_CUSTOM, driver);
+    size_t i = 0;
+    driver_registry_t *head = g_custom_drivers;
+    for (i = 0; i < MAX_CUSTOM_DRIVERS; i++, head++)
+    {
+        if (!head->name)
+        {
+            head->name = name ? strdup(name) : dummy_driver_name;
+            head->type = type;
+            head->driver = driver;
+
+            driver_base_t *driver_base = (driver_base_t*)head->driver;
+            driver_base->install(driver_base->userdata);
+            return head;
+        }
+    }
+
+    configASSERT(!"Max custom drivers exceeded.");
+    return NULL;
 }
 
 /* System */

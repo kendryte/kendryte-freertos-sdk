@@ -30,8 +30,8 @@ extern "C"
  * @param[in]   name        The device path
  *
  * @return      result
-       - 0      Fail
-       - other  The device handle
+ *     - 0      Fail
+ *     - other  The device handle
  */
 handle_t io_open(const char *name);
 

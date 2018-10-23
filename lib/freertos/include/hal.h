@@ -33,11 +33,16 @@ extern "C"
 uint32_t system_set_cpu_frequency(uint32_t frequency);
 
 /**
- * @brief       Install a custom driver
+ * @brief       Install a driver
  * @param[in]   name        Specify the path to access it later
+ * @param[in]   type        The type of driver
  * @param[in]   driver      The driver info
+ *
+ * @return      result
+ *     - NULL   Fail
+ *     - other  The driver registry
  */
-void system_install_custom_driver(const char *name, const custom_driver_t *driver);
+driver_registry_t * system_install_driver(const char *name, driver_type_t type, const void *driver);
 
 /**
  * @brief       Enable or disable IRQ
