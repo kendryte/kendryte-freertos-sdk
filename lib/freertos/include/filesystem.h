@@ -12,21 +12,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _DRIVERS_SDCARD_H
-#define _DRIVERS_SDCARD_H
+#ifndef _FREERTOS_FILESYSTEM_H
+#define _FREERTOS_FILESYSTEM_H
 
+#include <driver.h>
+#include <stddef.h>
 #include <stdint.h>
-#include <osdefs.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+    
+/**
+ * @brief       Mount a filesystem
+ *
+ * @param[in]   name                    The filesystem path
+ * @param[in]   storage_device_name     The storage device path
+ *
+ * @return      result
+ *     - 0      Fail
+ *     - other  The filesystem handle
+ */
+handle_t filesystem_mount(const char *name, const char *storage_device_name);
 
-int spi_sdcard_driver_install(const char *name, const char *spi_name, const char *cs_gpio_name, uint32_t cs_gpio_pin);
+handle_t filesystem_file_open(handle_t filesystem, const char* name);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _DRIVERS_SDCARD_H */
+#endif /* _FREERTOS_FILESYSTEM_H */

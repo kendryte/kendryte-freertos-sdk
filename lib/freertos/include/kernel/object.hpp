@@ -12,21 +12,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _DRIVERS_SDCARD_H
-#define _DRIVERS_SDCARD_H
+#ifndef _FREERTOS_OBJECT_H
+#define _FREERTOS_OBJECT_H
 
-#include <stdint.h>
-#include <osdefs.h>
+#include "osdefs.h"
+#include <memory>
 
-#ifdef __cplusplus
-extern "C"
+namespace sys
 {
-#endif
+class object
+{
+public:
+    virtual void add_ref() = 0;
+    virtual bool release() = 0;
+};
 
-int spi_sdcard_driver_install(const char *name, const char *spi_name, const char *cs_gpio_name, uint32_t cs_gpio_pin);
+template<class T>
+class object_ptr
+{
+public:
+    constexpr object_ptr(nullptr_t = nullptr) noexcept
+        : obj_(nullptr)
+    {
+    }
 
-#ifdef __cplusplus
+    object_ptr(std::in_place_t, T* obj) noexcept
+        : obj_(obj)
+    {
+    }
+};
 }
-#endif
 
-#endif /* _DRIVERS_SDCARD_H */
+#endif /* _FREERTOS_OBJECT_H */

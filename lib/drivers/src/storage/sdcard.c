@@ -17,6 +17,7 @@
 #include <hal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <kernel/driver.hpp>
 
 #define COMMON_ENTRY                                                      \
     spi_sdcard_dev_data_t *data = (spi_sdcard_dev_data_t *)userdata;

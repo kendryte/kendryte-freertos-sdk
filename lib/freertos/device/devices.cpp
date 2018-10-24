@@ -14,9 +14,7 @@
  */
 #include "FreeRTOS.h"
 #include <atomic.h>
-#include "device_priv.h"
 #include <devices.h>
-#include <driver.h>
 #include <hal.h>
 #include <plic.h>
 #include <semphr.h>
@@ -25,6 +23,8 @@
 #include <string.h>
 #include <sysctl.h>
 #include <uarths.h>
+#include "device_priv.h"
+#include "kernel/driver.hpp"
 
 #define MAX_HANDLES 256
 #define HANDLE_OFFSET 256

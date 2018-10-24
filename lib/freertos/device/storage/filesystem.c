@@ -12,21 +12,5 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _DRIVERS_SDCARD_H
-#define _DRIVERS_SDCARD_H
-
-#include <stdint.h>
-#include <osdefs.h>
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-int spi_sdcard_driver_install(const char *name, const char *spi_name, const char *cs_gpio_name, uint32_t cs_gpio_pin);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* _DRIVERS_SDCARD_H */
+#include "FreeRTOS.h"
+#include "filesystem.h"

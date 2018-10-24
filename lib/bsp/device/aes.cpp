@@ -12,17 +12,406 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include <string.h>
-#include <stdlib.h>
 #include <FreeRTOS.h>
 #include <aes.h>
-#include <driver.h>
-#include <sysctl.h>
 #include <hal.h>
+#include <kernel/driver_impl.hpp>
+#include <stdlib.h>
+#include <string.h>
+#include <sysctl.h>
 
-#define COMMON_ENTRY                                               \
-    aes_dev_data *data = (aes_dev_data *)userdata;                 \
-    volatile aes_t *aes = (volatile aes_t *)data->base_addr;       \
+using namespace sys;
+
+#define COMMON_ENTRY \
+    semaphore_lock locker(free_mutex_);
+
+class k_aes_driver : public aes_driver, public static_object, public free_object_access
+{
+public:
+    k_aes_driver(uintptr_t base_addr, sysctl_clock_t clock, sysctl_dma_select_t dma_req)
+        : aes_(*reinterpret_cast<volatile aes_t *>(base_addr)), clock_(clock), dma_req_(dma_req)
+    {
+    }
+
+    virtual void install() override
+    {
+        free_mutex_ = xSemaphoreCreateMutex();
+        sysctl_clock_disable(clock_);
+    }
+
+    virtual void on_first_open() override
+    {
+        sysctl_clock_enable(clock_);
+    }
+
+    virtual void on_last_close() override
+    {
+        sysctl_clock_disable(clock_);
+    }
+
+    virtual void aes_ecb128_hard_decrypt(gsl::span<const uint8_t> input_key, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+        COMMON_ENTRY;
+
+        size_t input_len = input_data.size();
+        size_t padding_len = ((input_len + 15) / 16) * 16;
+        os_aes_init(input_key.data(), AES_128, NULL, 0L, NULL, AES_ECB, AES_HARD_DECRYPTION, 0L, input_len);
+        if (padding_len <= AES_TRANSMISSION_THRESHOLD)
+        {
+            os_aes_process(input_data.data(), output_data.data(), padding_len, AES_ECB);
+        }
+        else
+        {
+            handle_t aes_read = dma_open_free();
+            dma_set_request_source(aes_read, dma_req_);
+
+            SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
+            aes_.dma_sel = 1;
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
+            aes_input_bytes(input_data.data(), input_len, AES_ECB);
+            configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
+            dma_close(aes_read);
+            vSemaphoreDelete(event_read);
+        }
+    }
+
+    virtual void aes_ecb128_hard_encrypt(gsl::span<const uint8_t> input_key, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+        size_t input_len = input_data.size();
+        size_t padding_len = ((input_len + 15) / 16) * 16;
+        os_aes_init(input_key.data(), AES_128, NULL, 0L, NULL, AES_ECB, AES_HARD_ENCRYPTION, 0L, input_len);
+        if (padding_len <= AES_TRANSMISSION_THRESHOLD)
+        {
+            os_aes_process(input_data.data(), output_data.data(), input_len, AES_ECB);
+        }
+        else
+        {
+            handle_t aes_read = dma_open_free();
+            dma_set_request_source(aes_read, dma_req_);
+
+            SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
+            aes_.dma_sel = 1;
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
+            aes_input_bytes(input_data.data(), input_len, AES_ECB);
+            configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
+            dma_close(aes_read);
+            vSemaphoreDelete(event_read);
+        }
+    }
+
+    virtual void aes_ecb192_hard_decrypt(gsl::span<const uint8_t> input_key, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+        size_t input_len = input_data.size();
+        size_t padding_len = ((input_len + 15) / 16) * 16;
+        os_aes_init(input_key.data(), AES_192, NULL, 0L, NULL, AES_ECB, AES_HARD_DECRYPTION, 0L, input_len);
+        if (padding_len <= AES_TRANSMISSION_THRESHOLD)
+        {
+            os_aes_process(input_data.data(), output_data.data(), padding_len, AES_ECB);
+        }
+        else
+        {
+            handle_t aes_read = dma_open_free();
+            dma_set_request_source(aes_read, dma_req_);
+
+            SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
+            aes_.dma_sel = 1;
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
+            aes_input_bytes(input_data.data(), input_len, AES_ECB);
+            configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
+            dma_close(aes_read);
+            vSemaphoreDelete(event_read);
+        }
+    }
+
+    virtual void aes_ecb192_hard_encrypt(gsl::span<const uint8_t> input_key, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+        size_t input_len = input_data.size();
+        size_t padding_len = ((input_len + 15) / 16) * 16;
+        os_aes_init(input_key.data(), AES_192, NULL, 0L, NULL, AES_ECB, AES_HARD_ENCRYPTION, 0L, input_len);
+        if (padding_len <= AES_TRANSMISSION_THRESHOLD)
+        {
+            os_aes_process(input_data.data(), output_data.data(), input_len, AES_ECB);
+        }
+        else
+        {
+            handle_t aes_read = dma_open_free();
+            dma_set_request_source(aes_read, dma_req_);
+
+            SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
+            aes_.dma_sel = 1;
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
+            aes_input_bytes(input_data.data(), input_len, AES_ECB);
+            configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
+            dma_close(aes_read);
+            vSemaphoreDelete(event_read);
+        }
+    }
+
+    virtual void aes_ecb256_hard_decrypt(gsl::span<const uint8_t> input_key, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+        size_t input_len = input_data.size();
+        size_t padding_len = ((input_len + 15) / 16) * 16;
+        os_aes_init(input_key.data(), AES_256, NULL, 0L, NULL, AES_ECB, AES_HARD_DECRYPTION, 0L, input_len);
+        if (padding_len <= AES_TRANSMISSION_THRESHOLD)
+        {
+            os_aes_process(input_data.data(), output_data.data(), padding_len, AES_ECB);
+        }
+        else
+        {
+            handle_t aes_read = dma_open_free();
+            dma_set_request_source(aes_read, dma_req_);
+
+            SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
+            aes_.dma_sel = 1;
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
+            aes_input_bytes(input_data.data(), input_len, AES_ECB);
+            configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
+            dma_close(aes_read);
+            vSemaphoreDelete(event_read);
+        }
+    }
+
+    virtual void aes_ecb256_hard_encrypt(gsl::span<const uint8_t> input_key, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+    }
+    virtual void aes_cbc128_hard_decrypt(cbc_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+    }
+    virtual void aes_cbc128_hard_encrypt(cbc_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+    }
+    virtual void aes_cbc192_hard_decrypt(cbc_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+    }
+    virtual void aes_cbc192_hard_encrypt(cbc_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+    }
+    virtual void aes_cbc256_hard_decrypt(cbc_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+    }
+    virtual void aes_cbc256_hard_encrypt(cbc_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) override
+    {
+    }
+    virtual void aes_gcm128_hard_decrypt(gcm_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data, gsl::span<uint8_t> gcm_tag) override
+    {
+    }
+
+private:
+    void os_aes_process(const uint8_t *input_data,
+        uint8_t *output_data,
+        size_t input_data_len,
+        aes_cipher_mode_t cipher_mode)
+    {
+        size_t temp_len = 0;
+        uint32_t i = 0;
+
+        if (input_data_len >= 80)
+        {
+            for (i = 0; i < (input_data_len / 80); i++)
+                aes_process_less_80_bytes(&input_data[i * 80], &output_data[i * 80], 80, cipher_mode);
+        }
+        temp_len = input_data_len % 80;
+        if (temp_len)
+            aes_process_less_80_bytes(&input_data[i * 80], &output_data[i * 80], temp_len, cipher_mode);
+    }
+
+    void aes_process_less_80_bytes(const uint8_t *input_data,
+        uint8_t *output_data,
+        size_t input_data_len,
+        aes_cipher_mode_t cipher_mode)
+    {
+        size_t padding_len, uint32_num, uint8_num, remainder, i;
+        uint32_t uint32_data;
+        uint8_t uint8_data[4] = { 0 };
+
+        padding_len = ((input_data_len + 15) / 16) * 16;
+        uint32_num = input_data_len / 4;
+        for (i = 0; i < uint32_num; i++)
+        {
+            uint32_data = *((uint32_t *)(&input_data[i * 4]));
+            while (!os_aes_get_data_in_flag())
+                ;
+            os_aes_write_text(uint32_data);
+        }
+        uint8_num = 4 * uint32_num;
+        remainder = input_data_len % 4;
+        if (remainder)
+        {
+            switch (remainder)
+            {
+            case 1:
+                uint8_data[0] = input_data[uint8_num];
+                break;
+            case 2:
+                uint8_data[0] = input_data[uint8_num];
+                uint8_data[1] = input_data[uint8_num + 1];
+                break;
+            case 3:
+                uint8_data[0] = input_data[uint8_num];
+                uint8_data[1] = input_data[uint8_num + 1];
+                uint8_data[2] = input_data[uint8_num + 2];
+                break;
+            default:
+                break;
+            }
+
+            uint32_data = *((uint32_t *)(&uint8_data[0]));
+            while (!os_aes_get_data_in_flag(userdata))
+                ;
+            os_aes_write_text(uint32_data, userdata);
+        }
+        if ((cipher_mode == AES_ECB) || (cipher_mode == AES_CBC))
+        {
+            uint32_num = (padding_len - input_data_len) / 4;
+            for (i = 0; i < uint32_num; i++)
+            {
+                while (!os_aes_get_data_in_flag(userdata))
+                    ;
+                os_aes_write_text(0, userdata);
+            }
+            uint32_num = padding_len / 4;
+        }
+        for (i = 0; i < uint32_num; i++)
+        {
+            while (!os_aes_get_data_out_flag(userdata))
+                ;
+            *((uint32_t *)(&output_data[i * 4])) = os_aes_read_out_data(userdata);
+        }
+        if ((cipher_mode == AES_GCM) && (remainder))
+        {
+            while (!os_aes_get_data_out_flag(userdata))
+                ;
+            *((uint32_t *)(&uint8_data[0])) = os_aes_read_out_data(userdata);
+            switch (remainder)
+            {
+            case 1:
+                output_data[uint32_num * 4] = uint8_data[0];
+                break;
+            case 2:
+                output_data[uint32_num * 4] = uint8_data[0];
+                output_data[(i * 4) + 1] = uint8_data[1];
+                break;
+            case 3:
+                output_data[uint32_num * 4] = uint8_data[0];
+                output_data[(i * 4) + 1] = uint8_data[1];
+                output_data[(i * 4) + 2] = uint8_data[2];
+                break;
+            default:
+                break;
+            }
+        }
+    }
+
+    uint32_t os_aes_get_data_in_flag()
+    {
+        return aes_.data_in_flag;
+    }
+
+    void os_aes_write_text(uint32_t text_data)
+    {
+        aes_.aes_text_data = text_data;
+    }
+
+    void os_gcm_write_tag(uint32_t *tag)
+    {
+        aes_.gcm_in_tag[0] = tag[3];
+        aes_.gcm_in_tag[1] = tag[2];
+        aes_.gcm_in_tag[2] = tag[1];
+        aes_.gcm_in_tag[3] = tag[0];
+    }
+
+    uint32_t os_aes_get_data_in_flag()
+    {
+        return aes_.data_in_flag;
+    }
+
+    uint32_t os_aes_get_data_out_flag()
+    {
+        return aes_.data_out_flag;
+    }
+
+    uint32_t os_gcm_get_tag_in_flag()
+    {
+        return aes_.tag_in_flag;
+    }
+
+    uint32_t os_aes_read_out_data()
+    {
+        return aes_.aes_out_data;
+    }
+
+    uint32_t os_gcm_get_tag_chk()
+    {
+        return aes_.tag_chk;
+    }
+
+    void os_gcm_clear_chk_tag()
+    {
+        aes_.tag_clear = 0;
+    }
+
+    int os_gcm_check_tag(uint32_t *gcm_tag)
+    {
+        while (!os_gcm_get_tag_in_flag())
+            ;
+        os_gcm_write_tag(gcm_tag);
+        while (!os_gcm_get_tag_chk())
+            ;
+        if (os_gcm_get_tag_chk() == 0x2)
+        {
+            os_gcm_clear_chk_tag();
+            return 1;
+        }
+        else
+        {
+            os_gcm_clear_chk_tag();
+            return 0;
+        }
+    }
+
+    void os_gcm_get_tag(uint8_t *gcm_tag)
+    {
+        COMMON_ENTRY;
+        uint32_t uint32_tag;
+        uint8_t i = 0;
+
+        uint32_tag = aes_.gcm_out_tag[3];
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 24) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 16) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 8) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag)&0xff);
+
+        uint32_tag = aes_.gcm_out_tag[2];
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 24) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 16) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 8) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag)&0xff);
+
+        uint32_tag = aes_.gcm_out_tag[1];
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 24) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 16) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 8) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag)&0xff);
+
+        uint32_tag = aes_.gcm_out_tag[0];
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 24) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 16) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag >> 8) & 0xff);
+        gcm_tag[i++] = (uint8_t)((uint32_tag)&0xff);
+
+        os_gcm_check_tag((uint32_t *)gcm_tag);
+    }
+
+private:
+    volatile aes_t &aes_;
+    sysctl_clock_t clock_;
+    sysctl_dma_select_t dma_req_;
+    SemaphoreHandle_t free_mutex_;
+};
+
+#define COMMON_ENTRY                                         \
+    aes_dev_data *data = (aes_dev_data *)userdata;           \
+    volatile aes_t *aes = (volatile aes_t *)data->base_addr; \
     (void)aes;
 
 typedef struct
@@ -187,7 +576,7 @@ static void os_aes_init(const uint8_t *input_key,
     COMMON_ENTRY;
     size_t remainder, uint32_num, uint8_num, i;
     uint32_t uint32_data;
-    uint8_t uint8_data[4] = {0};
+    uint8_t uint8_data[4] = { 0 };
     size_t padding_len = input_data_len;
     if ((cipher_mode == AES_ECB) || (cipher_mode == AES_CBC))
         padding_len = ((input_data_len + 15) / 16) * 16;
@@ -256,7 +645,7 @@ static void aes_input_bytes(const uint8_t *input_data, size_t input_data_len, ae
 {
     size_t padding_len, uint32_num, uint8_num, remainder, i;
     uint32_t uint32_data;
-    uint8_t uint8_data[4] = {0};
+    uint8_t uint8_data[4] = { 0 };
 
     padding_len = ((input_data_len + 15) / 16) * 16;
     uint32_num = input_data_len / 4;
@@ -315,7 +704,7 @@ static void aes_process_less_80_bytes(const uint8_t *input_data,
 {
     size_t padding_len, uint32_num, uint8_num, remainder, i;
     uint32_t uint32_data;
-    uint8_t uint8_data[4] = {0};
+    uint8_t uint8_data[4] = { 0 };
 
     padding_len = ((input_data_len + 15) / 16) * 16;
     uint32_num = input_data_len / 4;
@@ -414,143 +803,13 @@ static void os_aes_process(const uint8_t *input_data,
         aes_process_less_80_bytes(&input_data[i * 80], &output_data[i * 80], temp_len, cipher_mode, userdata);
 }
 
-static void aes_ecb128_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata)
-{
-    COMMON_ENTRY;
-    entry_exclusive(data);
-    size_t padding_len = ((input_len + 15) / 16) * 16;
-    os_aes_init(input_key, AES_128, NULL, 0L, NULL, AES_ECB, AES_HARD_DECRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
-    {
-        os_aes_process(input_data, output_data, padding_len, AES_ECB, userdata);
-    }
-    else
-    {
-        handle_t aes_read = dma_open_free();
-        dma_set_request_source(aes_read, data->dma_req_base);
-
-        SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
-        aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
-        aes_input_bytes(input_data, input_len, AES_ECB, userdata);
-        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
-        dma_close(aes_read);
-        vSemaphoreDelete(event_read);
-    }
-    exit_exclusive(data);
-}
-
-static void aes_ecb128_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata)
-{
-    COMMON_ENTRY;
-    entry_exclusive(data);
-    size_t padding_len = ((input_len + 15) / 16) * 16;
-    os_aes_init(input_key, AES_128, NULL, 0L, NULL, AES_ECB, AES_HARD_ENCRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
-    {
-        os_aes_process(input_data, output_data, input_len, AES_ECB, userdata);
-    }
-    else
-    {
-        handle_t aes_read = dma_open_free();
-        dma_set_request_source(aes_read, data->dma_req_base);
-
-        SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
-        aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
-        aes_input_bytes(input_data, input_len, AES_ECB, userdata);
-        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
-        dma_close(aes_read);
-        vSemaphoreDelete(event_read);
-    }
-    exit_exclusive(data);
-}
-
-static void aes_ecb192_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata)
-{
-    COMMON_ENTRY;
-    entry_exclusive(data);
-    size_t padding_len = ((input_len + 15) / 16) * 16;
-    os_aes_init(input_key, AES_192, NULL, 0L, NULL, AES_ECB, AES_HARD_DECRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
-    {
-        os_aes_process(input_data, output_data, padding_len, AES_ECB, userdata);
-    }
-    else
-    {
-        handle_t aes_read = dma_open_free();
-        dma_set_request_source(aes_read, data->dma_req_base);
-
-        SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
-        aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
-        aes_input_bytes(input_data, input_len, AES_ECB, userdata);
-        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
-        dma_close(aes_read);
-        vSemaphoreDelete(event_read);
-    }
-    exit_exclusive(data);
-}
-
-static void aes_ecb192_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata)
-{
-    COMMON_ENTRY;
-    entry_exclusive(data);
-    size_t padding_len = ((input_len + 15) / 16) * 16;
-    os_aes_init(input_key, AES_192, NULL, 0L, NULL, AES_ECB, AES_HARD_ENCRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
-    {
-        os_aes_process(input_data, output_data, input_len, AES_ECB, userdata);
-    }
-    else
-    {
-        handle_t aes_read = dma_open_free();
-        dma_set_request_source(aes_read, data->dma_req_base);
-
-        SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
-        aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
-        aes_input_bytes(input_data, input_len, AES_ECB, userdata);
-        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
-        dma_close(aes_read);
-        vSemaphoreDelete(event_read);
-    }
-    exit_exclusive(data);
-}
-
-static void aes_ecb256_hard_decrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata)
-{
-    COMMON_ENTRY;
-    entry_exclusive(data);
-    size_t padding_len = ((input_len + 15) / 16) * 16;
-    os_aes_init(input_key, AES_256, NULL, 0L, NULL, AES_ECB, AES_HARD_DECRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
-    {
-        os_aes_process(input_data, output_data, padding_len, AES_ECB, userdata);
-    }
-    else
-    {
-        handle_t aes_read = dma_open_free();
-        dma_set_request_source(aes_read, data->dma_req_base);
-
-        SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
-        aes->dma_sel = 1;
-        dma_transmit_async(aes_read, &aes->aes_out_data, output_data, 0, 1, sizeof(uint32_t), padding_len >> 2, 4, event_read);
-        aes_input_bytes(input_data, input_len, AES_ECB, userdata);
-        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
-        dma_close(aes_read);
-        vSemaphoreDelete(event_read);
-    }
-    exit_exclusive(data);
-}
-
 static void aes_ecb256_hard_encrypt(const uint8_t *input_key, const uint8_t *input_data, size_t input_len, uint8_t *output_data, void *userdata)
 {
     COMMON_ENTRY;
     entry_exclusive(data);
     size_t padding_len = ((input_len + 15) / 16) * 16;
     os_aes_init(input_key, AES_256, NULL, 0L, NULL, AES_ECB, AES_HARD_ENCRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
+    if (padding_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_ECB, userdata);
     }
@@ -576,7 +835,7 @@ static void aes_cbc128_hard_decrypt(cbc_context_t *context, const uint8_t *input
     entry_exclusive(data);
     size_t padding_len = ((input_len + 15) / 16) * 16;
     os_aes_init(context->input_key, AES_128, context->iv, IV_LEN_128, NULL, AES_CBC, AES_HARD_DECRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
+    if (padding_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, padding_len, AES_CBC, userdata);
     }
@@ -602,7 +861,7 @@ static void aes_cbc128_hard_encrypt(cbc_context_t *context, const uint8_t *input
     entry_exclusive(data);
     size_t padding_len = ((input_len + 15) / 16) * 16;
     os_aes_init(context->input_key, AES_128, context->iv, IV_LEN_128, NULL, AES_CBC, AES_HARD_ENCRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
+    if (padding_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_CBC, userdata);
     }
@@ -630,7 +889,7 @@ static void aes_cbc192_hard_decrypt(cbc_context_t *context, const uint8_t *input
     entry_exclusive(data);
     size_t padding_len = ((input_len + 15) / 16) * 16;
     os_aes_init(context->input_key, AES_192, context->iv, IV_LEN_128, NULL, AES_CBC, AES_HARD_DECRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
+    if (padding_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, padding_len, AES_CBC, userdata);
     }
@@ -656,7 +915,7 @@ static void aes_cbc192_hard_encrypt(cbc_context_t *context, const uint8_t *input
     entry_exclusive(data);
     size_t padding_len = ((input_len + 15) / 16) * 16;
     os_aes_init(context->input_key, AES_192, context->iv, IV_LEN_128, NULL, AES_CBC, AES_HARD_ENCRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
+    if (padding_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_CBC, userdata);
     }
@@ -682,7 +941,7 @@ static void aes_cbc256_hard_decrypt(cbc_context_t *context, const uint8_t *input
     entry_exclusive(data);
     size_t padding_len = ((input_len + 15) / 16) * 16;
     os_aes_init(context->input_key, AES_256, context->iv, IV_LEN_128, NULL, AES_CBC, AES_HARD_DECRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
+    if (padding_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, padding_len, AES_CBC, userdata);
     }
@@ -708,7 +967,7 @@ static void aes_cbc256_hard_encrypt(cbc_context_t *context, const uint8_t *input
     entry_exclusive(data);
     size_t padding_len = ((input_len + 15) / 16) * 16;
     os_aes_init(context->input_key, AES_256, context->iv, IV_LEN_128, NULL, AES_CBC, AES_HARD_ENCRYPTION, 0L, input_len, userdata);
-    if(padding_len <= AES_TRANSMISSION_THRESHOLD)
+    if (padding_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_CBC, userdata);
     }
@@ -733,8 +992,8 @@ static void aes_gcm128_hard_decrypt(gcm_context_t *context, const uint8_t *input
     COMMON_ENTRY;
     entry_exclusive(data);
     os_aes_init(context->input_key, AES_128, context->iv, IV_LEN_96, context->gcm_aad,
-            AES_GCM, AES_HARD_DECRYPTION, context->gcm_aad_len, input_len, userdata);
-    if(input_len <= AES_TRANSMISSION_THRESHOLD)
+        AES_GCM, AES_HARD_DECRYPTION, context->gcm_aad_len, input_len, userdata);
+    if (input_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_GCM, userdata);
     }
@@ -762,8 +1021,8 @@ static void aes_gcm128_hard_encrypt(gcm_context_t *context, const uint8_t *input
     COMMON_ENTRY;
     entry_exclusive(data);
     os_aes_init(context->input_key, AES_128, context->iv, IV_LEN_96, context->gcm_aad,
-            AES_GCM, AES_HARD_ENCRYPTION, context->gcm_aad_len, input_len, userdata);
-    if(input_len <= AES_TRANSMISSION_THRESHOLD)
+        AES_GCM, AES_HARD_ENCRYPTION, context->gcm_aad_len, input_len, userdata);
+    if (input_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_GCM, userdata);
     }
@@ -791,8 +1050,8 @@ static void aes_gcm192_hard_decrypt(gcm_context_t *context, const uint8_t *input
     COMMON_ENTRY;
     entry_exclusive(data);
     os_aes_init(context->input_key, AES_192, context->iv, IV_LEN_96, context->gcm_aad,
-            AES_GCM, AES_HARD_DECRYPTION, context->gcm_aad_len, input_len, userdata);
-    if(input_len <= AES_TRANSMISSION_THRESHOLD)
+        AES_GCM, AES_HARD_DECRYPTION, context->gcm_aad_len, input_len, userdata);
+    if (input_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_GCM, userdata);
     }
@@ -820,8 +1079,8 @@ static void aes_gcm192_hard_encrypt(gcm_context_t *context, const uint8_t *input
     COMMON_ENTRY;
     entry_exclusive(data);
     os_aes_init(context->input_key, AES_192, context->iv, IV_LEN_96, context->gcm_aad,
-            AES_GCM, AES_HARD_ENCRYPTION, context->gcm_aad_len, input_len, userdata);
-    if(input_len <= AES_TRANSMISSION_THRESHOLD)
+        AES_GCM, AES_HARD_ENCRYPTION, context->gcm_aad_len, input_len, userdata);
+    if (input_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_GCM, userdata);
     }
@@ -849,8 +1108,8 @@ static void aes_gcm256_hard_decrypt(gcm_context_t *context, const uint8_t *input
     COMMON_ENTRY;
     entry_exclusive(data);
     os_aes_init(context->input_key, AES_256, context->iv, IV_LEN_96, context->gcm_aad,
-            AES_GCM, AES_HARD_DECRYPTION, context->gcm_aad_len, input_len, userdata);
-    if(input_len <= AES_TRANSMISSION_THRESHOLD)
+        AES_GCM, AES_HARD_DECRYPTION, context->gcm_aad_len, input_len, userdata);
+    if (input_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_GCM, userdata);
     }
@@ -878,8 +1137,8 @@ static void aes_gcm256_hard_encrypt(gcm_context_t *context, const uint8_t *input
     COMMON_ENTRY;
     entry_exclusive(data);
     os_aes_init(context->input_key, AES_256, context->iv, IV_LEN_96, context->gcm_aad,
-            AES_GCM, AES_HARD_ENCRYPTION, context->gcm_aad_len, input_len, userdata);
-    if(input_len <= AES_TRANSMISSION_THRESHOLD)
+        AES_GCM, AES_HARD_ENCRYPTION, context->gcm_aad_len, input_len, userdata);
+    if (input_len <= AES_TRANSMISSION_THRESHOLD)
     {
         os_aes_process(input_data, output_data, input_len, AES_GCM, userdata);
     }
@@ -902,11 +1161,10 @@ static void aes_gcm256_hard_encrypt(gcm_context_t *context, const uint8_t *input
     exit_exclusive(data);
 }
 
-static aes_dev_data dev0_data = {SYSCTL_CLOCK_AES, AES_BASE_ADDR, SYSCTL_DMA_SELECT_AES_REQ, 0, {{0}}};
+static aes_dev_data dev0_data = { SYSCTL_CLOCK_AES, AES_BASE_ADDR, SYSCTL_DMA_SELECT_AES_REQ, 0, { { 0 } } };
 
-const aes_driver_t g_aes_driver_aes0 =
-{
-    {&dev0_data, aes_install, aes_open, aes_close},
+const aes_driver_t g_aes_driver_aes0 = {
+    { &dev0_data, aes_install, aes_open, aes_close },
     aes_ecb128_hard_decrypt,
     aes_ecb128_hard_encrypt,
     aes_ecb192_hard_decrypt,
