@@ -17,7 +17,6 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "driver.h"
 
 #ifdef __cplusplus
 extern "C"

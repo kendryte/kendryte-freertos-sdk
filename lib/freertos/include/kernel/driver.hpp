@@ -17,43 +17,10 @@
 
 #include "object.hpp"
 #include <gsl/span>
+#include <memory>
 
 namespace sys
 {
-typedef enum _driver_type
-{
-    DRIVER_UART,
-    DRIVER_GPIO,
-    DRIVER_I2C,
-    DRIVER_I2C_DEVICE,
-    DRIVER_I2S,
-    DRIVER_SPI,
-    DRIVER_SPI_DEVICE,
-    DRIVER_DVP,
-    DRIVER_SCCB,
-    DRIVER_SCCB_DEVICE,
-    DRIVER_FFT,
-    DRIVER_AES,
-    DRIVER_SHA256,
-    DRIVER_TIMER,
-    DRIVER_PWM,
-    DRIVER_WDT,
-    DRIVER_RTC,
-    DRIVER_PIC,
-    DRIVER_DMAC,
-    DRIVER_DMA,
-    DRIVER_BLOCK_STORAGE,
-    DRIVER_FILE,
-    DRIVER_CUSTOM
-} driver_type_t;
-
-typedef struct tag_driver_registry
-{
-    const char *name;
-    const void *driver;
-    driver_type_t type;
-} driver_registry_t;
-
 class object_access : public virtual object
 {
 public:
@@ -67,12 +34,18 @@ public:
     virtual void install() = 0;
 };
 
+typedef struct tag_driver_registry
+{
+    const char *name;
+    object_ptr<driver> driver_ptr;
+} driver_registry_t;
+
 class uart_driver : public driver
 {
 public:
     virtual void config(uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity) = 0;
-    virtual size_t read(gsl::span<uint8_t> buffer) = 0;
-    virtual void write(gsl::span<const uint8_t> buffer) = 0;
+    virtual int read(gsl::span<uint8_t> buffer) = 0;
+    virtual int write(gsl::span<const uint8_t> buffer) = 0;
 };
 
 class gpio_driver : public driver
@@ -90,9 +63,9 @@ class i2c_device_driver : public driver
 {
 public:
     virtual double set_clock_rate(double clock_rate) = 0;
-    virtual size_t read(gsl::span<uint8_t> buffer) = 0;
-    virtual void write(gsl::span<const uint8_t> buffer) = 0;
-    virtual size_t transfer_sequential(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
+    virtual int read(gsl::span<uint8_t> buffer) = 0;
+    virtual int write(gsl::span<const uint8_t> buffer) = 0;
+    virtual int transfer_sequential(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
 };
 
 class i2c_driver : public driver
@@ -108,7 +81,7 @@ class i2s_driver : public driver
 public:
     virtual void config_as_render(const audio_format_t &format, size_t delay_ms, i2s_align_mode_t align_mode, uint32_t channels_mask) = 0;
     virtual void config_as_capture(const audio_format_t &format, size_t delay_ms, i2s_align_mode_t align_mode, uint32_t channels_mask) = 0;
-    virtual void get_buffer(gsl::span<uint8_t> &buffer, uint32_t &frames) = 0;
+    virtual void get_buffer(gsl::span<uint8_t> &buffer, size_t &frames) = 0;
     virtual void release_buffer(uint32_t frames) = 0;
     virtual void start() = 0;
     virtual void stop() = 0;
@@ -119,10 +92,10 @@ class spi_device_driver : public driver
 public:
     virtual void config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode) = 0;
     virtual double set_clock_rate(double clock_rate) = 0;
-    virtual size_t read(gsl::span<uint8_t> buffer) = 0;
-    virtual void write(gsl::span<const uint8_t> buffer) = 0;
-    virtual size_t transfer_full_duplex(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
-    virtual size_t transfer_sequential(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
+    virtual int read(gsl::span<uint8_t> buffer) = 0;
+    virtual int write(gsl::span<const uint8_t> buffer) = 0;
+    virtual int transfer_full_duplex(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
+    virtual int transfer_sequential(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
     virtual void fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count) = 0;
 };
 
@@ -140,7 +113,7 @@ public:
     virtual void enable_frame() = 0;
     virtual void set_signal(dvp_signal_type_t type, bool value) = 0;
     virtual void set_output_enable(uint32_t index, bool enable) = 0;
-    virtual void set_output_attributes(uint32_t index, video_format_t format, gsl::span<uint8_t> output_buffer) = 0;
+    virtual void set_output_attributes(uint32_t index, video_format_t format, void *output_buffer) = 0;
     virtual void set_frame_event_enable(dvp_frame_event_t event, bool enable) = 0;
     virtual void set_on_frame_event(dvp_on_frame_event_t callback, void *userdata) = 0;
     virtual double xclk_set_clock_rate(double clock_rate) = 0;
@@ -162,7 +135,7 @@ public:
 class fft_driver : public driver
 {
 public:
-    virtual void complex_uint16(uint16_t shift, fft_direction_t direction, gsl::span<const uint64_t> input, size_t point_num, gsl::span<uint64_t> output) = 0;
+    virtual void complex_uint16(uint16_t shift, fft_direction_t direction, const uint64_t *input, size_t point_num, uint64_t *output) = 0;
 };
 
 class aes_driver : public driver
@@ -181,6 +154,11 @@ public:
     virtual void aes_cbc256_hard_decrypt(cbc_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) = 0;
     virtual void aes_cbc256_hard_encrypt(cbc_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data) = 0;
     virtual void aes_gcm128_hard_decrypt(gcm_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data, gsl::span<uint8_t> gcm_tag) = 0;
+    virtual void aes_gcm128_hard_encrypt(gcm_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data, gsl::span<uint8_t> gcm_tag) = 0;
+    virtual void aes_gcm192_hard_decrypt(gcm_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data, gsl::span<uint8_t> gcm_tag) = 0;
+    virtual void aes_gcm192_hard_encrypt(gcm_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data, gsl::span<uint8_t> gcm_tag) = 0;
+    virtual void aes_gcm256_hard_decrypt(gcm_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data, gsl::span<uint8_t> gcm_tag) = 0;
+    virtual void aes_gcm256_hard_encrypt(gcm_context_t &context, gsl::span<const uint8_t> input_data, gsl::span<uint8_t> output_data, gsl::span<uint8_t> gcm_tag) = 0;
 };
 
 class sha256_driver : public driver
@@ -192,7 +170,7 @@ public:
 class timer_driver : public driver
 {
 public:
-    virtual void set_interval(size_t nanoseconds) = 0;
+    virtual size_t set_interval(size_t nanoseconds) = 0;
     virtual void set_on_tick(timer_on_tick_t on_tick, void *userdata) = 0;
     virtual void set_enable(bool enable) = 0;
 };
@@ -220,13 +198,13 @@ class rtc_driver : public driver
 {
 public:
     virtual void get_datetime(struct tm &datetime) = 0;
-    virtual void set_datatime(const struct tm &datetime) = 0;
+    virtual void set_datetime(const struct tm &datetime) = 0;
 };
 
 class custom_driver : public driver
 {
 public:
-    virtual void control(uint32_t control_code, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
+    virtual int control(uint32_t control_code, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
 };
 
 /* ===== internal drivers ======*/
@@ -252,7 +230,6 @@ public:
 class dmac_driver : public driver
 {
 public:
-
 };
 
 class block_storage_driver : public driver
@@ -272,13 +249,12 @@ extern driver_registry_t g_system_drivers[];
  * @brief       Install a driver
  * @param[in]   name        Specify the path to access it later
  * @param[in]   type        The type of driver
- * @param[in]   driver      The driver info
  *
  * @return      result
  *     - NULL   Fail
  *     - other  The driver registry
  */
-driver_registry_t *system_install_driver(const char *name, driver_type_t type, const void *driver);
+driver_registry_t *system_install_driver(const char *name, object_ptr<driver> driver);
 }
 
 #endif /* _FREERTOS_DRIVER_H */

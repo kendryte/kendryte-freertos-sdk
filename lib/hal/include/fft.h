@@ -63,29 +63,34 @@ typedef struct _fft_input_fifo
  *
  *             No. 1 Register (0x08)
  */
-typedef struct _fft_fft_ctrl
+typedef union _fft_fft_ctrl
 {
-    /**
-     *FFT calculation data length:
-     *b'000:512 point; b'001:256 point; b'010:128 point; b'011:64 point;
-     */
-    uint64_t fft_point : 3;
-    /* FFT mode: b'0:FFT b'1:IFFT */
-    uint64_t fft_mode : 1;
-    /* Corresponding to the nine layer butterfly shift operation, 0x0: does not shift; 0x1: shift 1st layer. ...*/
-    uint64_t fft_shift : 9;
-    /* FFT enable: b'0:disable b'1:enable */
-    uint64_t fft_enable : 1;
-    /* FFT DMA enable: b'0:disable b'1:enable */
-    uint64_t dma_send : 1;
-    /**
-     *Input data arrangement: b'00:RIRI; b'01:only real part exist, RRRR;
-     *b'10:First input the real part and then input the imaginary part.
-     */
-    uint64_t fft_input_mode : 2;
-    /* Effective width of input data. b'0:64bit effective; b'1:32bit effective  */
-    uint64_t fft_data_mode : 1;
-    uint64_t reserved : 46;
+    struct
+    {
+        /**
+         *FFT calculation data length:
+         *b'000:512 point; b'001:256 point; b'010:128 point; b'011:64 point;
+         */
+        uint64_t fft_point : 3;
+        /* FFT mode: b'0:FFT b'1:IFFT */
+        uint64_t fft_mode : 1;
+        /* Corresponding to the nine layer butterfly shift operation, 0x0: does not shift; 0x1: shift 1st layer. ...*/
+        uint64_t fft_shift : 9;
+        /* FFT enable: b'0:disable b'1:enable */
+        uint64_t fft_enable : 1;
+        /* FFT DMA enable: b'0:disable b'1:enable */
+        uint64_t dma_send : 1;
+        /**
+         *Input data arrangement: b'00:RIRI; b'01:only real part exist, RRRR;
+         *b'10:First input the real part and then input the imaginary part.
+         */
+        uint64_t fft_input_mode : 2;
+        /* Effective width of input data. b'0:64bit effective; b'1:32bit effective  */
+        uint64_t fft_data_mode : 1;
+        uint64_t reserved : 46;
+    };
+
+    uint64_t data;
 } __attribute__((packed, aligned(8))) fft_fft_ctrl_t;
 
 /**

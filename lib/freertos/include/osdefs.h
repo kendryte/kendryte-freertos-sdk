@@ -15,6 +15,7 @@
 #ifndef _FREERTOS_OSDEFS_H
 #define _FREERTOS_OSDEFS_H
 
+#include <platform.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

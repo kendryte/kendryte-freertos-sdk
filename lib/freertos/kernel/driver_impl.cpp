@@ -42,6 +42,25 @@ void free_object_access::close()
         on_last_close();
 }
 
+exclusive_object_access::exclusive_object_access() noexcept
+    : used_(ATOMIC_FLAG_INIT)
+{
+}
+
+void exclusive_object_access::open()
+{
+    if (used_.test_and_set(std::memory_order_acquire))
+        throw access_denied_exception();
+    else
+        on_first_open();
+}
+
+void exclusive_object_access::close()
+{
+    on_last_close();
+    used_.clear(std::memory_order_release);
+}
+
 semaphore_lock::semaphore_lock(SemaphoreHandle_t semaphore) noexcept
     : semaphore_(semaphore)
 {

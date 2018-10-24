@@ -43,6 +43,22 @@ private:
     std::atomic<size_t> used_count_;
 };
 
+class exclusive_object_access : public virtual object_access
+{
+public:
+    exclusive_object_access() noexcept;
+
+    virtual void open() override;
+    virtual void close() override;
+
+protected:
+    virtual void on_first_open() = 0;
+    virtual void on_last_close() = 0;
+
+private:
+    std::atomic_flag used_;
+};
+
 class semaphore_lock
 {
 public:
