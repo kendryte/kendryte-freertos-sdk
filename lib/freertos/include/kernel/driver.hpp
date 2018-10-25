@@ -28,6 +28,93 @@ public:
     virtual void close() = 0;
 };
 
+template <class T>
+struct object_accessor
+{
+public:
+    object_accessor() = default;
+
+    object_accessor(object_accessor &) = delete;
+    object_accessor &operator=(object_accessor &other) = delete;
+
+    template <class U>
+    object_accessor(object_accessor<U> &&other)
+        : obj_(std::move(other.obj_))
+    {
+    }
+
+    explicit object_accessor(object_ptr<T> &&obj) noexcept
+        : obj_(std::move(obj))
+    {
+    }
+
+    ~object_accessor()
+    {
+        if (obj_)
+            std::move(obj_)->close();
+    }
+
+    operator bool() const noexcept
+    {
+        return obj_;
+    }
+
+    object_accessor &operator=(object_accessor &&other) noexcept
+    {
+        if (obj_)
+            obj_->close();
+        obj_ = std::move(other.obj_);
+        return *this;
+    }
+
+    T *operator->() const noexcept
+    {
+        return obj_.get();
+    }
+
+    template <class U>
+    bool is() const
+    {
+        return obj_.template is<U>();
+    }
+
+    template <class U>
+    object_accessor<U> move_as()
+    {
+        auto obj = obj_.template as<U>();
+        obj_.reset();
+        return { std::move(obj) };
+    }
+
+    template <class U>
+    U *as()
+    {
+        auto obj = obj_.template as<U>();
+        if (obj)
+            return obj.get();
+        return nullptr;
+    }
+
+    void reset() noexcept
+    {
+        if (obj_)
+            std::move(obj_)->close();
+    }
+
+private:
+    template <class U>
+    friend class object_accessor;
+
+    object_ptr<T> obj_;
+};
+
+template <typename T>
+object_accessor<T> make_accessor(object_ptr<T> obj)
+{
+    obj->open();
+    return object_accessor<T>(std::move(obj));
+}
+
 class driver : public virtual object, public virtual object_access
 {
 public:
@@ -255,6 +342,8 @@ extern driver_registry_t g_system_drivers[];
  *     - other  The driver registry
  */
 driver_registry_t *system_install_driver(const char *name, object_ptr<driver> driver);
+
+object_accessor<driver> system_open_driver(const char *name);
 }
 
 #endif /* _FREERTOS_DRIVER_H */

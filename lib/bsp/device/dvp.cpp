@@ -235,4 +235,4 @@ private:
 
 static k_dvp_driver dev0_driver(DVP_BASE_ADDR, SYSCTL_CLOCK_DVP);
 
-object_ptr<driver> g_dvp_driver_dvp0(std::in_place, static_cast<driver *>(&dev0_driver));
+driver &g_dvp_driver_dvp0 = dev0_driver;

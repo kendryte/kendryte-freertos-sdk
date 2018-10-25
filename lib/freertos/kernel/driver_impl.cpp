@@ -25,6 +25,27 @@ bool static_object::release()
     return false;
 }
 
+heap_object::heap_object() noexcept
+    : ref_count_(1)
+{
+}
+
+void heap_object::add_ref()
+{
+    ref_count_.fetch_add(1, std::memory_order_relaxed);
+}
+
+bool heap_object::release()
+{
+    if (ref_count_.fetch_sub(1, std::memory_order_relaxed) == 1)
+    {
+        delete this;
+        return true;
+    }
+
+    return false;
+}
+
 free_object_access::free_object_access() noexcept
     : used_count_(0)
 {

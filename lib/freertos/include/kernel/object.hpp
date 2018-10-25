@@ -43,7 +43,7 @@ public:
     {
     }
 
-    object_ptr(std::in_place_t in, T *obj) noexcept
+    constexpr object_ptr(std::in_place_t in, T *obj) noexcept
         : obj_(obj)
     {
     }
@@ -139,7 +139,9 @@ public:
         }
     }
 
-    T *operator->() const noexcept { return obj_; }
+    T *get() const noexcept { return obj_; }
+
+    T *operator->() const noexcept { return get(); }
     T &operator*() const noexcept { return *obj_; }
 
     template <class U>
@@ -175,6 +177,12 @@ private:
 
     T *obj_;
 };
+
+template <typename T, typename... Args>
+object_ptr<T> make_object(Args &&... args)
+{
+    return object_ptr<T>(std::in_place, std::forward<Args>(args)...);
+}
 }
 
 #endif /* _FREERTOS_OBJECT_H */

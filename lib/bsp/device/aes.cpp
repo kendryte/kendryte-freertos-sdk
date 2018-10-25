@@ -889,4 +889,4 @@ private:
 
 static k_aes_driver dev0_driver(AES_BASE_ADDR, SYSCTL_CLOCK_AES, SYSCTL_DMA_SELECT_AES_REQ);
 
-object_ptr<driver> g_aes_driver_aes0(std::in_place, static_cast<driver *>(&dev0_driver));
+driver& g_aes_driver_aes0 = dev0_driver;

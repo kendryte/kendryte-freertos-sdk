@@ -125,13 +125,13 @@ private:
 
 static k_dmac_driver dev0_driver(DMAC_BASE_ADDR);
 
-object_ptr<driver> g_dmac_driver_dmac0(std::in_place, static_cast<driver *>(&dev0_driver));
+driver &g_dmac_driver_dmac0 = static_cast<driver &>(dev0_driver);
 
 /* DMA Channel */
 
 #define MAX_PING_PONG_SRCS 4
-#define C_COMMON_ENTRY                  \
-    auto &dmac = dmac_.dmac();          \
+#define C_COMMON_ENTRY         \
+    auto &dmac = dmac_.dmac(); \
     auto &dma = dmac.channel[channel_];
 
 class k_dma_driver : public dma_driver, public static_object, public exclusive_object_access
@@ -656,9 +656,9 @@ static k_dma_driver dev0_c3_driver(dev0_driver, 3);
 static k_dma_driver dev0_c4_driver(dev0_driver, 4);
 static k_dma_driver dev0_c5_driver(dev0_driver, 5);
 
-object_ptr<driver> g_dma_driver_dma0(std::in_place, static_cast<driver *>(&dev0_c0_driver));
-object_ptr<driver> g_dma_driver_dma1(std::in_place, static_cast<driver *>(&dev0_c1_driver));
-object_ptr<driver> g_dma_driver_dma2(std::in_place, static_cast<driver *>(&dev0_c2_driver));
-object_ptr<driver> g_dma_driver_dma3(std::in_place, static_cast<driver *>(&dev0_c3_driver));
-object_ptr<driver> g_dma_driver_dma4(std::in_place, static_cast<driver *>(&dev0_c4_driver));
-object_ptr<driver> g_dma_driver_dma5(std::in_place, static_cast<driver *>(&dev0_c5_driver));
+driver &g_dma_driver_dma0 = dev0_c0_driver;
+driver &g_dma_driver_dma1 = dev0_c1_driver;
+driver &g_dma_driver_dma2 = dev0_c2_driver;
+driver &g_dma_driver_dma3 = dev0_c3_driver;
+driver &g_dma_driver_dma4 = dev0_c4_driver;
+driver &g_dma_driver_dma5 = dev0_c5_driver;

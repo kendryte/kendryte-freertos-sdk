@@ -46,7 +46,7 @@ using namespace sys;
 
 typedef struct
 {
-    object_ptr<driver> driver_ptr;
+    object_accessor<driver> driver_ptr;
 } _file;
 
 static _file *handles_[MAX_HANDLES];
@@ -63,7 +63,7 @@ DEFINE_INSTALL_DRIVER(hal);
 DEFINE_INSTALL_DRIVER(dma);
 DEFINE_INSTALL_DRIVER(system);
 
-object_ptr<driver> find_free_driver(driver_registry_t *registry, const char *name)
+object_accessor<driver> find_free_driver(driver_registry_t *registry, const char *name)
 {
     auto head = registry;
     while (head->name)
@@ -73,19 +73,18 @@ object_ptr<driver> find_free_driver(driver_registry_t *registry, const char *nam
             auto &driver = head->driver_ptr;
             try
             {
-                driver->open();
-                return driver;
+                return make_accessor(driver);
             }
             catch (...)
             {
-                return nullptr;
+                return {};
             }
         }
 
         head++;
     }
 
-    return nullptr;
+    return {};
 }
 
 void install_drivers()
@@ -97,16 +96,24 @@ void install_drivers()
     sha256_file_ = io_open("/dev/sha256");
 }
 
-static _file *io_alloc_file(object_ptr<driver> driver)
+static _file *io_alloc_file(object_accessor<driver> driver)
 {
     if (driver)
     {
-        _file *file = (_file *)malloc(sizeof(_file));
+        _file *file = new (std::nothrow) _file;
         if (!file)
             return nullptr;
-        file->driver_ptr = driver;
+        file->driver_ptr = std::move(driver);
         return file;
     }
+
+    return nullptr;
+}
+
+static _file *io_alloc_file(object_ptr<driver> driver)
+{
+    if (driver)
+        return io_alloc_file(make_accessor(driver));
 
     return nullptr;
 }
@@ -116,7 +123,7 @@ static _file *io_open_reg(driver_registry_t *registry, const char *name, _file *
     auto driver = find_free_driver(registry, name);
     if (driver)
     {
-        _file *ret = io_alloc_file(driver);
+        _file *ret = io_alloc_file(std::move(driver));
         *file = ret;
         return ret;
     }
@@ -167,8 +174,7 @@ static void io_free(_file *file)
         if (file->driver_ptr.is<dma_driver>())
             dma_add_free();
 
-        file->driver_ptr->close();
-        free(file);
+        delete file;
     }
 }
 
@@ -767,7 +773,7 @@ void pic_set_irq_handler(uint32_t irq, pic_irq_handler_t handler, void *userdata
     pic_context_.pic_callbacks[irq] = handler;
 }
 
-void kernel_iface_pic_on_irq(uint32_t irq)
+void sys::kernel_iface_pic_on_irq(uint32_t irq)
 {
     pic_irq_handler_t handler = pic_context_.pic_callbacks[irq];
     if (handler)
@@ -838,9 +844,9 @@ void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, v
     dma->loop_async(srcs, src_num, dests, dest_num, src_inc, dest_inc, element_size, count, burst_size, stage_completion_handler, stage_completion_handler_data, completion_event, stop_signal);
 }
 
-/* Custom Driver */
+/* System */
 
-driver_registry_t *system_install_driver(const char *name, object_ptr<driver> driver)
+driver_registry_t *sys::system_install_driver(const char *name, object_ptr<driver> driver)
 {
     size_t i = 0;
     driver_registry_t *head = g_custom_drivers;
@@ -860,7 +866,13 @@ driver_registry_t *system_install_driver(const char *name, object_ptr<driver> dr
     return nullptr;
 }
 
-/* System */
+object_accessor<driver> sys::system_open_driver(const char *name)
+{
+    auto driver = find_free_driver(g_system_drivers, name);
+    if (!driver)
+        driver = find_free_driver(g_hal_drivers, name);
+    return driver;
+}
 
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {

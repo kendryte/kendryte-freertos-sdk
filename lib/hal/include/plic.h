@@ -58,6 +58,7 @@
 #define _DRIVER_PLIC_H
 
 #include <stdint.h>
+#include <platform.h>
 
 /* For c++ compatibility */
 #ifdef __cplusplus

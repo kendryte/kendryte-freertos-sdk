@@ -27,6 +27,19 @@ public:
     virtual bool release() override;
 };
 
+class heap_object : public virtual object
+{
+public:
+    heap_object() noexcept;
+    virtual ~heap_object() = default;
+
+    virtual void add_ref() override;
+    virtual bool release() override;
+
+private:
+    std::atomic<size_t> ref_count_;
+};
+
 class free_object_access : public virtual object_access
 {
 public:

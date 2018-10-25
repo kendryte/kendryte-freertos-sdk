@@ -107,4 +107,4 @@ private:
 
 static k_fft_driver dev0_driver(FFT_BASE_ADDR, SYSCTL_CLOCK_FFT);
 
-object_ptr<driver> g_fft_driver_fft0(std::in_place, static_cast<driver *>(&dev0_driver));
+driver &g_fft_driver_fft0 = dev0_driver;

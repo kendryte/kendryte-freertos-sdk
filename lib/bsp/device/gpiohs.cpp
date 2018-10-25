@@ -210,4 +210,4 @@ private:
 
 static k_gpiohs_driver dev0_driver(GPIOHS_BASE_ADDR);
 
-object_ptr<driver> g_gpiohs_driver_gpio0(std::in_place, static_cast<driver *>(&dev0_driver));
+driver &g_gpiohs_driver_gpio0 = dev0_driver;

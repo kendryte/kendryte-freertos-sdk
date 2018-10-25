@@ -117,4 +117,4 @@ private:
 
 static k_gpio_driver dev0_driver(GPIO_BASE_ADDR);
 
-object_ptr<driver> g_gpio_driver_gpio0(std::in_place, static_cast<driver *>(&dev0_driver));
+driver &g_gpio_driver_gpio0 = dev0_driver;
