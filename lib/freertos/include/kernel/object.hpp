@@ -154,7 +154,8 @@ public:
     template <class U>
     bool is() const
     {
-        return typeid(obj_) == typeid(U *);
+        auto ptr = dynamic_cast<U *>(obj_);
+        return ptr;
     }
 
 private:
