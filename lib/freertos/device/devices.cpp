@@ -787,14 +787,13 @@ handle_t dma_open_free()
     configASSERT(xSemaphoreTake(dma_free_, portMAX_DELAY) == pdTRUE);
 
     driver_registry_t *head = g_dma_drivers;
-    object_ptr<driver> dma;
+    object_accessor<driver> dma;
     while (head->name)
     {
         auto &driver = head->driver_ptr;
         try
         {
-            driver->open();
-            dma = driver;
+            dma = make_accessor(driver);
             break;
         }
         catch (...)
@@ -804,7 +803,7 @@ handle_t dma_open_free()
     }
 
     configASSERT(dma);
-    uintptr_t handle = io_alloc_handle(io_alloc_file(dma));
+    uintptr_t handle = io_alloc_handle(io_alloc_file(std::move(dma)));
     return handle;
 }
 
