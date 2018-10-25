@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sysctl.h>
 #include <utility.h>
+#include <printf.h>
 
 using namespace sys;
 
@@ -53,11 +54,13 @@ public:
     virtual void on_first_open() override
     {
         sysctl_clock_enable(clock_);
+        printk("spi open\n");
     }
 
     virtual void on_last_close() override
     {
         sysctl_clock_disable(clock_);
+        printk("spi close\n");
     }
 
     virtual object_ptr<spi_device_driver> get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length) override;
@@ -156,31 +159,32 @@ public:
 
     virtual double set_clock_rate(double clock_rate) override
     {
-        return 0.0;
+        return spi_->set_clock_rate(*this, clock_rate);
     }
 
     virtual int read(gsl::span<uint8_t> buffer) override
     {
-        return 0;
+        return spi_->read(*this, buffer);
     }
 
     virtual int write(gsl::span<const uint8_t> buffer) override
     {
-        return 0;
+        return spi_->write(*this, buffer);
     }
 
     virtual int transfer_full_duplex(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) override
     {
-        return 0;
+        return spi_->transfer_full_duplex(*this, write_buffer, read_buffer);
     }
 
     virtual int transfer_sequential(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) override
     {
-        return 0;
+        return spi_->transfer_sequential(*this, write_buffer, read_buffer);
     }
 
     virtual void fill(uint32_t instruction, uint32_t address, uint32_t value, size_t count) override
     {
+        spi_->fill(*this, instruction, address, value, count);
     }
 
 private:
@@ -214,14 +218,14 @@ private:
     spi_frame_format_t frame_format_;
     uint32_t chip_select_mask_;
     uint32_t data_bit_length_;
-    uint32_t instruction_length_;
-    uint32_t address_length_;
-    uint32_t inst_width_;
-    uint32_t addr_width_;
-    uint32_t wait_cycles_;
+    uint32_t instruction_length_ = 0;
+    uint32_t address_length_ = 0;
+    uint32_t inst_width_ = 0;
+    uint32_t addr_width_ = 0;
+    uint32_t wait_cycles_ = 0;
     spi_inst_addr_trans_mode_t trans_mode_;
-    uint32_t baud_rate_;
-    uint32_t buffer_width_;
+    uint32_t baud_rate_ = 0x2;
+    uint32_t buffer_width_ = 0;
 };
 
 object_ptr<spi_device_driver> k_spi_driver::get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
