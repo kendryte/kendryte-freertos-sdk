@@ -217,6 +217,22 @@ typedef void(*pic_irq_handler_t)(void *userdata);
 
 typedef void(*dma_stage_completion_handler_t)(void *userdata);
 
+typedef enum _file_access
+{
+    FILE_ACCESS_READ = 1,
+    FILE_ACCESS_WRITE = 2,
+    FILE_ACCESS_READ_WRITE = 3
+} file_access_t;
+
+typedef enum _file_mode
+{
+    FILE_MODE_OPEN_EXISTING,
+    FILE_MODE_CREATE_NEW,
+    FILE_MODE_CREATE_ALWAYS,
+    FILE_MODE_OPEN_ALWAYS,
+    FILE_MODE_APPEND
+} file_mode_t;
+
 #ifdef __cplusplus
 }
 #endif

@@ -12,27 +12,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "FreeRTOS.h"
+#include "core_sync.h"
+#include "kernel/device_priv.h"
+#include "task.h"
 #include <clint.h>
 #include <encoding.h>
 #include <fpioa.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include "core_sync.h"
-#include "device/device_priv.h"
-#include "FreeRTOS.h"
-#include "task.h"
+#include <stdlib.h>
 
 typedef struct
 {
-    int (*user_main)(int, char**);
+    int (*user_main)(int, char **);
     int ret;
 } main_thunk_param_t;
 
 void start_scheduler(int core_id);
 
-static void main_thunk(void* p)
+static void main_thunk(void *p)
 {
-    main_thunk_param_t* param = (main_thunk_param_t*)p;
+    main_thunk_param_t *param = (main_thunk_param_t *)p;
     param->ret = param->user_main(0, 0);
 }
 
@@ -46,7 +46,7 @@ int __attribute__((weak)) configure_fpioa()
     return 0;
 }
 
-int os_entry(int core_id, int number_of_cores, int(*user_main)(int, char**))
+int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char **))
 {
     clear_csr(mie, MIP_MTIP);
     clint_ipi_enable();

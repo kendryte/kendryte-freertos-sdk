@@ -46,7 +46,7 @@ using namespace sys;
 
 typedef struct
 {
-    object_accessor<driver> driver_ptr;
+    object_accessor<object_access> object;
 } _file;
 
 static _file *handles_[MAX_HANDLES];
@@ -96,24 +96,24 @@ void install_drivers()
     sha256_file_ = io_open("/dev/sha256");
 }
 
-static _file *io_alloc_file(object_accessor<driver> driver)
+static _file *io_alloc_file(object_accessor<object_access> object)
 {
-    if (driver)
+    if (object)
     {
         _file *file = new (std::nothrow) _file;
         if (!file)
             return nullptr;
-        file->driver_ptr = std::move(driver);
+        file->object = std::move(object);
         return file;
     }
 
     return nullptr;
 }
 
-static _file *io_alloc_file(object_ptr<driver> driver)
+static _file *io_alloc_file(object_ptr<object_access> object)
 {
-    if (driver)
-        return io_alloc_file(make_accessor(driver));
+    if (object)
+        return io_alloc_file(make_accessor(object));
 
     return nullptr;
 }
@@ -134,19 +134,19 @@ static _file *io_open_reg(driver_registry_t *registry, const char *name, _file *
 /* Generic IO Implementation Helper Macros */
 
 #define DEFINE_READ_PROXY(t)                             \
-    if (auto t = rfile->driver_ptr.as<t##_driver>())     \
+    if (auto t = rfile->object.as<t##_driver>())         \
     {                                                    \
         return t->read({ buffer, std::ptrdiff_t(len) }); \
     }
 
 #define DEFINE_WRITE_PROXY(t)                             \
-    if (auto t = rfile->driver_ptr.as<t##_driver>())      \
+    if (auto t = rfile->object.as<t##_driver>())          \
     {                                                     \
         return t->write({ buffer, std::ptrdiff_t(len) }); \
     }
 
 #define DEFINE_CONTROL_PROXY(t)                                                                                                  \
-    if (auto t = rfile->driver_ptr.as<t##_driver>())                                                                             \
+    if (auto t = rfile->object.as<t##_driver>())                                                                                 \
     {                                                                                                                            \
         return t->control(control_code, { write_buffer, std::ptrdiff_t(write_len) }, { read_buffer, std::ptrdiff_t(read_len) }); \
     }
@@ -171,7 +171,7 @@ static void io_free(_file *file)
 {
     if (file)
     {
-        if (file->driver_ptr.is<dma_driver>())
+        if (file->object.is<dma_driver>())
             dma_add_free();
 
         delete file;
@@ -253,13 +253,13 @@ int io_control(handle_t file, uint32_t control_code, const uint8_t *write_buffer
 
 #define COMMON_ENTRY(t)                                     \
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
-    configASSERT(rfile->driver_ptr.is<t##_driver>());       \
-    auto t = rfile->driver_ptr.as<t##_driver>();
+    configASSERT(rfile->object.is<t##_driver>());           \
+    auto t = rfile->object.as<t##_driver>();
 
 #define COMMON_ENTRY_FILE(file, t)                          \
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
-    configASSERT(rfile->driver_ptr.is<t##_driver>());       \
-    auto t = rfile->driver_ptr.as<t##_driver>();
+    configASSERT(rfile->object.is<t##_driver>());           \
+    auto t = rfile->object.as<t##_driver>();
 
 /* UART */
 
@@ -870,7 +870,14 @@ object_accessor<driver> sys::system_open_driver(const char *name)
     auto driver = find_free_driver(g_system_drivers, name);
     if (!driver)
         driver = find_free_driver(g_hal_drivers, name);
+    if (!driver)
+        throw std::runtime_error("driver is not found.");
     return driver;
+}
+
+handle_t sys::system_alloc_handle(object_accessor<object_access> object)
+{
+    return io_alloc_handle(io_alloc_file(std::move(object)));
 }
 
 uint32_t system_set_cpu_frequency(uint32_t frequency)

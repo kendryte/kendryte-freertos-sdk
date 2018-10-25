@@ -83,7 +83,7 @@ public:
     {
         auto obj = obj_.template as<U>();
         obj_.reset();
-        return { std::move(obj) };
+        return object_accessor<U>(std::move(obj));
     }
 
     template <class U>
@@ -344,6 +344,8 @@ extern driver_registry_t g_system_drivers[];
 driver_registry_t *system_install_driver(const char *name, object_ptr<driver> driver);
 
 object_accessor<driver> system_open_driver(const char *name);
+
+handle_t system_alloc_handle(object_accessor<object_access> object);
 }
 
 #endif /* _FREERTOS_DRIVER_H */

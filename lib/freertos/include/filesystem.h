@@ -15,9 +15,9 @@
 #ifndef _FREERTOS_FILESYSTEM_H
 #define _FREERTOS_FILESYSTEM_H
 
-#include <driver.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "osdefs.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -31,12 +31,27 @@ extern "C"
  * @param[in]   storage_device_name     The storage device path
  *
  * @return      result
- *     - 0      Fail
- *     - other  The filesystem handle
+ *     - 0      Success
+ *     - other  Fail
  */
-handle_t filesystem_mount(const char *name, const char *storage_device_name);
+int filesystem_mount(const char *name, const char *storage_device_name);
 
-handle_t filesystem_file_open(handle_t filesystem, const char* name);
+/**
+ * @brief       Open a file
+ *
+ * @param[in]   filename        The file path
+ * @param[in]   file_access     The file access
+ * @param[in]   file_mode       The file mode
+ *
+ * @return      result
+ *     - 0      Fail
+ *     - other  The file handle
+ */
+handle_t filesystem_file_open(const char* filename, file_access_t file_access, file_mode_t file_mode);
+
+int filesystem_file_read(handle_t file, uint8_t buffer, size_t buffer_len);
+
+int filesystem_file_write(handle_t file, const uint8_t buffer, size_t buffer_len);
 
 #ifdef __cplusplus
 }
