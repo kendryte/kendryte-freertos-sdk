@@ -258,7 +258,7 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
     spi_.ctrlr1 = frames - 1;
     spi_.dmacr = 0x1;
     spi_.ssienr = 0x01;
-
+    spi_.dr[0] = 0xFF;
     SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
 
     dma_transmit_async(dma_read, &spi_.dr[0], ori_buffer, 0, 1, device.buffer_width_, frames, 1, event_read);
