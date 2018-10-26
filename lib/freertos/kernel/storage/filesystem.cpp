@@ -126,7 +126,7 @@ public:
             mode |= FA_CREATE_ALWAYS;
         else if (file_mode == FILE_MODE_APPEND)
             mode |= FA_OPEN_APPEND;
-        check_fatfs_error(f_open(&file_, fileName, mode));
+        check_fatfs_error(f_open(&file_, normalize_path(fileName), mode));
     }
 
     size_t read(gsl::span<uint8_t> buffer)
@@ -173,7 +173,7 @@ class k_filesystem_find : public virtual object_access, public heap_object, publ
 public:
     k_filesystem_find(const char *path, const char *pattern)
     {
-        check_fatfs_error(f_findfirst(&dir_, &info_, path, pattern));
+        check_fatfs_error(f_findfirst(&dir_, &info_, normalize_path(path), pattern));
     }
 
     void fill_find_data(find_find_data_t &find_data)
@@ -183,7 +183,7 @@ public:
 
     bool move_next()
     {
-        return f_findnext(&dir_, &info_) == FR_OK;
+        return f_findnext(&dir_, &info_) == FR_OK && info_.fname[0];
     }
 
 private:
@@ -321,16 +321,16 @@ handle_t filesystem_find_first(const char *path, const char *pattern, find_find_
     }
 }
 
-int filesystem_find_next(handle_t handle, find_find_data_t *find_data)
+bool filesystem_find_next(handle_t handle, find_find_data_t *find_data)
 {
     try
     {
         FIND_ENTRY;
 
         if (!f->move_next())
-            return -1;
+            return false;
         f->fill_find_data(*find_data);
-        return 0;
+        return true;
     }
     CATCH_ALL;
 }

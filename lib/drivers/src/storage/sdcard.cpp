@@ -20,8 +20,6 @@
 
 using namespace sys;
 
-static uint8_t buffer[512];
-
 class k_spi_sdcard_driver : public block_storage_driver, public heap_object, public free_object_access
 {
 public:
