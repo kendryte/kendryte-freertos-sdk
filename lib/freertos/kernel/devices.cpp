@@ -291,13 +291,15 @@ int io_control(handle_t file, uint32_t control_code, const uint8_t *write_buffer
 /* Device IO Implementation Helper Macros */
 
 #define COMMON_ENTRY(t)                                     \
+    configASSERT(file);                                     \
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
-    configASSERT(rfile->object.is<t##_driver>());           \
+    configASSERT(rfile && rfile->object.is<t##_driver>());  \
     auto t = rfile->object.as<t##_driver>();
 
 #define COMMON_ENTRY_FILE(file, t)                          \
+    configASSERT(file);                                     \
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
-    configASSERT(rfile->object.is<t##_driver>());           \
+    configASSERT(rfile && rfile->object.is<t##_driver>());  \
     auto t = rfile->object.as<t##_driver>();
 
 /* UART */
