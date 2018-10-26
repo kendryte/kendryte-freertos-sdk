@@ -79,14 +79,6 @@ public:
         writeq(dmac_cfg.data, &dmac_.cfg);
     }
 
-    virtual void on_first_open() override
-    {
-    }
-
-    virtual void on_last_close() override
-    {
-    }
-
     uint32_t add_lru_axi_master()
     {
         uint32_t axi1 = atomic_read(&axi_master1_use_);
@@ -147,14 +139,6 @@ public:
         pic_set_irq_handler(IRQN_DMA0_INTERRUPT + channel_, dma_completion_isr, this);
         pic_set_irq_priority(IRQN_DMA0_INTERRUPT + channel_, 1);
         pic_set_irq_enable(IRQN_DMA0_INTERRUPT + channel_, 1);
-    }
-
-    virtual void on_first_open() override
-    {
-    }
-
-    virtual void on_last_close() override
-    {
     }
 
     virtual void set_select_request(uint32_t request) override

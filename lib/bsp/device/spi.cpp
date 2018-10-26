@@ -139,14 +139,6 @@ public:
     {
     }
 
-    virtual void on_first_open() override
-    {
-    }
-
-    virtual void on_last_close() override
-    {
-    }
-
     virtual void config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode) override
     {
         instruction_length_ = instruction_length;

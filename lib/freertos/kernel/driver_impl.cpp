@@ -63,6 +63,14 @@ void free_object_access::close()
         on_last_close();
 }
 
+void free_object_access::on_first_open()
+{
+}
+
+void free_object_access::on_last_close()
+{
+}
+
 exclusive_object_access::exclusive_object_access() noexcept
     : used_(ATOMIC_FLAG_INIT)
 {
@@ -74,6 +82,14 @@ void exclusive_object_access::open()
         throw access_denied_exception();
     else
         on_first_open();
+}
+
+void exclusive_object_access::on_first_open()
+{
+}
+
+void exclusive_object_access::on_last_close()
+{
 }
 
 void exclusive_object_access::close()

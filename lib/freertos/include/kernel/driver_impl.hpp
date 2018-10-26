@@ -49,8 +49,8 @@ public:
     virtual void close() override;
 
 protected:
-    virtual void on_first_open() = 0;
-    virtual void on_last_close() = 0;
+    virtual void on_first_open();
+    virtual void on_last_close();
 
 private:
     std::atomic<size_t> used_count_;
@@ -65,8 +65,8 @@ public:
     virtual void close() override;
 
 protected:
-    virtual void on_first_open() = 0;
-    virtual void on_last_close() = 0;
+    virtual void on_first_open();
+    virtual void on_last_close();
 
 private:
     std::atomic_flag used_;

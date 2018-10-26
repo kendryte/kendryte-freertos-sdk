@@ -346,6 +346,8 @@ driver_registry_t *system_install_driver(const char *name, object_ptr<driver> dr
 object_accessor<driver> system_open_driver(const char *name);
 
 handle_t system_alloc_handle(object_accessor<object_access> object);
+
+object_accessor<object_access> &system_handle_to_object(handle_t file);
 }
 
 #endif /* _FREERTOS_DRIVER_H */

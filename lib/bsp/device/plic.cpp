@@ -52,14 +52,6 @@ public:
         set_csr(mie, MIP_MEIP);
     }
 
-    virtual void on_first_open() override
-    {
-    }
-
-    virtual void on_last_close() override
-    {
-    }
-
     virtual void set_irq_enable(uint32_t irq, bool enable) override
     {
         configASSERT(irq <= PLIC_NUM_SOURCES);

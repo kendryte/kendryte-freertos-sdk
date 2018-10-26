@@ -17,6 +17,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include "osdefs.h"
 
 #ifdef __cplusplus
@@ -47,11 +48,21 @@ int filesystem_mount(const char *name, const char *storage_device_name);
  *     - 0      Fail
  *     - other  The file handle
  */
-handle_t filesystem_file_open(const char* filename, file_access_t file_access, file_mode_t file_mode);
+handle_t filesystem_file_open(const char *filename, file_access_t file_access, file_mode_t file_mode);
 
-int filesystem_file_read(handle_t file, uint8_t buffer, size_t buffer_len);
+int filesystem_file_close(handle_t file);
 
-int filesystem_file_write(handle_t file, const uint8_t buffer, size_t buffer_len);
+int filesystem_file_read(handle_t file, uint8_t *buffer, size_t buffer_len);
+
+int filesystem_file_write(handle_t file, const uint8_t *buffer, size_t buffer_len);
+
+fpos_t filesystem_file_get_position(handle_t file);
+
+int filesystem_file_set_position(handle_t file, fpos_t position);
+
+uint64_t filesystem_file_get_size(handle_t file);
+
+int filesystem_file_flush(handle_t file);
 
 #ifdef __cplusplus
 }

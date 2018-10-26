@@ -54,14 +54,6 @@ public:
         }
     }
 
-    virtual void on_first_open() override
-    {
-    }
-
-    virtual void on_last_close() override
-    {
-    }
-
     virtual size_t set_interval(size_t nanoseconds) override
     {
         uint32_t clk_freq = sysctl_clock_get_freq(clock_);

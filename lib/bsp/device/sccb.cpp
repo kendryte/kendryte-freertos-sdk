@@ -97,14 +97,6 @@ public:
     {
     }
 
-    virtual void on_first_open() override
-    {
-    }
-
-    virtual void on_last_close() override
-    {
-    }
-
     virtual uint8_t read_byte(uint16_t reg_address) override
     {
         return sccb_->read_byte(*this, reg_address);

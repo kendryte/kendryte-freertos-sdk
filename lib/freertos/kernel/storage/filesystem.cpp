@@ -14,6 +14,7 @@
  */
 #include "filesystem.h"
 #include "FreeRTOS.h"
+#include "devices.h"
 #include "kernel/driver_impl.hpp"
 #include <array>
 #include <cstring>
@@ -188,6 +189,14 @@ int filesystem_mount(const char *name, const char *storage_device_name)
     }
 }
 
+#define COMMON_ENTRY                           \
+    auto &obj = system_handle_to_object(file); \
+    configASSERT(obj.is<k_filesystem_file>()); \
+    auto f = obj.as<k_filesystem_file>();
+
+#define CATCH_ALL \
+    catch (...) { return -1; }
+
 handle_t filesystem_file_open(const char *filename, file_access_t file_access, file_mode_t file_mode)
 {
     try
@@ -201,14 +210,78 @@ handle_t filesystem_file_open(const char *filename, file_access_t file_access, f
     }
 }
 
-int filesystem_file_read(handle_t file, uint8_t buffer, size_t buffer_len)
+int filesystem_file_close(handle_t file)
 {
-    return -1;
+    return io_close(file);
 }
 
-int filesystem_file_write(handle_t file, const uint8_t buffer, size_t buffer_len)
+int filesystem_file_read(handle_t file, uint8_t *buffer, size_t buffer_len)
 {
-    return -1;
+    try
+    {
+        COMMON_ENTRY;
+
+        return f->read({ buffer, std::ptrdiff_t(buffer_len) });
+    }
+    CATCH_ALL;
+}
+
+int filesystem_file_write(handle_t file, const uint8_t *buffer, size_t buffer_len)
+{
+    try
+    {
+        COMMON_ENTRY;
+
+        f->write({ buffer, std::ptrdiff_t(buffer_len) });
+        return buffer_len;
+    }
+    CATCH_ALL;
+}
+
+fpos_t filesystem_file_get_position(handle_t file)
+{
+    try
+    {
+        COMMON_ENTRY;
+
+        return f->get_position();
+    }
+    CATCH_ALL;
+}
+
+int filesystem_file_set_position(handle_t file, fpos_t position)
+{
+    try
+    {
+        COMMON_ENTRY;
+
+        f->set_position(position);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+uint64_t filesystem_file_get_size(handle_t file)
+{
+    try
+    {
+        COMMON_ENTRY;
+
+        return f->get_size();
+    }
+    CATCH_ALL;
+}
+
+int filesystem_file_flush(handle_t file)
+{
+    try
+    {
+        COMMON_ENTRY;
+
+        f->flush();
+        return 0;
+    }
+    CATCH_ALL;
 }
 
 extern "C"

@@ -880,6 +880,14 @@ handle_t sys::system_alloc_handle(object_accessor<object_access> object)
     return io_alloc_handle(io_alloc_file(std::move(object)));
 }
 
+object_accessor<object_access> &sys::system_handle_to_object(handle_t file)
+{
+    configASSERT(file);
+    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
+    configASSERT(rfile);
+    return rfile->object;
+}
+
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {
     uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, (sysctl->clk_sel0.aclk_divider_sel + 1) * 2 * frequency);

@@ -249,14 +249,6 @@ public:
     {
     }
 
-    virtual void on_first_open() override
-    {
-    }
-
-    virtual void on_last_close() override
-    {
-    }
-
     virtual double set_clock_rate(double clock_rate) override
     {
         return i2c_->set_clock_rate(*this, clock_rate);
