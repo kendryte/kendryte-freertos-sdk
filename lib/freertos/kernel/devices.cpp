@@ -87,6 +87,29 @@ object_accessor<driver> find_free_driver(driver_registry_t *registry, const char
     return {};
 }
 
+object_accessor<driver> find_free_dynamic_driver(const char *name)
+{
+    size_t i = 0;
+    driver_registry_t *head = g_custom_drivers;
+    for (i = 0; i < MAX_CUSTOM_DRIVERS; i++, head++)
+    {
+        if (head->name && strcmp(name, head->name) == 0)
+        {
+            auto &driver = head->driver_ptr;
+            try
+            {
+                return make_accessor(driver);
+            }
+            catch (...)
+            {
+                return {};
+            }
+        }
+    }
+
+    return {};
+}
+
 void install_drivers()
 {
     install_system_drivers();
@@ -121,6 +144,19 @@ static _file *io_alloc_file(object_ptr<object_access> object)
 static _file *io_open_reg(driver_registry_t *registry, const char *name, _file **file)
 {
     auto driver = find_free_driver(registry, name);
+    if (driver)
+    {
+        _file *ret = io_alloc_file(std::move(driver));
+        *file = ret;
+        return ret;
+    }
+
+    return nullptr;
+}
+
+static _file *io_open_dynamic(const char *name, _file **file)
+{
+    auto driver = find_free_dynamic_driver(name);
     if (driver)
     {
         _file *ret = io_alloc_file(std::move(driver));
@@ -206,6 +242,9 @@ handle_t io_open(const char *name)
     {
     }
     else if (io_open_reg(g_hal_drivers, name, &file))
+    {
+    }
+    else if (io_open_dynamic(name, &file))
     {
     }
 
@@ -870,6 +909,8 @@ object_accessor<driver> sys::system_open_driver(const char *name)
     auto driver = find_free_driver(g_system_drivers, name);
     if (!driver)
         driver = find_free_driver(g_hal_drivers, name);
+    if (!driver)
+        driver = find_free_dynamic_driver(name);
     if (!driver)
         throw std::runtime_error("driver is not found.");
     return driver;
