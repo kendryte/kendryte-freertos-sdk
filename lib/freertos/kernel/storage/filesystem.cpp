@@ -106,7 +106,6 @@ private:
 
 std::array<object_ptr<k_filesystem>, MAX_FILE_SYSTEMS> k_filesystem::filesystems_;
 
-
 class k_filesystem_file : public virtual object_access, public heap_object, public exclusive_object_access
 {
 public:
@@ -128,14 +127,6 @@ public:
         else if (file_mode == FILE_MODE_APPEND)
             mode |= FA_OPEN_APPEND;
         check_fatfs_error(f_open(&file_, fileName, mode));
-    }
-
-    virtual void on_first_open() override
-    {
-    }
-
-    virtual void on_last_close() override
-    {
     }
 
     size_t read(gsl::span<uint8_t> buffer)
@@ -177,6 +168,29 @@ private:
     FIL file_;
 };
 
+class k_filesystem_find : public virtual object_access, public heap_object, public exclusive_object_access
+{
+public:
+    k_filesystem_find(const char *path, const char *pattern)
+    {
+        check_fatfs_error(f_findfirst(&dir_, &info_, path, pattern));
+    }
+
+    void fill_find_data(find_find_data_t &find_data)
+    {
+        strcpy(find_data.filename, info_.fname);
+    }
+
+    bool move_next()
+    {
+        return f_findnext(&dir_, &info_) == FR_OK;
+    }
+
+private:
+    DIR dir_;
+    FILINFO info_;
+};
+
 int filesystem_mount(const char *name, const char *storage_device_name)
 {
     try
@@ -192,7 +206,7 @@ int filesystem_mount(const char *name, const char *storage_device_name)
     }
 }
 
-#define COMMON_ENTRY                           \
+#define FILE_ENTRY                             \
     auto &obj = system_handle_to_object(file); \
     configASSERT(obj.is<k_filesystem_file>()); \
     auto f = obj.as<k_filesystem_file>();
@@ -222,7 +236,7 @@ int filesystem_file_read(handle_t file, uint8_t *buffer, size_t buffer_len)
 {
     try
     {
-        COMMON_ENTRY;
+        FILE_ENTRY;
 
         return f->read({ buffer, std::ptrdiff_t(buffer_len) });
     }
@@ -233,7 +247,7 @@ int filesystem_file_write(handle_t file, const uint8_t *buffer, size_t buffer_le
 {
     try
     {
-        COMMON_ENTRY;
+        FILE_ENTRY;
 
         f->write({ buffer, std::ptrdiff_t(buffer_len) });
         return buffer_len;
@@ -245,7 +259,7 @@ fpos_t filesystem_file_get_position(handle_t file)
 {
     try
     {
-        COMMON_ENTRY;
+        FILE_ENTRY;
 
         return f->get_position();
     }
@@ -256,7 +270,7 @@ int filesystem_file_set_position(handle_t file, fpos_t position)
 {
     try
     {
-        COMMON_ENTRY;
+        FILE_ENTRY;
 
         f->set_position(position);
         return 0;
@@ -268,7 +282,7 @@ uint64_t filesystem_file_get_size(handle_t file)
 {
     try
     {
-        COMMON_ENTRY;
+        FILE_ENTRY;
 
         return f->get_size();
     }
@@ -279,12 +293,51 @@ int filesystem_file_flush(handle_t file)
 {
     try
     {
-        COMMON_ENTRY;
+        FILE_ENTRY;
 
         f->flush();
         return 0;
     }
     CATCH_ALL;
+}
+
+#define FIND_ENTRY                               \
+    auto &obj = system_handle_to_object(handle); \
+    configASSERT(obj.is<k_filesystem_find>());   \
+    auto f = obj.as<k_filesystem_find>();
+
+handle_t filesystem_find_first(const char *path, const char *pattern, find_find_data_t *find_data)
+{
+    try
+    {
+        auto find = make_object<k_filesystem_find>(path, pattern);
+        find->fill_find_data(*find_data);
+        auto handle = system_alloc_handle(make_accessor<object_access>(find));
+        return handle;
+    }
+    catch (...)
+    {
+        return NULL_HANDLE;
+    }
+}
+
+int filesystem_find_next(handle_t handle, find_find_data_t *find_data)
+{
+    try
+    {
+        FIND_ENTRY;
+
+        if (!f->move_next())
+            return -1;
+        f->fill_find_data(*find_data);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int filesystem_find_close(handle_t handle)
+{
+    return io_close(handle);
 }
 
 extern "C"

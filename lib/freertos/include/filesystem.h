@@ -64,6 +64,12 @@ uint64_t filesystem_file_get_size(handle_t file);
 
 int filesystem_file_flush(handle_t file);
 
+handle_t filesystem_find_first(const char *path, const char *pattern, find_find_data_t *find_data);
+
+int filesystem_find_next(handle_t handle, find_find_data_t *find_data);
+
+int filesystem_find_close(handle_t handle);
+
 #ifdef __cplusplus
 }
 #endif

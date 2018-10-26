@@ -21,6 +21,8 @@
 
 using namespace sys;
 
+static uint8_t buffer[512];
+
 class k_spi_sdcard_driver : public block_storage_driver, public heap_object, public free_object_access
 {
 public:
@@ -45,7 +47,16 @@ public:
         cs_gpio_->set_pin_value(cs_gpio_pin_, GPIO_PV_HIGH);
 
         spi8_dev_->set_clock_rate(SD_SPI_LOW_CLOCK_RATE);
-        sd_init();
+        int ret = sd_init();
+
+        printf("ret: %d block: %d\n", ret, get_rw_block_size());
+
+        sd_read_sector(buffer, 0, 1);
+        for (size_t i = 0; i < 512; i++)
+        {
+            printf("%02x ", buffer[i]);
+        }
+        printf("\n");
     }
 
     virtual void on_last_close() override

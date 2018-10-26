@@ -30,6 +30,8 @@ extern "C"
 
 #define NULL_HANDLE 0
 
+#define MAX_PATH 256
+
 typedef uintptr_t handle_t;
 
 typedef enum _uart_stopbits
@@ -232,6 +234,11 @@ typedef enum _file_mode
     FILE_MODE_OPEN_ALWAYS,
     FILE_MODE_APPEND
 } file_mode_t;
+
+typedef struct _find_file_data
+{
+    char filename[MAX_PATH];
+} find_find_data_t;
 
 #ifdef __cplusplus
 }

@@ -24,7 +24,6 @@
 #include <string.h>
 #include <sysctl.h>
 #include <utility.h>
-#include <printf.h>
 
 using namespace sys;
 
@@ -54,13 +53,11 @@ public:
     virtual void on_first_open() override
     {
         sysctl_clock_enable(clock_);
-        printk("spi open\n");
     }
 
     virtual void on_last_close() override
     {
         sysctl_clock_disable(clock_);
-        printk("spi close\n");
     }
 
     virtual object_ptr<spi_device_driver> get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length) override;
