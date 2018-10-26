@@ -104,6 +104,9 @@ private:
     object_accessor<block_storage_driver> storage_;
 };
 
+std::array<object_ptr<k_filesystem>, MAX_FILE_SYSTEMS> k_filesystem::filesystems_;
+
+
 class k_filesystem_file : public virtual object_access, public heap_object, public exclusive_object_access
 {
 public:

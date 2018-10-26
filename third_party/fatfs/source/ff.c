@@ -3111,9 +3111,9 @@ static int get_ldnumber (	/* Returns logical drive number (-1:invalid drive numb
 
 	tt = tp = *path;
 	if (!tp) return vol;	/* Invalid path name? */
-	do tc = *tt++; while ((UINT)tc >= (FF_USE_LFN ? ' ' : '!') && tc != ':');	/* Find a colon in the path */
+	do tc = *tt++; while ((UINT)tc >= (FF_USE_LFN ? ' ' : '!') && tc != '/');	/* Find a colon in the path */
 
-	if (tc == ':') {	/* DOS/Windows style volume ID? */
+	if (tc == '/') {	/* DOS/Windows style volume ID? */
 		i = FF_VOLUMES;
 		if (IsDigit(*tp) && tp + 2 == tt) {	/* Is there a numeric volume ID + colon? */
 			i = (int)*tp - '0';	/* Get the LD number */
