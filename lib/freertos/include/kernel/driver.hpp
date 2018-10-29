@@ -82,6 +82,8 @@ public:
     object_accessor<U> move_as()
     {
         auto obj = obj_.template as<U>();
+        if (obj_ && !obj)
+            throw std::bad_cast();
         obj_.reset();
         return object_accessor<U>(std::move(obj));
     }
@@ -93,6 +95,11 @@ public:
         if (obj)
             return obj.get();
         return nullptr;
+    }
+
+    object_ptr<T> get_object() const noexcept
+    {
+        return obj_;
     }
 
     void reset() noexcept

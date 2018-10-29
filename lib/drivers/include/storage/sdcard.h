@@ -125,7 +125,7 @@ typedef struct {
     uint32_t CardBlockSize; /*!< Card Block Size */
 } SD_CardInfo;
 
-int spi_sdcard_driver_install(const char *name, const char *spi_name, const char *cs_gpio_name, uint32_t cs_gpio_pin);
+handle_t spi_sdcard_driver_install(handle_t spi_handle, handle_t cs_gpio_handle, uint32_t cs_gpio_pin);
 
 #ifdef __cplusplus
 }

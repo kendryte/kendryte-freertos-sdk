@@ -148,6 +148,8 @@ public:
     object_ptr<U> as() const
     {
         auto ptr = dynamic_cast<U *>(obj_);
+        if (obj_ && !ptr)
+            throw std::bad_cast();
         return object_ptr<U>(ptr);
     }
 

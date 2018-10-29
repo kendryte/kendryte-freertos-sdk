@@ -191,12 +191,11 @@ private:
     FILINFO info_;
 };
 
-int filesystem_mount(const char *name, const char *storage_device_name)
+int filesystem_mount(const char *name, handle_t storage_handle)
 {
     try
     {
-        auto device = system_open_driver(storage_device_name).move_as<block_storage_driver>();
-        auto fs = k_filesystem::install_filesystem(std::move(device));
+        auto fs = k_filesystem::install_filesystem(system_handle_to_object(storage_handle).move_as<block_storage_driver>());
         check_fatfs_error(f_mount(&fs->FatFS, normalize_path(name), 1));
         return 0;
     }

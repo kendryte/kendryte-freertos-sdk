@@ -350,11 +350,10 @@ void gpio_set_pin_value(handle_t file, uint32_t pin, gpio_pin_value_t value)
 
 /* I2C */
 
-handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width)
+handle_t i2c_get_device(handle_t file, uint32_t slave_address, uint32_t address_width)
 {
     COMMON_ENTRY(i2c);
     auto driver = i2c->get_device(slave_address, address_width);
-    system_install_driver(name, driver);
     return io_alloc_handle(io_alloc_file(driver));
 }
 
@@ -424,11 +423,10 @@ void i2s_stop(handle_t file)
 
 /* SPI */
 
-handle_t spi_get_device(handle_t file, const char *name, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
+handle_t spi_get_device(handle_t file, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
 {
     COMMON_ENTRY(spi);
     auto driver = spi->get_device(mode, frame_format, chip_select_mask, data_bit_length);
-    system_install_driver(name, driver);
     return io_alloc_handle(io_alloc_file(driver));
 }
 
@@ -520,11 +518,10 @@ double dvp_xclk_set_clock_rate(handle_t file, double clock_rate)
 
 /* SSCB */
 
-handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t reg_address_width)
+handle_t sccb_get_device(handle_t file, uint32_t slave_address, uint32_t reg_address_width)
 {
     COMMON_ENTRY(sccb);
     auto driver = sccb->get_device(slave_address, reg_address_width);
-    system_install_driver(name, driver);
     return io_alloc_handle(io_alloc_file(driver));
 }
 

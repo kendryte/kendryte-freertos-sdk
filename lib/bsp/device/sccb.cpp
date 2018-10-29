@@ -121,7 +121,9 @@ void k_sccb_driver::setup_device(k_sccb_device_driver &device)
 
 object_ptr<sccb_device_driver> k_sccb_driver::get_device(uint32_t slave_address, uint32_t reg_address_width)
 {
-    return make_object<k_sccb_device_driver>(make_accessor<k_sccb_driver>(this), slave_address, reg_address_width);
+    auto driver = make_object<k_sccb_device_driver>(make_accessor<k_sccb_driver>(this), slave_address, reg_address_width);
+    driver->install();
+    return driver;
 }
 
 uint8_t k_sccb_driver::read_byte(k_sccb_device_driver &device, uint16_t reg_address)

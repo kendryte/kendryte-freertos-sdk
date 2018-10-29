@@ -28,14 +28,14 @@ extern "C"
 /**
  * @brief       Mount a filesystem
  *
- * @param[in]   name                    The filesystem path
- * @param[in]   storage_device_name     The storage device path
+ * @param[in]   name                The filesystem path
+ * @param[in]   storage_handle      The storage device handle
  *
  * @return      result
  *     - 0      Success
  *     - other  Fail
  */
-int filesystem_mount(const char *name, const char *storage_device_name);
+int filesystem_mount(const char *name, handle_t storage_handle);
 
 /**
  * @brief       Open a file

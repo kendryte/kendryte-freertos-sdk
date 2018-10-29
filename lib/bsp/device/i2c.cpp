@@ -282,7 +282,9 @@ private:
 
 object_ptr<i2c_device_driver> k_i2c_driver::get_device(uint32_t slave_address, uint32_t address_width)
 {
-    return make_object<k_i2c_device_driver>(make_accessor<k_i2c_driver>(this), slave_address, address_width);
+    auto driver = make_object<k_i2c_device_driver>(make_accessor<k_i2c_driver>(this), slave_address, address_width);
+    driver->install();
+    return driver;
 }
 
 void k_i2c_driver::setup_device(k_i2c_device_driver &device)

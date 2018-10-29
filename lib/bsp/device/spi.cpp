@@ -219,7 +219,9 @@ private:
 
 object_ptr<spi_device_driver> k_spi_driver::get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
 {
-    return make_object<k_spi_device_driver>(make_accessor<k_spi_driver>(this), mode, frame_format, chip_select_mask, data_bit_length);
+    auto driver = make_object<k_spi_device_driver>(make_accessor<k_spi_driver>(this), mode, frame_format, chip_select_mask, data_bit_length);
+    driver->install();
+    return driver;
 }
 
 double k_spi_driver::set_clock_rate(k_spi_device_driver &device, double clock_rate)
