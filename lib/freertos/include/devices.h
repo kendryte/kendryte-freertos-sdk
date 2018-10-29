@@ -17,7 +17,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
-#include "driver.h"
+#include "osdefs.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -30,8 +30,8 @@ extern "C"
  * @param[in]   name        The device path
  *
  * @return      result
-       - 0      Fail
-       - other  The device handle
+ *     - 0      Fail
+ *     - other  The device handle
  */
 handle_t io_open(const char *name);
 
@@ -161,7 +161,7 @@ void gpio_set_pin_value(handle_t file, uint32_t pin, gpio_pin_value_t value);
  *
  * @return      The I2C device handle
  */
-handle_t i2c_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t address_width);
+handle_t i2c_get_device(handle_t file, uint32_t slave_address, uint32_t address_width);
 
 /**
  * @brief       Set the clock rate of a I2C device
@@ -271,7 +271,7 @@ void i2s_stop(handle_t file);
  *
  * @return      The SPI device handle
  */
-handle_t spi_get_device(handle_t file, const char *name, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length);
+handle_t spi_get_device(handle_t file, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length);
 
 /**
  * @brief       Configure a SPI device with non-standard mode
@@ -424,7 +424,7 @@ double dvp_xclk_set_clock_rate(handle_t file, double clock_rate);
  *
  * @return      The SCCB device handle
  */
-handle_t sccb_get_device(handle_t file, const char *name, uint32_t slave_address, uint32_t reg_address_width);
+handle_t sccb_get_device(handle_t file, uint32_t slave_address, uint32_t reg_address_width);
 
 /**
  * @brief       Read a byte from a SCCB device

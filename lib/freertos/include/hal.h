@@ -12,12 +12,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _FREERTOS_DEVICES_INTERN_H
-#define _FREERTOS_DEVICES_INTERN_H
+#ifndef _FREERTOS_HAL_H
+#define _FREERTOS_HAL_H
 
-#include <driver.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "osdefs.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -31,13 +31,6 @@ extern "C"
  * @return      The actual frequency of CPU after set
  */
 uint32_t system_set_cpu_frequency(uint32_t frequency);
-
-/**
- * @brief       Install a custom driver
- * @param[in]   name        Specify the path to access it later
- * @param[in]   driver      The driver info
- */
-void system_install_custom_driver(const char *name, const custom_driver_t *driver);
 
 /**
  * @brief       Enable or disable IRQ
@@ -131,4 +124,4 @@ void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, v
 }
 #endif
 
-#endif /* _FREERTOS_DEVICES_INTERN_H */
+#endif /* _FREERTOS_HAL_H */

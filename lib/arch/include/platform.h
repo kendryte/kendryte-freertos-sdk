@@ -15,6 +15,11 @@
 #ifndef _BSP_PLATFORM_H
 #define _BSP_PLATFORM_H
 
+#ifdef __INTELLISENSE__
+#define __attribute__(x)
+#define _HAS_CXX17 1
+#endif
+
 /* clang-format off */
 /* Register base address */
 
