@@ -50,24 +50,116 @@ int filesystem_mount(const char *name, handle_t storage_handle);
  */
 handle_t filesystem_file_open(const char *filename, file_access_t file_access, file_mode_t file_mode);
 
+/**
+ * @brief       Close a file handle
+ *
+ * @param[in]   file                The file handle
+ *
+ * @return      result
+ *     - 0      Success
+ *     - other  Fail
+ */
 int filesystem_file_close(handle_t file);
 
+/**
+ * @brief       Read from a file
+ *
+ * @param[in[   file        The file handle
+ * @param[out]  buffer      The destination buffer
+ * @param[in]   len         Maximum bytes to read
+ *
+ * @return      Actual bytes read
+ */
 int filesystem_file_read(handle_t file, uint8_t *buffer, size_t buffer_len);
 
+/**
+ * @brief       Write to a file
+ *
+ * @param[in]   file        The file handle
+ * @param[in]   buffer      The source buffer
+ * @param[in]   len         Bytes to write
+ *
+ * @return      result
+ *     - len    Success
+ *     - other  Fail
+ */
 int filesystem_file_write(handle_t file, const uint8_t *buffer, size_t buffer_len);
 
+/**
+ * @brief       Get the position of a file
+ *
+ * @param[in]   file        The file handle
+ *
+ * @return      The position
+ */
 fpos_t filesystem_file_get_position(handle_t file);
 
+/**
+ * @brief       Set the position of a file
+ *
+ * @param[in]   file            The file handle
+ * @param[in]   position        The new position
+ *
+ * @return      result
+ *     - 0      Success
+ *     - other  Fail
+ */
 int filesystem_file_set_position(handle_t file, fpos_t position);
 
+/**
+ * @brief       Get the size of a file
+ *
+ * @param[in]   file        The file handle
+ *
+ * @return      The size
+ */
 uint64_t filesystem_file_get_size(handle_t file);
 
+/**
+ * @brief       Flush the buffer of a file
+ *
+ * @param[in]   file            The file handle
+ *
+ * @return      result
+ *     - 0      Success
+ *     - other  Fail
+ */
 int filesystem_file_flush(handle_t file);
 
+/**
+ * @brief       Find files in a directory
+ *
+ * @param[in]   path            The directory path
+ * @param[in]   pattern         The search pattern
+ * @param[out]  find_data       The first find data
+ *
+ * @return      result
+ *     - 0      Fail
+ *     - other  The find handle
+ */
 handle_t filesystem_find_first(const char *path, const char *pattern, find_find_data_t *find_data);
 
+/**
+ * @brief       Find the next file in a directory
+ *
+ * @param[in]   handle          The find handle
+ * @param[out]  find_data       The next find data
+ *
+ * @return      result
+ *     - true   Success
+ *     - false  Fail
+ */
 bool filesystem_find_next(handle_t handle, find_find_data_t *find_data);
 
+/**
+ * @brief       Close a find handle
+ *
+ * @param[in]   file                The find handle
+ *
+ * @return      result
+ *     - 0      Success
+ *     - other  Fail
+ */
 int filesystem_find_close(handle_t handle);
 
 #ifdef __cplusplus
