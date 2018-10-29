@@ -12,39 +12,35 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "sysctl.h"
+#include "utility.h"
 #include <encoding.h>
 #include <math.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
-#include "sysctl.h"
-#include "utility.h"
 
 #define SYSCTRL_CLOCK_FREQ_IN0 (26000000UL)
 
-const uint8_t get_select_pll2[] =
-{
+const uint8_t get_select_pll2[] = {
     [SYSCTL_SOURCE_IN0] = 0,
     [SYSCTL_SOURCE_PLL0] = 1,
     [SYSCTL_SOURCE_PLL1] = 2,
 };
 
-const uint8_t get_source_pll2[] =
-{
+const uint8_t get_source_pll2[] = {
     [0] = SYSCTL_SOURCE_IN0,
     [1] = SYSCTL_SOURCE_PLL0,
     [2] = SYSCTL_SOURCE_PLL1,
 };
 
-const uint8_t get_select_aclk[] =
-{
+const uint8_t get_select_aclk[] = {
     [SYSCTL_SOURCE_IN0] = 0,
     [SYSCTL_SOURCE_PLL0] = 1,
 };
 
-const uint8_t get_source_aclk[] =
-{
+const uint8_t get_source_aclk[] = {
     [0] = SYSCTL_SOURCE_IN0,
     [1] = SYSCTL_SOURCE_PLL0,
 };
@@ -175,7 +171,7 @@ static int sysctl_clock_bus_en(sysctl_clock_t clock, uint8_t en)
      * one of them set, the APB0 clock enable.
      */
 
-     /* The APB clock should carefully disable */
+    /* The APB clock should carefully disable */
     if (en)
     {
         switch (clock)
@@ -753,31 +749,20 @@ static int sysctl_pll_is_lock(sysctl_pll_t pll)
      *
      */
 
-    uint8_t lock = 0;
-
-    if (pll >= SYSCTL_PLL_MAX)
-        return 0;
-
     switch (pll)
     {
     case SYSCTL_PLL0:
-        lock = sysctl->pll_lock.pll_lock0;
-        break;
+        return sysctl->pll_lock.pll_lock0 == 3;
 
     case SYSCTL_PLL1:
-        lock = sysctl->pll_lock.pll_lock1;
-        break;
+        return sysctl->pll_lock.pll_lock1 & 1;
 
     case SYSCTL_PLL2:
-        lock = sysctl->pll_lock.pll_lock2;
-        break;
+        return sysctl->pll_lock.pll_lock2 & 1;
 
     default:
         break;
     }
-
-    if (lock == 3)
-        return 1;
 
     return 0;
 }
@@ -1049,7 +1034,7 @@ static uint32_t sysctl_pll_source_set_freq(sysctl_pll_t pll, sysctl_clock_source
      * Begin calculate PLL registers' value
      */
 
-     /* constants */
+    /* constants */
     const double vco_min = 3.5e+08;
     const double vco_max = 1.75e+09;
     const double ref_min = 1.36719e+07;
@@ -1313,8 +1298,7 @@ uint32_t sysctl_clock_get_freq(sysctl_clock_t clock)
             source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_IN0);
             break;
         case 1:
-            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) /
-                (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
+            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) / (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
             break;
         default:
             break;
@@ -1328,8 +1312,7 @@ uint32_t sysctl_clock_get_freq(sysctl_clock_t clock)
             source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_IN0);
             break;
         case 1:
-            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) /
-                (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
+            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) / (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
             break;
         default:
             break;
@@ -1343,8 +1326,7 @@ uint32_t sysctl_clock_get_freq(sysctl_clock_t clock)
             source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_IN0);
             break;
         case 1:
-            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) /
-                (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
+            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) / (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
             break;
         default:
             break;
@@ -1358,8 +1340,7 @@ uint32_t sysctl_clock_get_freq(sysctl_clock_t clock)
             source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_IN0);
             break;
         case 1:
-            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) /
-                (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
+            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) / (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
             break;
         default:
             break;
@@ -1373,8 +1354,7 @@ uint32_t sysctl_clock_get_freq(sysctl_clock_t clock)
             source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_IN0);
             break;
         case 1:
-            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) /
-                (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
+            source = sysctl_clock_source_get_freq(SYSCTL_SOURCE_PLL0) / (2ULL << sysctl_clock_get_threshold(SYSCTL_THRESHOLD_ACLK));
             break;
         default:
             break;
@@ -1558,7 +1538,7 @@ uint32_t sysctl_clock_get_freq(sysctl_clock_t clock)
          * They are using even divider.
          */
 
-         /*
+        /*
           * These clock under APB0 clock domain.
           * They are using even divider.
           */
@@ -1608,7 +1588,7 @@ uint32_t sysctl_clock_get_freq(sysctl_clock_t clock)
          * These clock under APB2 clock domain.
          * They are using even divider.
          */
-         /*
+        /*
           * Do nothing.
           */
     default:
@@ -1731,8 +1711,7 @@ uint32_t sysctl_set_spi0_dvp_data(uint8_t en)
 
 void sysctl_set_power_mode(sysctl_power_bank_t power_bank, sysctl_io_power_mode_t io_power_mode)
 {
-    union
-    {
+    union {
         uint32_t data;
         sysctl_power_sel_t power_sel;
     } power_sel;
