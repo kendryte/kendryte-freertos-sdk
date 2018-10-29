@@ -28,8 +28,8 @@ using namespace sys;
 class k_aes_driver : public aes_driver, public static_object, public free_object_access
 {
 public:
-    k_aes_driver(uintptr_t base_addr, sysctl_clock_t clock, sysctl_dma_select_t dma_req)
-        : aes_(*reinterpret_cast<volatile aes_t *>(base_addr)), clock_(clock), dma_req_(dma_req)
+    k_aes_driver(uintptr_t base_addr, sysctl_clock_t clock, sysctl_reset_t reset, sysctl_dma_select_t dma_req)
+        : aes_(*reinterpret_cast<volatile aes_t *>(base_addr)), clock_(clock), reset_(reset), dma_req_(dma_req)
     {
     }
 
@@ -41,6 +41,7 @@ public:
 
     virtual void on_first_open() override
     {
+        sysctl_reset(reset_);
         sysctl_clock_enable(clock_);
     }
 
@@ -376,14 +377,12 @@ public:
         }
         else
         {
-            configASSERT(input_len % 4 == 0);
-
             handle_t aes_read = dma_open_free();
             dma_set_request_source(aes_read, dma_req_);
 
             SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
             aes_.dma_sel = 1;
-            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
             aes_input_bytes(input_data.data(), input_len, AES_GCM);
             configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
             dma_close(aes_read);
@@ -406,14 +405,12 @@ public:
         }
         else
         {
-            configASSERT(input_len % 4 == 0);
-
             handle_t aes_read = dma_open_free();
             dma_set_request_source(aes_read, dma_req_);
 
             SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
             aes_.dma_sel = 1;
-            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
             aes_input_bytes(input_data.data(), input_len, AES_GCM);
             configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
             dma_close(aes_read);
@@ -436,14 +433,12 @@ public:
         }
         else
         {
-            configASSERT(input_len % 4 == 0);
-
             handle_t aes_read = dma_open_free();
             dma_set_request_source(aes_read, dma_req_);
 
             SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
             aes_.dma_sel = 1;
-            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
             aes_input_bytes(input_data.data(), input_len, AES_GCM);
             configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
             dma_close(aes_read);
@@ -466,14 +461,12 @@ public:
         }
         else
         {
-            configASSERT(input_len % 4 == 0);
-
             handle_t aes_read = dma_open_free();
             dma_set_request_source(aes_read, dma_req_);
 
             SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
             aes_.dma_sel = 1;
-            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
             aes_input_bytes(input_data.data(), input_len, AES_GCM);
             configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
             dma_close(aes_read);
@@ -496,14 +489,12 @@ public:
         }
         else
         {
-            configASSERT(input_len % 4 == 0);
-
             handle_t aes_read = dma_open_free();
             dma_set_request_source(aes_read, dma_req_);
 
             SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
             aes_.dma_sel = 1;
-            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
             aes_input_bytes(input_data.data(), input_len, AES_GCM);
             configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
             dma_close(aes_read);
@@ -526,14 +517,12 @@ public:
         }
         else
         {
-            configASSERT(input_len % 4 == 0);
-
             handle_t aes_read = dma_open_free();
             dma_set_request_source(aes_read, dma_req_);
 
             SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
             aes_.dma_sel = 1;
-            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), input_len >> 2, 4, event_read);
+            dma_transmit_async(aes_read, &aes_.aes_out_data, output_data.data(), 0, 1, sizeof(uint32_t), (input_len + 3) >> 2, 4, event_read);
             aes_input_bytes(input_data.data(), input_len, AES_GCM);
             configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
             dma_close(aes_read);
@@ -554,6 +543,7 @@ private:
         size_t gcm_aad_len,
         size_t input_data_len)
     {
+        sysctl_reset(reset_);
         size_t remainder, uint32_num, uint8_num, i;
         uint32_t uint32_data;
         uint8_t uint8_data[4] = { 0 };
@@ -883,10 +873,11 @@ private:
 private:
     volatile aes_t &aes_;
     sysctl_clock_t clock_;
+    sysctl_reset_t reset_;
     sysctl_dma_select_t dma_req_;
     SemaphoreHandle_t free_mutex_;
 };
 
-static k_aes_driver dev0_driver(AES_BASE_ADDR, SYSCTL_CLOCK_AES, SYSCTL_DMA_SELECT_AES_REQ);
+static k_aes_driver dev0_driver(AES_BASE_ADDR, SYSCTL_CLOCK_AES, SYSCTL_RESET_AES, SYSCTL_DMA_SELECT_AES_REQ);
 
 driver& g_aes_driver_aes0 = dev0_driver;
