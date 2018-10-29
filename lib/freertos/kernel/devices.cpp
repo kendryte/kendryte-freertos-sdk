@@ -12,12 +12,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "devices.h"
 #include "FreeRTOS.h"
 #include "device_priv.h"
+#include "filesystem.h"
+#include "hal.h"
 #include "kernel/driver.hpp"
 #include <atomic.h>
-#include <devices.h>
-#include <hal.h>
 #include <plic.h>
 #include <semphr.h>
 #include <stdio.h>
@@ -169,22 +170,22 @@ static _file *io_open_dynamic(const char *name, _file **file)
 
 /* Generic IO Implementation Helper Macros */
 
-#define DEFINE_READ_PROXY(t)                             \
-    if (auto t = rfile->object.as<t##_driver>())         \
-    {                                                    \
-        return t->read({ buffer, std::ptrdiff_t(len) }); \
+#define DEFINE_READ_PROXY(t)                                  \
+    if (auto f = rfile->object.as<t>())                       \
+    {                                                         \
+        return (int)f->read({ buffer, std::ptrdiff_t(len) }); \
     }
 
-#define DEFINE_WRITE_PROXY(t)                             \
-    if (auto t = rfile->object.as<t##_driver>())          \
-    {                                                     \
-        return t->write({ buffer, std::ptrdiff_t(len) }); \
+#define DEFINE_WRITE_PROXY(t)                                  \
+    if (auto f = rfile->object.as<t>())                        \
+    {                                                          \
+        return (int)f->write({ buffer, std::ptrdiff_t(len) }); \
     }
 
-#define DEFINE_CONTROL_PROXY(t)                                                                                                  \
-    if (auto t = rfile->object.as<t##_driver>())                                                                                 \
-    {                                                                                                                            \
-        return t->control(control_code, { write_buffer, std::ptrdiff_t(write_len) }, { read_buffer, std::ptrdiff_t(read_len) }); \
+#define DEFINE_CONTROL_PROXY(t)                                                                                                       \
+    if (auto t = rfile->object.as<t##_driver>())                                                                                      \
+    {                                                                                                                                 \
+        return (int)t->control(control_code, { write_buffer, std::ptrdiff_t(write_len) }, { read_buffer, std::ptrdiff_t(read_len) }); \
     }
 
 static void dma_add_free();
@@ -193,9 +194,10 @@ int io_read(handle_t file, uint8_t *buffer, size_t len)
 {
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     /* clang-format off */
-    DEFINE_READ_PROXY(uart)
-    else DEFINE_READ_PROXY(i2c_device)
-    else DEFINE_READ_PROXY(spi_device)
+    DEFINE_READ_PROXY(uart_driver)
+    else DEFINE_READ_PROXY(i2c_device_driver)
+    else DEFINE_READ_PROXY(spi_device_driver)
+    else DEFINE_READ_PROXY(filesystem_file)
     else
     {
         return -1;
@@ -270,9 +272,10 @@ int io_write(handle_t file, const uint8_t *buffer, size_t len)
 {
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     /* clang-format off */
-    DEFINE_WRITE_PROXY(uart)
-    else DEFINE_WRITE_PROXY(i2c_device)
-    else DEFINE_WRITE_PROXY(spi_device)
+    DEFINE_WRITE_PROXY(uart_driver)
+    else DEFINE_WRITE_PROXY(i2c_device_driver)
+    else DEFINE_WRITE_PROXY(spi_device_driver)
+    else DEFINE_WRITE_PROXY(filesystem_file)
     else
     {
         return -1;

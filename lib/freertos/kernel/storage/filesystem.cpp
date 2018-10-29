@@ -106,7 +106,7 @@ private:
 
 std::array<object_ptr<k_filesystem>, MAX_FILE_SYSTEMS> k_filesystem::filesystems_;
 
-class k_filesystem_file : public virtual object_access, public heap_object, public exclusive_object_access
+class k_filesystem_file : public filesystem_file, public heap_object, public exclusive_object_access
 {
 public:
     k_filesystem_file(const char *fileName, file_access_t file_access, file_mode_t file_mode)
@@ -129,37 +129,38 @@ public:
         check_fatfs_error(f_open(&file_, normalize_path(fileName), mode));
     }
 
-    size_t read(gsl::span<uint8_t> buffer)
+    virtual size_t read(gsl::span<uint8_t> buffer) override
     {
         UINT read = buffer.size();
         check_fatfs_error(f_read(&file_, buffer.data(), read, &read));
         return read;
     }
 
-    void write(gsl::span<const uint8_t> buffer)
+    virtual size_t write(gsl::span<const uint8_t> buffer) override
     {
         UINT written = buffer.size();
         check_fatfs_error(f_write(&file_, buffer.data(), written, &written));
         if (written != buffer.size())
             throw std::runtime_error("Disk full.");
+        return written;
     }
 
-    fpos_t get_position()
+    virtual fpos_t get_position() override
     {
         return f_tell(&file_);
     }
 
-    void set_position(fpos_t position)
+    virtual void set_position(fpos_t position) override
     {
         check_fatfs_error(f_lseek(&file_, position));
     }
 
-    uint64_t get_size()
+    virtual uint64_t get_size() override
     {
         return f_size(&file_);
     }
 
-    void flush()
+    virtual void flush() override
     {
         check_fatfs_error(f_sync(&file_));
     }
@@ -207,8 +208,8 @@ int filesystem_mount(const char *name, handle_t storage_handle)
 
 #define FILE_ENTRY                             \
     auto &obj = system_handle_to_object(file); \
-    configASSERT(obj.is<k_filesystem_file>()); \
-    auto f = obj.as<k_filesystem_file>();
+    configASSERT(obj.is<filesystem_file>());   \
+    auto f = obj.as<filesystem_file>();
 
 #define CATCH_ALL \
     catch (...) { return -1; }
@@ -248,8 +249,7 @@ int filesystem_file_write(handle_t file, const uint8_t *buffer, size_t buffer_le
     {
         FILE_ENTRY;
 
-        f->write({ buffer, std::ptrdiff_t(buffer_len) });
-        return buffer_len;
+        return f->write({ buffer, std::ptrdiff_t(buffer_len) });
     }
     CATCH_ALL;
 }

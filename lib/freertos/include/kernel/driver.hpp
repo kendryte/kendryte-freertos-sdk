@@ -335,6 +335,17 @@ public:
     virtual void write_blocks(uint32_t start_block, uint32_t blocks_count, gsl::span<const uint8_t> buffer) = 0;
 };
 
+class filesystem_file : public virtual object_access
+{
+public:
+    virtual size_t read(gsl::span<uint8_t> buffer) = 0;
+    virtual size_t write(gsl::span<const uint8_t> buffer) = 0;
+    virtual fpos_t get_position() = 0;
+    virtual void set_position(fpos_t position) = 0;
+    virtual uint64_t get_size() = 0;
+    virtual void flush() = 0;
+};
+
 extern driver_registry_t g_hal_drivers[];
 extern driver_registry_t g_dma_drivers[];
 extern driver_registry_t g_system_drivers[];
