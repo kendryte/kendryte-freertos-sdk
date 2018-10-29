@@ -1,0 +1,9 @@
+
+#if !defined LWIP_HDR_LWIPOPTS_H
+#define LWIP_HDR_LWIPOPTS_H
+
+#define MEM_LIBC_MALLOC 1
+#define LWIP_COMPAT_SOCKETS 0
+#define TCPIP_THREAD_STACKSIZE 512
+
+#endif
