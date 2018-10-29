@@ -240,6 +240,37 @@ typedef struct _find_file_data
     char filename[MAX_PATH];
 } find_find_data_t;
 
+typedef enum _address_family
+{
+    AF_UNSPECIFIED,
+    AF_INTERNETWORK
+} address_family_t;
+
+typedef enum _socket_type
+{
+    SOCKET_STREAM,
+    SOCKET_DATAGRAM
+} socket_type_t;
+
+typedef enum _protocol_type
+{
+    PROTCL_TCP
+} protocol_type_t;
+
+typedef struct _socket_address
+{
+    uint8_t size;
+    address_family_t family;
+    uint8_t data[14];
+} socket_address_t;
+
+typedef enum _socket_shutdown
+{
+    SHUTDOWN_RECEIVE,
+    SHUTDOWN_SEND,
+    SHUTDOWN_BOTH
+} socket_shutdown_t;
+
 #ifdef __cplusplus
 }
 #endif
