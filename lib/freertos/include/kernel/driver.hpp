@@ -346,15 +346,16 @@ public:
     virtual void flush() = 0;
 };
 
-class network_interface_driver : public driver
+class network_adapter_driver : public driver
 {
 public:
+    virtual mac_address_t get_mac_address() = 0;
     virtual bool is_packet_available() = 0;
     virtual void reset() = 0;
-    virtual void start_send() = 0;
+    virtual void begin_send(size_t length) = 0;
     virtual void send(gsl::span<const uint8_t> buffer) = 0;
     virtual void end_send() = 0;
-    virtual size_t start_receive() = 0;
+    virtual size_t begin_receive() = 0;
     virtual void receive(gsl::span<uint8_t> buffer) = 0;
     virtual void end_receive() = 0;
 };
@@ -367,7 +368,6 @@ public:
     virtual void connect(const socket_address_t &address) = 0;
     virtual void listen(uint32_t backlog) = 0;
     virtual void shutdown(socket_shutdown_t how) = 0;
-
     virtual size_t send(gsl::span<const uint8_t> buffer) = 0;
     virtual size_t receive(gsl::span<uint8_t> buffer) = 0;
 };

@@ -266,10 +266,21 @@ typedef struct _socket_address
 
 typedef enum _socket_shutdown
 {
-    SHUTDOWN_RECEIVE,
-    SHUTDOWN_SEND,
-    SHUTDOWN_BOTH
+    SOCKSHTDN_RECEIVE,
+    SOCKSHTDN_SEND,
+    SOCKSHTDN_BOTH
 } socket_shutdown_t;
+
+typedef struct _ip_address
+{
+    address_family_t family;
+    uint8_t data[16];
+} ip_address_t;
+
+typedef struct _mac_address
+{
+    uint8_t data[6];
+} mac_address_t;
 
 #ifdef __cplusplus
 }
