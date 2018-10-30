@@ -238,6 +238,11 @@ public:
         spi_dev_.reset();
     }
 
+    virtual void set_handler(network_adapter_handler *handler) override
+    {
+        handler_ = handler;
+    }
+
     virtual mac_address_t get_mac_address() override
     {
         return mac_address_;
@@ -504,6 +509,7 @@ private:
     object_ptr<spi_driver> spi_driver_;
     uint32_t spi_cs_mask_;
     mac_address_t mac_address_;
+    network_adapter_handler *handler_;
 
     object_accessor<spi_device_driver> spi_dev_;
     uint16_t calc_mwr_, calc_mrr_;

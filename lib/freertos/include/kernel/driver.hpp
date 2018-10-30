@@ -346,9 +346,16 @@ public:
     virtual void flush() = 0;
 };
 
+class network_adapter_handler
+{
+public:
+    virtual void notify_input() = 0;
+};
+
 class network_adapter_driver : public driver
 {
 public:
+    virtual void set_handler(network_adapter_handler *handler) = 0;
     virtual mac_address_t get_mac_address() = 0;
     virtual bool is_packet_available() = 0;
     virtual void reset() = 0;

@@ -39,7 +39,7 @@ int network_init()
     return 0;
 }
 
-class k_ethernet_interface : public virtual object_access, public heap_object, public exclusive_object_access
+class k_ethernet_interface : public virtual object_access, public heap_object, public exclusive_object_access, private network_adapter_handler
 {
 public:
     k_ethernet_interface(object_accessor<network_adapter_driver> adapter, const ip_address_t &ip_address, const ip_address_t &net_mask, const ip_address_t &gateway)
@@ -69,6 +69,14 @@ public:
     }
 
 private:
+    virtual void notify_input() override
+    {
+        while (adapter_->is_packet_available())
+        {
+            ethernetif_input(&netif_);
+        }
+    }
+
     static err_t ethernetif_init(struct netif *netif)
     {
 #if LWIP_NETIF_HOSTNAME
