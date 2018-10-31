@@ -38,9 +38,11 @@ int sys_open(const char *name, int flags, int mode)
 
         file_mode_t file_mode = FILE_MODE_OPEN_EXISTING;
         if (mode & O_CREAT)
-            file_mode |= FILE_MODE_CREATE_NEW;
+            file_mode |= FILE_MODE_CREATE_ALWAYS;
         if (mode & O_APPEND)
             file_mode |= FILE_MODE_APPEND;
+        if (mode & O_TRUNC)
+            file_mode |= FILE_MODE_CREATE_NEW;
         return filesystem_file_open(name, file_access, file_mode);
     }
     else
