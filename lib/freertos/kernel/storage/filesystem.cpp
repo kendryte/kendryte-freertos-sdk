@@ -129,6 +129,11 @@ public:
         check_fatfs_error(f_open(&file_, normalize_path(fileName), mode));
     }
 
+    ~k_filesystem_file()
+    {
+        f_close(&file_);
+    }
+
     virtual size_t read(gsl::span<uint8_t> buffer) override
     {
         UINT read = buffer.size();
