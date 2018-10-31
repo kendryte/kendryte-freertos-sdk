@@ -38,14 +38,14 @@ handle_t spi_ws2812b_driver_install(handle_t spi_handle, uint32_t total_number);
 /**
  * @brief       Clear rgb buffer.
  *
- * @param[in]   ws2812b_handle      The SPI controller handle
+ * @param[in]   ws2812b_handle      The ws2812b handle
  */
 void ws2812b_clear_rgb_buffer(handle_t ws2812b_handle);
 
 /**
  * @brief       Set rgb buffer.
  *
- * @param[in]   spi_handle          The SPI controller handle
+ * @param[in]   ws2812b_handle      The ws2812b handle
  * @param[in]   ws2812b_number      A number of ws2812b LED.
  * @param[in]   rgb_data            The ws2812b rgb data.
  */
@@ -54,7 +54,7 @@ void ws2812b_set_rgb_buffer(handle_t ws2812b_handle, uint32_t ws2812b_number, ui
 /**
  * @brief       Light up the ws2812b by SPI.
  *
- * @param[in]   spi_handle          The SPI controller handle
+ * @param[in]   ws2812b_handle      The ws2812b handle
  */
 void ws2812b_set_rgb(handle_t ws2812b_handle);
 
