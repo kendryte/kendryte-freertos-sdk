@@ -143,7 +143,6 @@ public:
     {
         auto spi = make_accessor(spi_driver_);
         spi8_dev_ = make_accessor(spi->get_device(SPI_MODE_0, SPI_FF_STANDARD, 1, 8));
-        spi32_dev_ = make_accessor(spi->get_device(SPI_MODE_0, SPI_FF_STANDARD, 1, 32));
 
         cs_gpio_ = make_accessor(cs_gpio_driver_);
         cs_gpio_->set_drive_mode(cs_gpio_pin_, GPIO_DM_OUTPUT);
@@ -156,7 +155,6 @@ public:
     virtual void on_last_close() override
     {
         spi8_dev_.reset();
-        spi32_dev_.reset();
         cs_gpio_.reset();
     }
 
@@ -172,13 +170,13 @@ public:
 
     virtual void read_blocks(uint32_t start_block, uint32_t blocks_count, gsl::span<uint8_t> buffer) override
     {
-        spi32_dev_->set_clock_rate(SD_SPI_HIGH_CLOCK_RATE);
+        spi8_dev_->set_clock_rate(SD_SPI_HIGH_CLOCK_RATE);
         sd_read_sector_dma(buffer.data(), start_block, blocks_count);
     }
 
     virtual void write_blocks(uint32_t start_block, uint32_t blocks_count, gsl::span<const uint8_t> buffer) override
     {
-        spi32_dev_->set_clock_rate(SD_SPI_HIGH_CLOCK_RATE);
+        spi8_dev_->set_clock_rate(SD_SPI_HIGH_CLOCK_RATE);
         sd_write_sector_dma(buffer.data(), start_block, blocks_count);
     }
 
@@ -205,12 +203,12 @@ private:
 
     void sd_write_data_dma(const uint8_t *data_buff)
     {
-        spi32_dev_->write({ data_buff, 512L });
+        spi8_dev_->write({ data_buff, 512L });
     }
 
     void sd_read_data_dma(uint8_t *data_buff)
     {
-        spi32_dev_->read({ data_buff, 512L });
+        spi8_dev_->read({ data_buff, 512L });
     }
 
     /*
@@ -760,7 +758,6 @@ private:
 
     object_accessor<gpio_driver> cs_gpio_;
     object_accessor<spi_device_driver> spi8_dev_;
-    object_accessor<spi_device_driver> spi32_dev_;
     SD_CardInfo card_info_;
 };
 

@@ -397,10 +397,6 @@ void k_spi_driver::setup_device(k_spi_device_driver &device)
     spi_.ssienr = 0x00;
     spi_.ctrlr0 = (device.mode_ << mod_off_) | (device.frame_format_ << frf_off_) | ((device.data_bit_length_ - 1) << dfs_off_);
     spi_.spi_ctrlr0 = 0;
-    if (device.data_bit_length_ == 32)
-        spi_.endian = 1;
-    else
-        spi_.endian = 0;
 
     if (device.frame_format_ != SPI_FF_STANDARD)
     {
