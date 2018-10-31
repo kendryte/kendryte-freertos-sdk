@@ -23,16 +23,15 @@ using namespace sys;
 
 typedef union _ws2812b_rgb
 {
-	struct
+    struct
     {
         uint32_t blue : 8;
-	    uint32_t red : 8;
-	    uint32_t green : 8;
-	    uint32_t reserved : 8;
+        uint32_t red : 8;
+        uint32_t green : 8;
+        uint32_t reserved : 8;
     };
     uint32_t rgb;
 } ws2812b_rgb;
-
 
 typedef struct _ws2812b_info
 {
@@ -46,10 +45,10 @@ public:
     k_spi_ws2812b_driver(handle_t spi_handle, uint32_t total_number)
         : spi_driver_(system_handle_to_object(spi_handle).get_object().as<spi_driver>())
     {
-    	this->ws2812b_info_.total_number = total_number;
-    	this->ws2812b_info_.rgb_buffer = (ws2812b_rgb *)malloc(total_number * sizeof(ws2812b_rgb));
-		configASSERT(ws2812b_info_.rgb_buffer != NULL);
-		memset(this->ws2812b_info_.rgb_buffer, 0x0, total_number * sizeof(ws2812b_rgb));
+        this->ws2812b_info_.total_number = total_number;
+        this->ws2812b_info_.rgb_buffer = (ws2812b_rgb *)malloc(total_number * sizeof(ws2812b_rgb));
+        configASSERT(ws2812b_info_.rgb_buffer != NULL);
+        memset(this->ws2812b_info_.rgb_buffer, 0x0, total_number * sizeof(ws2812b_rgb));
     }
 
     virtual void install() override
@@ -66,108 +65,108 @@ public:
     virtual void on_last_close() override
     {
         spi32_dev_.reset();
-		configASSERT(ws2812b_info_.rgb_buffer != NULL);
-		free(ws2812b_info_.rgb_buffer);
+        configASSERT(ws2812b_info_.rgb_buffer != NULL);
+        free(ws2812b_info_.rgb_buffer);
     }
 
-	void clear_rgb_buffer()
-	{
-		configASSERT(ws2812b_info_.rgb_buffer != NULL);
-		memset(ws2812b_info_.rgb_buffer, 0x0, ws2812b_info_.total_number * sizeof(ws2812b_rgb));
-	}
+    void clear_rgb_buffer()
+    {
+        configASSERT(ws2812b_info_.rgb_buffer != NULL);
+        memset(ws2812b_info_.rgb_buffer, 0x0, ws2812b_info_.total_number * sizeof(ws2812b_rgb));
+    }
 
-	void set_rgb_buffer(uint32_t number, uint32_t rgb_data)
-	{
-		configASSERT(number < ws2812b_info_.total_number);
-		configASSERT(ws2812b_info_.rgb_buffer != NULL);
-		
-		(ws2812b_info_.rgb_buffer + number)->rgb = rgb_data;
-	}
+    void set_rgb_buffer(uint32_t number, uint32_t rgb_data)
+    {
+        configASSERT(number < ws2812b_info_.total_number);
+        configASSERT(ws2812b_info_.rgb_buffer != NULL);
+
+        (ws2812b_info_.rgb_buffer + number)->rgb = rgb_data;
+    }
 
     void set_rgb()
     {
-		uint32_t longbit;
-		uint32_t shortbit;
-		uint32_t resbit;
-		uint32_t i = 0;
-		size_t ws_cnt = ws2812b_info_.total_number;
-		uint32_t *ws_data =(uint32_t *)ws2812b_info_.rgb_buffer;
-		uint32_t clk_time = 1e9 / spi32_clock_rate_;	/* nanosecond per clk */
-		configASSERT(clk_time <= (850 + 150) / 2);
+        uint32_t longbit;
+        uint32_t shortbit;
+        uint32_t resbit;
+        uint32_t i = 0;
+        size_t ws_cnt = ws2812b_info_.total_number;
+        uint32_t *ws_data =(uint32_t *)ws2812b_info_.rgb_buffer;
+        uint32_t clk_time = 1e9 / spi32_clock_rate_;    /* nanosecond per clk */
+        configASSERT(clk_time <= (850 + 150) / 2);
 
-		longbit = (850 - 150 + clk_time -1) / clk_time;
-		shortbit = (400 - 150 + clk_time -1) / clk_time;
-		resbit = (400000 / clk_time);
-		uint32_t spi_send_cnt = (((ws_cnt * 24 * (longbit + shortbit) + resbit + 7) / 8) + 3) / 4;
-		uint32_t reset_cnt = ((resbit + 7) / 8 + 3) / 4;
-		uint32_t *tmp_spi_data = (uint32_t *)malloc((spi_send_cnt + reset_cnt) * 4);
-		configASSERT(tmp_spi_data != NULL);
-		const uint8_t *ws2812b_spi_send = (const uint8_t *)tmp_spi_data;
-		
-		memset(tmp_spi_data, 0, (spi_send_cnt + reset_cnt) * 4);
-		uint32_t *spi_data = tmp_spi_data;
-		spi_data += reset_cnt;
-		int pos = 31;
-		uint32_t long_cnt = longbit;
-		uint32_t short_cnt = shortbit;
-		for(i = 0; i < ws_cnt; i++)
-		{
-			for(uint32_t mask = 0x800000; mask > 0; mask >>= 1)
-			{
-				long_cnt = longbit;
-				short_cnt = shortbit;
+        longbit = (850 - 150 + clk_time -1) / clk_time;
+        shortbit = (400 - 150 + clk_time -1) / clk_time;
+        resbit = (400000 / clk_time);
+        uint32_t spi_send_cnt = (((ws_cnt * 24 * (longbit + shortbit) + resbit + 7) / 8) + 3) / 4;
+        uint32_t reset_cnt = ((resbit + 7) / 8 + 3) / 4;
+        uint32_t *tmp_spi_data = (uint32_t *)malloc((spi_send_cnt + reset_cnt) * 4);
+        configASSERT(tmp_spi_data != NULL);
+        const uint8_t *ws2812b_spi_send = (const uint8_t *)tmp_spi_data;
 
-				if(ws_data[i] & mask)
-				{
-					while(long_cnt--)
-					{
-						*(spi_data) |= (1 << (pos--));
-						if(pos < 0){
-							spi_data++;
-							pos = 31;
-						}
-					}
-					while(short_cnt--)
-					{
-						*(spi_data) &= ~(1 << (pos--));
-						if(pos < 0)
-						{
-							spi_data ++;
-							pos = 31;
-						}
-					}
-				}
-				else
-				{
-					while(short_cnt--)
-					{
-						*(spi_data) |= (1 << (pos--));
-						if(pos < 0)
-						{
-							spi_data ++;
-							pos = 31;
-						}
-					}
-					while(long_cnt--)
-					{
-						*(spi_data) &= ~(1 << (pos--));
-						if(pos < 0)
-						{
-							spi_data++;
-							pos = 31;
-						}
-					}
-				}
-			}
-		}
-		spi32_dev_->write({ ws2812b_spi_send, std::ptrdiff_t((spi_send_cnt + reset_cnt)*4) });
-		free(tmp_spi_data);
-	}
+        memset(tmp_spi_data, 0, (spi_send_cnt + reset_cnt) * 4);
+        uint32_t *spi_data = tmp_spi_data;
+        spi_data += reset_cnt;
+        int pos = 31;
+        uint32_t long_cnt = longbit;
+        uint32_t short_cnt = shortbit;
+        for(i = 0; i < ws_cnt; i++)
+        {
+            for(uint32_t mask = 0x800000; mask > 0; mask >>= 1)
+            {
+                long_cnt = longbit;
+                short_cnt = shortbit;
+
+                if(ws_data[i] & mask)
+                {
+                    while(long_cnt--)
+                    {
+                        *(spi_data) |= (1 << (pos--));
+                        if(pos < 0){
+                            spi_data++;
+                            pos = 31;
+                        }
+                    }
+                    while(short_cnt--)
+                    {
+                        *(spi_data) &= ~(1 << (pos--));
+                        if(pos < 0)
+                        {
+                            spi_data ++;
+                            pos = 31;
+                        }
+                    }
+                }
+                else
+                {
+                    while(short_cnt--)
+                    {
+                        *(spi_data) |= (1 << (pos--));
+                        if(pos < 0)
+                        {
+                            spi_data ++;
+                            pos = 31;
+                        }
+                    }
+                    while(long_cnt--)
+                    {
+                        *(spi_data) &= ~(1 << (pos--));
+                        if(pos < 0)
+                        {
+                            spi_data++;
+                            pos = 31;
+                        }
+                    }
+                }
+            }
+        }
+        spi32_dev_->write({ ws2812b_spi_send, std::ptrdiff_t((spi_send_cnt + reset_cnt)*4) });
+        free(tmp_spi_data);
+    }
 
 private:
     object_ptr<spi_driver> spi_driver_;
     object_accessor<spi_device_driver> spi32_dev_;
-	uint32_t spi32_clock_rate_;
+    uint32_t spi32_clock_rate_;
     ws2812b_info ws2812b_info_;
 };
 

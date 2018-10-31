@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef _DRIVERS_SDCARD_H
-#define _DRIVERS_SDCARD_H
+#ifndef _DRIVERS_WS2812B_H
+#define _DRIVERS_WS2812B_H
 
 #include <stdint.h>
 #include <osdefs.h>
@@ -22,26 +22,44 @@
 extern "C"
 {
 #endif
-    
+
 /**
- * @brief       Install a SPI SDCard driver
+ * @brief       Install a SPI ws2812b driver
  *
  * @param[in]   spi_handle          The SPI controller handle
- * @param[in]   cs_gpio_handle      The GPIO controller handle for CS
- * @param[in]   cs_gpio_pin         The GPIO pin for CS
+ * @param[in]   total_number        The total number of the ws2812b LED.
  *
  * @return      result
  *     - 0      Fail
  *     - other  The driver handle
  */
 handle_t spi_ws2812b_driver_install(handle_t spi_handle, uint32_t total_number);
-void ws2812b_clear_rgb_buffer(handle_t ws2812b_handle);
-void ws2812b_set_rgb_buffer(handle_t ws2812b_handle, uint32_t ws2812b_number, uint32_t rgb_data);
-void ws2812b_set_rgb(handle_t ws2812b_handle);
 
+/**
+ * @brief       Clear rgb buffer.
+ *
+ * @param[in]   ws2812b_handle      The SPI controller handle
+ */
+void ws2812b_clear_rgb_buffer(handle_t ws2812b_handle);
+
+/**
+ * @brief       Set rgb buffer.
+ *
+ * @param[in]   spi_handle          The SPI controller handle
+ * @param[in]   ws2812b_number      A number of ws2812b LED.
+ * @param[in]   rgb_data            The ws2812b rgb data.
+ */
+void ws2812b_set_rgb_buffer(handle_t ws2812b_handle, uint32_t ws2812b_number, uint32_t rgb_data);
+
+/**
+ * @brief       Light up the ws2812b by SPI.
+ *
+ * @param[in]   spi_handle          The SPI controller handle
+ */
+void ws2812b_set_rgb(handle_t ws2812b_handle);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* _DRIVERS_SDCARD_H */
+#endif /* _DRIVERS_WS2812B_H */
