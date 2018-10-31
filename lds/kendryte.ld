@@ -83,7 +83,6 @@ SECTIONS
   {
     *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
   } > ram : DATA
-  .sbss2 : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) } > ram : DYN_DATA
   /* Exception handling  */
   .eh_frame :
   {
@@ -165,6 +164,7 @@ SECTIONS
   
   . = .;
   __bss_start = .;
+  .sbss2 : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) } > ram : DYN_DATA
   .sbss :
   {
     *(.dynsbss)

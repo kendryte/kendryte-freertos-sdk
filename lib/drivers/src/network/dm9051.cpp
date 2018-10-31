@@ -231,6 +231,16 @@ public:
     {
         auto spi = make_accessor(spi_driver_);
         spi_dev_ = make_accessor(spi->get_device(SPI_MODE_0, SPI_FF_STANDARD, spi_cs_mask_, 8));
+        spi_dev_->set_clock_rate(10000000);
+
+        uint32_t value = 0;
+        /* Read DM9051 PID / VID, Check MCU SPI Setting correct */
+        value |= (uint32_t)read(DM9051_VIDL);
+        value |= (uint32_t)read(DM9051_VIDH) << 8;
+        value |= (uint32_t)read(DM9051_PIDL) << 16;
+        value |= (uint32_t)read(DM9051_PIDH) << 24;
+
+        configASSERT(value == 0x90510a46);
     }
 
     virtual void on_last_close() override
@@ -302,8 +312,6 @@ public:
         write(DM9051_NSR, NSR_CLR_STATUS);
         write(DM9051_ISR, ISR_CLR_STATUS);
 
-        configASSERT(read(DM9051_PAR) == mac_address_.data[0]);
-
         write(DM9051_IMR, IMR_PAR | IMR_PRM);
         write(DM9051_RCR, (RCR_DEFAULT | RCR_RXEN)); /* Enable RX */
     }
@@ -345,7 +353,7 @@ public:
             /* Reset RX FIFO pointer */
             write(DM9051_RCR, RCR_DEFAULT); //RX disable
             write(DM9051_MPCR, 0x01); //Reset RX FIFO pointer
-            usleep(2e4);
+            usleep(2e3);
             write(DM9051_RCR, (RCR_DEFAULT | RCR_RXEN)); //RX Enable
             return 0;
         }
@@ -364,6 +372,7 @@ public:
         calc_mrr_ += (len + 4);
         if (calc_mrr_ > 0x3fff)
             calc_mrr_ -= 0x3400;
+        printf("len: %d\n", len);
         return len;
     }
 
@@ -455,6 +464,8 @@ private:
         write(DM9051_PAR + 3, mac_addr.data[3]);
         write(DM9051_PAR + 4, mac_addr.data[4]);
         write(DM9051_PAR + 5, mac_addr.data[5]);
+
+        configASSERT(read(DM9051_PAR) == mac_addr.data[0]);
     }
 
     void set_phy_mode(uint32_t media_mode)
@@ -466,35 +477,25 @@ private:
             switch (media_mode)
             {
             case DM9051_10MHD:
-            {
                 phy_reg4 = 0x21;
                 phy_reg0 = 0x0000;
                 break;
-            }
             case DM9051_10MFD:
-            {
                 phy_reg4 = 0x41;
                 phy_reg0 = 0x1100;
                 break;
-            }
             case DM9051_100MHD:
-            {
                 phy_reg4 = 0x81;
                 phy_reg0 = 0x2000;
                 break;
-            }
             case DM9051_100MFD:
-            {
                 phy_reg4 = 0x101;
                 phy_reg0 = 0x3100;
                 break;
-            }
             case DM9051_10M:
-            {
                 phy_reg4 = 0x61;
                 phy_reg0 = 0x1200;
                 break;
-            }
             }
 
             /* Set PHY media mode */

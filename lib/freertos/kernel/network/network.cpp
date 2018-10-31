@@ -16,26 +16,18 @@
 #include "FreeRTOS.h"
 #include "devices.h"
 #include "kernel/driver_impl.hpp"
+#include "task.h"
 #include <lwip/etharp.h>
+#include <lwip/init.h>
 #include <lwip/snmp.h>
 #include <lwip/tcpip.h>
 #include <netif/ethernet.h>
 
 using namespace sys;
 
-static void network_oninit_done(void *arg)
-{
-    auto semphr = reinterpret_cast<SemaphoreHandle_t>(arg);
-    xSemaphoreGive(semphr);
-}
-
 int network_init()
 {
-    auto semphr = xSemaphoreCreateBinary();
-    if (!semphr)
-        return -1;
-    tcpip_init(network_oninit_done, semphr);
-    configASSERT(xSemaphoreTake(semphr, portMAX_DELAY) == pdTRUE);
+    lwip_init();
     return 0;
 }
 
@@ -58,9 +50,17 @@ public:
     void set_enable(bool enable)
     {
         if (enable)
+        {
             netif_set_up(&netif_);
+
+            TaskHandle_t h;
+            auto ret = xTaskCreate(poll_thread, "poll", 10240, this, 3, &h);
+            configASSERT(ret == pdTRUE);
+        }
         else
+        {
             netif_set_down(&netif_);
+        }
     }
 
     void set_as_default()
@@ -74,6 +74,17 @@ private:
         while (adapter_->is_packet_available())
         {
             ethernetif_input(&netif_);
+        }
+    }
+
+    static void poll_thread(void *args)
+    {
+        printf("aa\n");
+        auto &ethnetif = *reinterpret_cast<k_ethernet_interface *>(args);
+        while (1)
+        {
+            ethnetif.notify_input();
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
     }
 
