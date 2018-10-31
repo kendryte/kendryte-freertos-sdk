@@ -126,7 +126,17 @@ public:
             mode |= FA_CREATE_ALWAYS;
         else if (file_mode == FILE_MODE_APPEND)
             mode |= FA_OPEN_APPEND;
+        else if (file_mode == FILE_MODE_TRUNCATE)
+            mode |= FA_OPEN_EXISTING;
         check_fatfs_error(f_open(&file_, normalize_path(fileName), mode));
+
+        if (file_mode == FILE_MODE_TRUNCATE)
+        {
+            auto err = f_truncate(&file_);
+            if (err != FR_OK)
+                f_close(&file_);
+            check_fatfs_error(err);
+        }
     }
 
     ~k_filesystem_file()

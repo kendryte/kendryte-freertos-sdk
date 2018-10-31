@@ -232,7 +232,8 @@ typedef enum _file_mode
     FILE_MODE_CREATE_NEW,
     FILE_MODE_CREATE_ALWAYS,
     FILE_MODE_OPEN_ALWAYS,
-    FILE_MODE_APPEND
+    FILE_MODE_APPEND,
+    FILE_MODE_TRUNCATE
 } file_mode_t;
 
 typedef struct _find_file_data

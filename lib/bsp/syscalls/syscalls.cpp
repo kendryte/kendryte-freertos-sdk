@@ -31,18 +31,18 @@ int sys_open(const char *name, int flags, int mode)
     else if (strstr(name, "/fs/") != NULL)
     {
         file_access_t file_access = FILE_ACCESS_READ;
-        if (flags == O_WRONLY)
+        if (flags & O_WRONLY)
             file_access = FILE_ACCESS_WRITE;
-        else if (flags == O_RDWR)
+        else if (flags & O_RDWR)
             file_access = FILE_ACCESS_READ_WRITE;
 
         file_mode_t file_mode = FILE_MODE_OPEN_EXISTING;
-        if (mode & O_CREAT)
+        if (flags & O_CREAT)
             file_mode |= FILE_MODE_CREATE_ALWAYS;
-        if (mode & O_APPEND)
+        if (flags & O_APPEND)
             file_mode |= FILE_MODE_APPEND;
-        if (mode & O_TRUNC)
-            file_mode |= FILE_MODE_CREATE_NEW;
+        if (flags & O_TRUNC)
+            file_mode |= FILE_MODE_TRUNCATE;
         return filesystem_file_open(name, file_access, file_mode);
     }
     else
