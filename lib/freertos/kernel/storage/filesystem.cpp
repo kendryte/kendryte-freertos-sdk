@@ -129,7 +129,7 @@ public:
 
         check_fatfs_error(f_open(&file_, normalize_path(fileName), mode));
 
-        if (file_mode == FILE_MODE_TRUNCATE)
+        if (file_mode & FILE_MODE_TRUNCATE)
         {
             auto err = f_truncate(&file_);
             if (err != FR_OK)
