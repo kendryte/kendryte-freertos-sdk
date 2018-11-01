@@ -12,17 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "ws2812b/ws2812b.h"
 #include <kernel/driver_impl.hpp>
 #include <stdlib.h>
 #include <string.h>
-#include "ws2812b/ws2812b.h"
 
 using namespace sys;
 
 #define WS2812B_SPI_CLOCK_RATE 2500000
 
-typedef union _ws2812b_rgb
-{
+typedef union _ws2812b_rgb {
     struct
     {
         uint32_t blue : 8;
@@ -90,12 +89,12 @@ public:
         uint32_t resbit;
         uint32_t i = 0;
         size_t ws_cnt = ws2812b_info_.total_number;
-        uint32_t *ws_data =(uint32_t *)ws2812b_info_.rgb_buffer;
-        uint32_t clk_time = 1e9 / spi32_clock_rate_;    /* nanosecond per clk */
+        uint32_t *ws_data = (uint32_t *)ws2812b_info_.rgb_buffer;
+        uint32_t clk_time = 1e9 / spi32_clock_rate_; /* nanosecond per clk */
         configASSERT(clk_time <= (850 + 150) / 2);
 
-        longbit = (850 - 150 + clk_time -1) / clk_time;
-        shortbit = (400 - 150 + clk_time -1) / clk_time;
+        longbit = (850 - 150 + clk_time - 1) / clk_time;
+        shortbit = (400 - 150 + clk_time - 1) / clk_time;
         resbit = (400000 / clk_time);
         uint32_t spi_send_cnt = (((ws_cnt * 24 * (longbit + shortbit) + resbit + 7) / 8) + 3) / 4;
         uint32_t reset_cnt = ((resbit + 7) / 8 + 3) / 4;
@@ -109,48 +108,49 @@ public:
         int pos = 31;
         uint32_t long_cnt = longbit;
         uint32_t short_cnt = shortbit;
-        for(i = 0; i < ws_cnt; i++)
+        for (i = 0; i < ws_cnt; i++)
         {
-            for(uint32_t mask = 0x800000; mask > 0; mask >>= 1)
+            for (uint32_t mask = 0x800000; mask > 0; mask >>= 1)
             {
                 long_cnt = longbit;
                 short_cnt = shortbit;
 
-                if(ws_data[i] & mask)
+                if (ws_data[i] & mask)
                 {
-                    while(long_cnt--)
+                    while (long_cnt--)
                     {
                         *(spi_data) |= (1 << (pos--));
-                        if(pos < 0){
+                        if (pos < 0)
+                        {
                             spi_data++;
                             pos = 31;
                         }
                     }
-                    while(short_cnt--)
+                    while (short_cnt--)
                     {
                         *(spi_data) &= ~(1 << (pos--));
-                        if(pos < 0)
+                        if (pos < 0)
                         {
-                            spi_data ++;
+                            spi_data++;
                             pos = 31;
                         }
                     }
                 }
                 else
                 {
-                    while(short_cnt--)
+                    while (short_cnt--)
                     {
                         *(spi_data) |= (1 << (pos--));
-                        if(pos < 0)
+                        if (pos < 0)
                         {
-                            spi_data ++;
+                            spi_data++;
                             pos = 31;
                         }
                     }
-                    while(long_cnt--)
+                    while (long_cnt--)
                     {
                         *(spi_data) &= ~(1 << (pos--));
-                        if(pos < 0)
+                        if (pos < 0)
                         {
                             spi_data++;
                             pos = 31;
@@ -159,7 +159,7 @@ public:
                 }
             }
         }
-        spi32_dev_->write({ ws2812b_spi_send, std::ptrdiff_t((spi_send_cnt + reset_cnt)*4) });
+        spi32_dev_->write({ ws2812b_spi_send, std::ptrdiff_t((spi_send_cnt + reset_cnt) * 4) });
         free(tmp_spi_data);
     }
 
@@ -201,5 +201,3 @@ void ws2812b_set_rgb(handle_t ws2812b_handle)
     auto driver = system_handle_to_object(ws2812b_handle).as<k_spi_ws2812b_driver>();
     driver->set_rgb();
 }
-
-
