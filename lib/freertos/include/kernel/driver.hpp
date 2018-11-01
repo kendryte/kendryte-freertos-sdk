@@ -384,6 +384,21 @@ public:
     virtual void flush() = 0;
 };
 
+class surface : public virtual object_access
+{
+public:
+    virtual size_u_t get_pixel_size() = 0;
+    virtual color_format_t get_format() = 0;
+};
+
+class display_driver : public driver
+{
+public:
+    virtual object_accessor<surface> get_primary_surface() = 0;
+    virtual void clear(object_ptr<surface> surface, const rect_u_t &rect, const color_value_t &color) = 0;
+    virtual void copy_subresource(object_ptr<surface> src, object_ptr<surface> &dest, const rect_u_t &src_rect, const point_u_t &dest_pos);
+};
+
 extern driver_registry_t g_hal_drivers[];
 extern driver_registry_t g_dma_drivers[];
 extern driver_registry_t g_system_drivers[];

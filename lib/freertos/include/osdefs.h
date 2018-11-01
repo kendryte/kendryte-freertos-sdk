@@ -246,6 +246,40 @@ typedef struct _find_file_data
     char filename[MAX_PATH];
 } find_find_data_t;
 
+typedef struct _size_u
+{
+    uint32_t width;
+    uint32_t height;
+} size_u_t;
+
+typedef enum _color_format
+{
+    COLOR_FORMAT_B5G6R5_UNORM,
+    COLOR_FORMAT_R32G32B32A32_FLOAT,
+} color_format_t;
+
+typedef struct _color_value
+{
+    float r;
+    float g;
+    float b;
+    float a;
+} color_value_t;
+
+typedef struct _rect_u
+{
+    uint32_t left;
+    uint32_t top;
+    uint32_t right;
+    uint32_t bottom;
+} rect_u_t;
+
+typedef struct _point_u
+{
+    uint32_t x;
+    uint32_t y;
+} point_u_t;
+
 #ifdef __cplusplus
 }
 #endif
