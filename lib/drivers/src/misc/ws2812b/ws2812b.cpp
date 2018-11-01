@@ -12,7 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "ws2812b/ws2812b.h"
+#include "misc/ws2812b/ws2812b.h"
 #include <kernel/driver_impl.hpp>
 #include <stdlib.h>
 #include <string.h>
