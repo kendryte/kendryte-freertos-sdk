@@ -116,18 +116,17 @@ public:
             mode |= FA_READ;
         if (file_access & FILE_ACCESS_WRITE)
             mode |= FA_WRITE;
-        if (file_mode == FILE_MODE_OPEN_EXISTING)
+        if (file_mode & FILE_MODE_OPEN_EXISTING)
             mode |= FA_OPEN_EXISTING;
-        else if (file_mode == FILE_MODE_OPEN_ALWAYS)
+        else if (file_mode & FILE_MODE_OPEN_ALWAYS)
             mode |= FA_OPEN_ALWAYS;
-        else if (file_mode == FILE_MODE_CREATE_NEW)
+        else if (file_mode & FILE_MODE_CREATE_NEW)
             mode |= FA_CREATE_NEW;
-        else if (file_mode == FILE_MODE_CREATE_ALWAYS)
+        else if (file_mode & FILE_MODE_CREATE_ALWAYS)
             mode |= FA_CREATE_ALWAYS;
-        else if (file_mode == FILE_MODE_APPEND)
+        else if (file_mode & FILE_MODE_APPEND)
             mode |= FA_OPEN_APPEND;
-        else if (file_mode == FILE_MODE_TRUNCATE)
-            mode |= FA_OPEN_EXISTING;
+
         check_fatfs_error(f_open(&file_, normalize_path(fileName), mode));
 
         if (file_mode == FILE_MODE_TRUNCATE)

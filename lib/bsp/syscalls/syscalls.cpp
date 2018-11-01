@@ -17,8 +17,8 @@
 #include <devices.h>
 #include <filesystem.h>
 #include <string.h>
-#include <sys/file.h>
 #include <sys/unistd.h>
+#include <sys/fcntl.h>
 
 using namespace sys;
 
