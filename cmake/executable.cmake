@@ -23,7 +23,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 target_link_libraries(${PROJECT_NAME}
         -Wl,--start-group
-        m freertos c bsp drivers
+        m freertos c bsp drivers ${SDK_ROOT}/third_party/userland/libtensorflow-lite.a
         -Wl,--end-group
         )
 
