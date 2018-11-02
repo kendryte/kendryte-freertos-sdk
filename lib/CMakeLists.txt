@@ -1,5 +1,8 @@
 #project(kendryte)
 
-ADD_SUBDIRECTORY(drivers)
+INCLUDE_DIRECTORIES(${SDK_ROOT}/third_party)
+
+ADD_SUBDIRECTORY(hal)
 ADD_SUBDIRECTORY(freertos)
 ADD_SUBDIRECTORY(bsp)
+ADD_SUBDIRECTORY(drivers)

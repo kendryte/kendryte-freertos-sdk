@@ -73,14 +73,26 @@ SECTIONS
   {
     KEEP (*(SORT_NONE(.fini)))
   } > ram : DATA
+  PROVIDE (__etext = .);
+  PROVIDE (_etext = .);
+  PROVIDE (etext = .);
   
-  /* Read-only data segment */
-  .rodata :
+  .rodata : { *(.rodata .rodata.* .gnu.linkonce.r.*) } > ram : DATA
+  .rodata1 : { *(.rodata1) } > ram : DATA
+  .sdata2 :
   {
-    *(.rdata)
-    *(.rodata .rodata.*)
-    *(.gnu.linkonce.r.*)
+    *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
   } > ram : DATA
+  .sbss2 : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) } > ram : DYN_DATA
+  /* Exception handling  */
+  .eh_frame :
+  {
+    KEEP (*(.eh_frame)) *(.eh_frame.*)
+    . = ALIGN(8);
+  } > ram : DATA
+  .gnu_extab : { *(.gnu_extab) } > ram : DATA
+  .gcc_except_table : { *(.gcc_except_table .gcc_except_table.*) } > ram : DATA
+  .exception_ranges : { *(.exception_ranges .exception_ranges*) } > ram : DATA
   
   .preinit_array :
   {
@@ -139,6 +151,7 @@ SECTIONS
     *(.data .data.* .gnu.linkonce.d.*)
     SORT(CONSTRUCTORS)
   } > ram : DATA
+  .data1 : { *(.data1) } > ram : DATA
   /* We want the small data sections together, so single-instruction offsets
      can access them all, and initialized data all before uninitialized, so
      we can shorten the on-disk segment size.  */

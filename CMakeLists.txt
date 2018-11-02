@@ -18,9 +18,7 @@ INCLUDE_DIRECTORIES(${CMAKE_CURRENT_LIST_DIR}/lib/arch/include ${CMAKE_CURRENT_L
 header_directories(${SDK_ROOT}/lib)
 # build library first
 add_subdirectory(lib SDK)
-
-# TODO
-#add_subdirectory(third_party)
+add_subdirectory(third_party)
 
 # compile project
 add_source_files(src/${PROJ}/*.c src/${PROJ}/*.s src/${PROJ}/*.S src/${PROJ}/*.cpp)

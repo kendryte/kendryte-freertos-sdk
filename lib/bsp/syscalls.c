@@ -15,22 +15,25 @@
 #include <atomic.h>
 #include <clint.h>
 #include <devices.h>
-#include <errno.h>
 #include <dump.h>
+#include <errno.h>
+#include <filesystem.h>
 #include <fpioa.h>
 #include <interrupt.h>
 #include <limits.h>
 #include <machine/syscall.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/unistd.h>
-#include <sysctl.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/unistd.h>
+#include <sys/file.h>
+#include "syscalls/syscalls.h"
+#include <sysctl.h>
 #include <syslog.h>
 #include <uarths.h>
 
@@ -90,12 +93,11 @@
 #endif
 
 #define SYS_RET(epc_val, err_val) \
-syscall_ret_t ret =               \
-{                                 \
-    .err = err_val,               \
-    .epc = epc_val                \
-};                                \
-return ret;
+    syscall_ret_t ret = {         \
+        .err = err_val,           \
+        .epc = epc_val            \
+    };                            \
+    return ret;
 
 typedef struct _syscall_ret
 {
@@ -103,11 +105,11 @@ typedef struct _syscall_ret
     uintptr_t epc;
 } syscall_ret_t;
 
-static const char* TAG = "SYSCALL";
+static const char *TAG = "SYSCALL";
 
 extern char _heap_start[];
 extern char _heap_end[];
-char* _heap_cur = &_heap_start[0];
+char *_heap_cur = &_heap_start[0];
 
 void __attribute__((noreturn)) sys_exit(int code)
 {
@@ -150,7 +152,7 @@ static size_t sys_brk(size_t pos)
      * OUT: regs[10] = ptr
      */
 
-     /*
+    /*
       * - First call: Initialization brk pointer. newlib will pass
       *   ptr = 0 when it is first called. In this case the address
       *   _heap_start will be return.
@@ -170,7 +172,7 @@ static size_t sys_brk(size_t pos)
         else
         {
             /* Adjust brk pointer. */
-            _heap_cur = (char*)(uintptr_t)pos;
+            _heap_cur = (char *)(uintptr_t)pos;
             /* Return current address. */
             res = (uintptr_t)_heap_cur;
         }
@@ -183,7 +185,7 @@ static size_t sys_brk(size_t pos)
     return (size_t)res;
 }
 
-static ssize_t sys_write(int file, const void* ptr, size_t len)
+static ssize_t sys_write(int file, const void *ptr, size_t len)
 {
     /*
      * Write to a file.
@@ -198,7 +200,7 @@ static ssize_t sys_write(int file, const void* ptr, size_t len)
     /* Get size to write */
     size_t length = len;
     /* Get data pointer */
-    const uint8_t* data = (const uint8_t*)ptr;
+    const uint8_t *data = (const uint8_t *)ptr;
 
     if (STDOUT_FILENO == file || STDERR_FILENO == file)
     {
@@ -217,59 +219,18 @@ static ssize_t sys_write(int file, const void* ptr, size_t len)
     return res;
 }
 
-static ssize_t sys_read(int file, void* ptr, size_t len)
+static ssize_t sys_read(int file, void *ptr, size_t len)
 {
     ssize_t res = -EBADF;
 
     if (STDIN_FILENO == file)
     {
-        return uarths_read((uint8_t*)ptr, len);
+        return uarths_read((uint8_t *)ptr, len);
     }
     else
     {
-        res = io_read(file, (uint8_t*)ptr, len);
+        res = io_read(file, (uint8_t *)ptr, len);
     }
-
-    return res;
-}
-
-static int sys_open(const char* name, int flags, int mode)
-{
-    UNUSED(flags);
-    UNUSED(mode);
-
-    uintptr_t ptr = io_open(name);
-    return ptr;
-}
-
-static int sys_fstat(int file, struct stat* st)
-{
-    int res = -EBADF;
-
-    /*
-     * Status of an open file. The sys/stat.h header file required
-     * is
-     * distributed in the include subdirectory for this C library.
-     *
-     * int fstat(int file, struct stat* st)
-     *
-     * IN : regs[10] = file, regs[11] = st
-     * OUT: regs[10] = Upon successful completion, 0 shall be
-     * returned.
-     * Otherwise, -1 shall be returned and errno set to indicate
-     * the error.
-     */
-
-    UNUSED(file);
-
-    if (st != NULL)
-        memset(st, 0, sizeof(struct stat));
-    /* Return the result */
-    res = -ENOSYS;
-    /*
-     * Note: This value will return to syscall wrapper, syscall
-     * wrapper will set errno to ENOSYS and return -1
-     */
 
     return res;
 }
@@ -290,7 +251,7 @@ static int sys_close(int file)
     return io_close(file);
 }
 
-static int sys_gettimeofday(struct timeval* tp, void* tzp)
+static int sys_gettimeofday(struct timeval *tp, void *tzp)
 {
     /*
      * Get the current time.  Only relatively correct.
@@ -330,20 +291,22 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         SYS_ID_FSTAT,
         SYS_ID_CLOSE,
         SYS_ID_GETTIMEOFDAY,
+        SYS_ID_LSEEK,
         SYS_ID_MAX
     };
 
-    static uintptr_t(*const syscall_table[])(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n) = {
-        [SYS_ID_NOSYS] = (void*)sys_nosys,
-        [SYS_ID_SUCCESS] = (void*)sys_success,
-        [SYS_ID_EXIT] = (void*)sys_exit,
-        [SYS_ID_BRK] = (void*)sys_brk,
-        [SYS_ID_READ] = (void*)sys_read,
-        [SYS_ID_WRITE] = (void*)sys_write,
-        [SYS_ID_OPEN] = (void*)sys_open,
-        [SYS_ID_FSTAT] = (void*)sys_fstat,
-        [SYS_ID_CLOSE] = (void*)sys_close,
-        [SYS_ID_GETTIMEOFDAY] = (void*)sys_gettimeofday,
+    static uintptr_t (*const syscall_table[])(long a0, long a1, long a2, long a3, long a4, long a5, unsigned long n) = {
+        [SYS_ID_NOSYS] = (void *)sys_nosys,
+        [SYS_ID_SUCCESS] = (void *)sys_success,
+        [SYS_ID_EXIT] = (void *)sys_exit,
+        [SYS_ID_BRK] = (void *)sys_brk,
+        [SYS_ID_READ] = (void *)sys_read,
+        [SYS_ID_WRITE] = (void *)sys_write,
+        [SYS_ID_OPEN] = (void *)sys_open,
+        [SYS_ID_FSTAT] = (void *)sys_fstat,
+        [SYS_ID_CLOSE] = (void *)sys_close,
+        [SYS_ID_GETTIMEOFDAY] = (void *)sys_gettimeofday,
+        [SYS_ID_LSEEK] = (void *)sys_lseek,
     };
 
 #if defined(__GNUC__)
@@ -360,7 +323,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         [0xFF & SYS_open] = SYS_ID_OPEN,
         [0xFF & SYS_openat] = SYS_ID_NOSYS,
         [0xFF & SYS_close] = SYS_ID_CLOSE,
-        [0xFF & SYS_lseek] = SYS_ID_NOSYS,
+        [0xFF & SYS_lseek] = SYS_ID_LSEEK,
         [0xFF & SYS_brk] = SYS_ID_BRK,
         [0xFF & SYS_link] = SYS_ID_NOSYS,
         [0xFF & SYS_unlink] = SYS_ID_NOSYS,
@@ -405,9 +368,9 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         a4, /* a4 */
         a5, /* a5 */
         n /* n */
-        );
+    );
 
-    epc += ((*(unsigned short*)epc & 3) == 3 ? 4 : 2);
+    epc += 4;
     SYS_RET(epc, err);
 }
 
@@ -425,7 +388,7 @@ handle_ecall_m(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t
 
 syscall_ret_t handle_syscall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n)
 {
-    static syscall_ret_t(*const cause_table[])(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n) = {
+    static syscall_ret_t (*const cause_table[])(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n) = {
         [CAUSE_USER_ECALL] = handle_ecall_u,
         [CAUSE_SUPERVISOR_ECALL] = handle_ecall_h,
         [CAUSE_HYPERVISOR_ECALL] = handle_ecall_s,
