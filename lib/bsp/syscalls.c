@@ -402,7 +402,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         n /* n */
     );
 
-    epc += ((*(unsigned short *)epc & 3) == 3 ? 4 : 2);
+    epc += 4;
     SYS_RET(epc, err);
 }
 
