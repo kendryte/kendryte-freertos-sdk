@@ -13,12 +13,12 @@
  * limitations under the License.
  */
 #include "syscalls.h"
-#include <kernel/driver_impl.hpp>
 #include <devices.h>
 #include <filesystem.h>
+#include <kernel/driver_impl.hpp>
 #include <string.h>
-#include <sys/unistd.h>
 #include <sys/fcntl.h>
+#include <sys/unistd.h>
 
 using namespace sys;
 
@@ -85,10 +85,11 @@ off_t sys_lseek(int fildes, off_t offset, int whence)
     }
 }
 
-int sys_fstat(int fd, struct stat *buf)
+int sys_fstat(int fd, struct kernel_stat *buf)
 {
     try
     {
+        memset(buf, 0, sizeof(struct kernel_stat));
         auto &obj = system_handle_to_object(fd);
         if (auto f = obj.as<filesystem_file>())
         {

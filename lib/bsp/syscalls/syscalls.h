@@ -23,9 +23,29 @@ extern "C"
 {
 #endif
 
+struct kernel_stat
+{
+    unsigned long long st_dev;
+    unsigned long long st_ino;
+    unsigned int st_mode;
+    unsigned int st_nlink;
+    unsigned int st_uid;
+    unsigned int st_gid;
+    unsigned long long st_rdev;
+    unsigned long long __pad1;
+    long long st_size;
+    int st_blksize;
+    int __pad2;
+    long long st_blocks;
+    struct timespec st_atim;
+    struct timespec st_mtim;
+    struct timespec st_ctim;
+    int __glibc_reserved[2];
+};
+
 int sys_open(const char *name, int flags, int mode);
 off_t sys_lseek(int fildes, off_t offset, int whence);
-int sys_fstat(int fd, struct stat *buf);
+int sys_fstat(int fd, struct kernel_stat *buf);
 
 #ifdef __cplusplus
 }
