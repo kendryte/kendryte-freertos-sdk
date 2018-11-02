@@ -67,7 +67,7 @@ public:
     }
 
     template <class... Args>
-    object_ptr(std::in_place_t, Args &&... args) noexcept
+    object_ptr(std::in_place_t, Args &&... args)
         : obj_(new T(std::forward<Args>(args)...))
     {
     }
@@ -145,14 +145,14 @@ public:
     T &operator*() const noexcept { return *obj_; }
 
     template <class U>
-    object_ptr<U> as() const
+    object_ptr<U> as() const noexcept
     {
         auto ptr = dynamic_cast<U *>(obj_);
         return object_ptr<U>(ptr);
     }
 
     template <class U>
-    bool is() const
+    bool is() const noexcept
     {
         auto ptr = dynamic_cast<U *>(obj_);
         return ptr;
