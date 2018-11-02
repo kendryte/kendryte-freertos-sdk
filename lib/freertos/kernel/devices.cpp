@@ -925,7 +925,9 @@ handle_t sys::system_alloc_handle(object_accessor<object_access> object)
 
 object_accessor<object_access> &sys::system_handle_to_object(handle_t file)
 {
-    configASSERT(file);
+    if (file < HANDLE_OFFSET)
+        throw std::invalid_argument("Invalid handle.");
+
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     configASSERT(rfile);
     return rfile->object;

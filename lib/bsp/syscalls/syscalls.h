@@ -25,6 +25,7 @@ extern "C"
 
 int sys_open(const char *name, int flags, int mode);
 off_t sys_lseek(int fildes, off_t offset, int whence);
+int sys_fstat(int fd, struct stat *buf);
 
 #ifdef __cplusplus
 }
