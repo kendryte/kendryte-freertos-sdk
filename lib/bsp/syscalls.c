@@ -235,38 +235,6 @@ static ssize_t sys_read(int file, void *ptr, size_t len)
     return res;
 }
 
-static int sys_fstat(int file, struct stat *st)
-{
-    int res = -EBADF;
-
-    /*
-     * Status of an open file. The sys/stat.h header file required
-     * is
-     * distributed in the include subdirectory for this C library.
-     *
-     * int fstat(int file, struct stat* st)
-     *
-     * IN : regs[10] = file, regs[11] = st
-     * OUT: regs[10] = Upon successful completion, 0 shall be
-     * returned.
-     * Otherwise, -1 shall be returned and errno set to indicate
-     * the error.
-     */
-
-    UNUSED(file);
-
-    if (st != NULL)
-        memset(st, 0, sizeof(struct stat));
-    /* Return the result */
-    res = -ENOSYS;
-    /*
-     * Note: This value will return to syscall wrapper, syscall
-     * wrapper will set errno to ENOSYS and return -1
-     */
-
-    return res;
-}
-
 static int sys_close(int file)
 {
     /*
