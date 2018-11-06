@@ -249,16 +249,11 @@ template<typename T> T EndianScalar(T t) {
 }
 
 template<typename T> T ReadScalar(const void *p) {
-  alignas(T) char tmp[sizeof(T)];
-  for (size_t i = 0; i < sizeof(T); i++)
-    tmp[i] = reinterpret_cast<const char*>(p)[i];
-  return EndianScalar(*reinterpret_cast<const T *>(tmp));
+  return EndianScalar(*reinterpret_cast<const T *>(p));
 }
 
 template<typename T> void WriteScalar(void *p, T t) {
-  auto tmp = EndianScalar(t);
-  for (size_t i = 0; i < sizeof(T); i++)
-    reinterpret_cast<char*>(p)[i] = reinterpret_cast<const char*>(&tmp)[i];
+  *reinterpret_cast<T *>(p) = EndianScalar(t);
 }
 
 // Computes how many bytes you'd have to pad to be able to write an
