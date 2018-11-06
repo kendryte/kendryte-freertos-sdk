@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "syscalls/syscalls.h"
 #include <atomic.h>
 #include <clint.h>
 #include <devices.h>
@@ -28,11 +29,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/unistd.h>
-#include <sys/file.h>
-#include "syscalls/syscalls.h"
 #include <sysctl.h>
 #include <syslog.h>
 #include <uarths.h>
@@ -248,7 +248,14 @@ static int sys_close(int file)
      * Otherwise, -1 shall be returned and errno set to indicate
      * the error.
      */
-    return io_close(file);
+    if (STDOUT_FILENO == file || STDERR_FILENO == file)
+    {
+        return -1;
+    }
+    else
+    {
+        return io_close(file);
+    }
 }
 
 static int sys_gettimeofday(struct timeval *tp, void *tzp)

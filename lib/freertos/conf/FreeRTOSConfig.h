@@ -72,7 +72,6 @@
 #define configUSE_16_BIT_TICKS					0
 #define configIDLE_SHOULD_YIELD					0
 #define configQUEUE_REGISTRY_SIZE				8
-#define configCHECK_FOR_STACK_OVERFLOW			0
 
 /* mutex */
 #define configUSE_MUTEXES						1
@@ -87,10 +86,10 @@
 /* memory */
 #define configMINIMAL_STACK_SIZE			( ( unsigned short ) 1024 )
 #define configTOTAL_HEAP_SIZE				( ( size_t ) ( 1024 * 1024 ) )
-#define configSUPPORT_STATIC_ALLOCATION			0
+#define configSUPPORT_STATIC_ALLOCATION			1
 #define configSUPPORT_DYNAMIC_ALLOCATION		1
 
-#define configUSE_APPLICATION_TASK_TAG			0
+#define configUSE_APPLICATION_TASK_TAG			1
 #define configUSE_COUNTING_SEMAPHORES			1
 #define configUSE_TICKLESS_IDLE					1
 #define configNUM_THREAD_LOCAL_STORAGE_POINTERS	0
@@ -121,6 +120,11 @@
 #define INCLUDE_vTaskDelay						1
 #define INCLUDE_eTaskGetState					1
 #define INCLUDE_xTaskAbortDelay					1
+
+#define INCLUDE_xSemaphoreGetMutexHolder        1
+
+/* Diagnostics */
+#define configCHECK_FOR_STACK_OVERFLOW          1
 
 /* configASSERT behaviour */
 extern void vPortFatal(const char* file, int line, const char* message);

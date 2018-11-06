@@ -199,6 +199,8 @@ void vPortFatal(const char* file, int line, const char* message)
     portDISABLE_INTERRUPTS();
     corelock_lock(&xCoreLock);
     LOGE("FreeRTOS", "(%s:%d) %s", file, line, message);
+    while (1)
+        ;
     exit(-1);
     while (1)
         ;

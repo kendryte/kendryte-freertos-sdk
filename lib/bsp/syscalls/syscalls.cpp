@@ -13,12 +13,12 @@
  * limitations under the License.
  */
 #include "syscalls.h"
-#include <kernel/driver_impl.hpp>
 #include <devices.h>
 #include <filesystem.h>
+#include <kernel/driver_impl.hpp>
 #include <string.h>
-#include <sys/unistd.h>
 #include <sys/fcntl.h>
+#include <sys/unistd.h>
 
 using namespace sys;
 
@@ -52,11 +52,14 @@ int sys_open(const char *name, int flags, int mode)
     return -1;
 }
 
-off_t sys_lseek(int fildes, off_t offset, int whence)
+off_t sys_lseek(int fd, off_t offset, int whence)
 {
+    if (STDOUT_FILENO == fd || STDERR_FILENO == fd)
+        return -1;
+
     try
     {
-        auto &obj = system_handle_to_object(fildes);
+        auto &obj = system_handle_to_object(fd);
         if (auto f = obj.as<filesystem_file>())
         {
             if (whence == SEEK_SET)
@@ -85,10 +88,14 @@ off_t sys_lseek(int fildes, off_t offset, int whence)
     }
 }
 
-int sys_fstat(int fd, struct stat *buf)
+int sys_fstat(int fd, struct kernel_stat *buf)
 {
+    if (STDOUT_FILENO == fd || STDERR_FILENO == fd)
+        return -1;
+
     try
     {
+        memset(buf, 0, sizeof(struct kernel_stat));
         auto &obj = system_handle_to_object(fd);
         if (auto f = obj.as<filesystem_file>())
         {
