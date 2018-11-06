@@ -13,3 +13,4 @@ CMakeSettings.json
 *.tar
 *.tar.*
 cmake-build-*
+*.a

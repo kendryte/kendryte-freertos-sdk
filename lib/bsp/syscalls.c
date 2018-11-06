@@ -250,7 +250,7 @@ static int sys_close(int file)
      */
     if (STDOUT_FILENO == file || STDERR_FILENO == file)
     {
-        return -1;
+        return 0;
     }
     else
     {

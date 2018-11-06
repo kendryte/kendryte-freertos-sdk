@@ -91,7 +91,7 @@ off_t sys_lseek(int fd, off_t offset, int whence)
 int sys_fstat(int fd, struct kernel_stat *buf)
 {
     if (STDOUT_FILENO == fd || STDERR_FILENO == fd)
-        return -1;
+        return 0;
 
     try
     {
