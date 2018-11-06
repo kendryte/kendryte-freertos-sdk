@@ -239,10 +239,75 @@ trap_entry:
 .handle_syscall:
   ld t0, 0x0(sp)
   addi sp, sp, REGBYTES
+  addi sp, sp, -29 * REGBYTES
+  sd ra,  0 * REGBYTES(sp)
+  sd t0,  1 * REGBYTES(sp)
+  sd t1,  2 * REGBYTES(sp)
+  sd t2,  3 * REGBYTES(sp)
+  sd a6,  4 * REGBYTES(sp)
+  sd t3,  5 * REGBYTES(sp)
+  sd t4,  6 * REGBYTES(sp)
+  sd t5,  7 * REGBYTES(sp)
+  sd t6,  8 * REGBYTES(sp)
+  fsd ft0,  ( 0 + 9) * REGBYTES(sp)
+  fsd ft1,  ( 1 + 9) * REGBYTES(sp)
+  fsd ft2,  ( 2 + 9) * REGBYTES(sp)
+  fsd ft3,  ( 3 + 9) * REGBYTES(sp)
+  fsd ft4,  ( 4 + 9) * REGBYTES(sp)
+  fsd ft5,  ( 5 + 9) * REGBYTES(sp)
+  fsd ft6,  ( 6 + 9) * REGBYTES(sp)
+  fsd ft7,  ( 7 + 9) * REGBYTES(sp)
+  fsd fa0,  ( 8 + 9) * REGBYTES(sp)
+  fsd fa1,  ( 9 + 9) * REGBYTES(sp)
+  fsd fa2,  (10 + 9) * REGBYTES(sp)
+  fsd fa3,  (11 + 9) * REGBYTES(sp)
+  fsd fa4,  (12 + 9) * REGBYTES(sp)
+  fsd fa5,  (13 + 9) * REGBYTES(sp)
+  fsd fa6,  (14 + 9) * REGBYTES(sp)
+  fsd fa7,  (15 + 9) * REGBYTES(sp)
+  fsd ft8,  (16 + 9) * REGBYTES(sp)
+  fsd ft9,  (17 + 9) * REGBYTES(sp)
+  fsd ft10, (18 + 9) * REGBYTES(sp)
+  fsd ft11, (19 + 9) * REGBYTES(sp)
 
   csrr a6, mepc
   jal handle_syscall
   csrw mepc, a1
+
+  # /* Run in machine mode */
+  li t0, MSTATUS_MPP | MSTATUS_MPIE
+  csrs mstatus, t0
+  
+  ld ra,  0 * REGBYTES(sp)
+  ld t0,  1 * REGBYTES(sp)
+  ld t1,  2 * REGBYTES(sp)
+  ld t2,  3 * REGBYTES(sp)
+  ld a6,  4 * REGBYTES(sp)
+  ld t3,  5 * REGBYTES(sp)
+  ld t4,  6 * REGBYTES(sp)
+  ld t5,  7 * REGBYTES(sp)
+  ld t6,  8 * REGBYTES(sp)
+  fld ft0,  ( 0 + 9) * REGBYTES(sp)
+  fld ft1,  ( 1 + 9) * REGBYTES(sp)
+  fld ft2,  ( 2 + 9) * REGBYTES(sp)
+  fld ft3,  ( 3 + 9) * REGBYTES(sp)
+  fld ft4,  ( 4 + 9) * REGBYTES(sp)
+  fld ft5,  ( 5 + 9) * REGBYTES(sp)
+  fld ft6,  ( 6 + 9) * REGBYTES(sp)
+  fld ft7,  ( 7 + 9) * REGBYTES(sp)
+  fld fa0,  ( 8 + 9) * REGBYTES(sp)
+  fld fa1,  ( 9 + 9) * REGBYTES(sp)
+  fld fa2,  (10 + 9) * REGBYTES(sp)
+  fld fa3,  (11 + 9) * REGBYTES(sp)
+  fld fa4,  (12 + 9) * REGBYTES(sp)
+  fld fa5,  (13 + 9) * REGBYTES(sp)
+  fld fa6,  (14 + 9) * REGBYTES(sp)
+  fld fa7,  (15 + 9) * REGBYTES(sp)
+  fld ft8,  (16 + 9) * REGBYTES(sp)
+  fld ft9,  (17 + 9) * REGBYTES(sp)
+  fld ft10, (18 + 9) * REGBYTES(sp)
+  fld ft11, (19 + 9) * REGBYTES(sp)
+  addi sp, sp, 29 * REGBYTES
   mret
 .handle_except:
   ld t0, 0x0(sp)

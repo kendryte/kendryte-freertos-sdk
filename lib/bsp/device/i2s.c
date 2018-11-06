@@ -271,7 +271,7 @@ static void i2s_config_as_render(const audio_format_t *format, size_t delay_ms, 
     data->next_free_buffer = 0;
     data->stop_signal = 0;
     data->transmit_dma = 0;
-    data->dma_in_use_buffer = -1;
+    data->dma_in_use_buffer = 0;
 }
 
 static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms, i2s_align_mode_t align_mode, size_t channels_mask, void *userdata)
@@ -325,7 +325,7 @@ static void i2s_config_as_capture(const audio_format_t *format, size_t delay_ms,
     u_ccr.ccr.align_mode = am;
     u_ccr.ccr.dma_tx_en = 0;
     u_ccr.ccr.sign_expand_en = 1;
-    u_ccr.ccr.dma_divide_16 = dma_divide16;
+    u_ccr.ccr.dma_divide_16 = 0;
     u_ccr.ccr.dma_rx_en = 1;
     writel(u_ccr.reg_data, &i2s->ccr);
 

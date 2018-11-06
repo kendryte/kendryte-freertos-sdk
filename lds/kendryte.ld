@@ -81,6 +81,10 @@ SECTIONS
     *(.rodata .rodata.*)
     *(.gnu.linkonce.r.*)
   } > ram : DATA
+  .sdata2 :
+  {
+    *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
+  } > ram : DATA
   
   .preinit_array :
   {

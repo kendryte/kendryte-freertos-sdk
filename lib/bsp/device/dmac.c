@@ -189,19 +189,17 @@ static void dma_completion_isr(void *userdata)
         }
         else
         {
-            size_t cnt_src_id = data->session.next_src_id;
-            dma->sar = (uint64_t)data->session.srcs[cnt_src_id++];
-            if (cnt_src_id < data->session.src_num)
-                data->session.next_src_id++;
-            else
-                data->session.next_src_id = 0;
+            size_t next_src_id = data->session.next_src_id + 1;
+            if (next_src_id == data->session.src_num)
+                next_src_id = 0;
+            data->session.next_src_id = next_src_id;
+            dma->sar = (uint64_t)data->session.srcs[next_src_id];
 
-            size_t cnt_dest_id = data->session.next_dest_id;
-            dma->dar = (uint64_t)data->session.dests[cnt_dest_id++];
-            if (cnt_dest_id < data->session.dest_num)
-                data->session.next_dest_id++;
-            else
-                data->session.next_dest_id = 0;
+            size_t next_dest_id = data->session.next_dest_id + 1;
+            if (next_dest_id == data->session.dest_num)
+                next_dest_id = 0;
+            data->session.next_dest_id = next_dest_id;
+            dma->dar = (uint64_t)data->session.dests[next_dest_id];
 
             if (data->session.stage_completion_handler)
                 data->session.stage_completion_handler(data->session.stage_completion_handler_data);
