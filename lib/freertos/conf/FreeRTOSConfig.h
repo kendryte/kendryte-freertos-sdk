@@ -73,6 +73,14 @@
 #define configIDLE_SHOULD_YIELD					0
 #define configQUEUE_REGISTRY_SIZE				8
 
+/* TLS */
+enum
+{
+    PTHREAD_TLS_INDEX = 0
+};
+
+#define configNUM_THREAD_LOCAL_STORAGE_POINTERS 1
+
 /* mutex */
 #define configUSE_MUTEXES						1
 #define configUSE_RECURSIVE_MUTEXES				1
@@ -92,7 +100,6 @@
 #define configUSE_APPLICATION_TASK_TAG			1
 #define configUSE_COUNTING_SEMAPHORES			1
 #define configUSE_TICKLESS_IDLE					1
-#define configNUM_THREAD_LOCAL_STORAGE_POINTERS	0
 #define configGENERATE_RUN_TIME_STATS			0
 #define configUSE_STATS_FORMATTING_FUNCTIONS	1
 

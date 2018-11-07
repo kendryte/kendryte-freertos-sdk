@@ -23,7 +23,11 @@
 #include <semphr.h>
 #include <task.h>
 
-#include <stdio.h>
+static const pthread_mutexattr_t s_default_mutex_attributes = {
+    .is_initialized = true,
+    .type = PTHREAD_MUTEX_DEFAULT,
+    .recursive = 0
+};
 
 struct k_pthread_mutex
 {
@@ -62,6 +66,75 @@ static void pthread_mutex_init_if_static(pthread_mutex_t *mutex)
     }
 }
 
+int pthread_mutexattr_init(pthread_mutexattr_t *__attr)
+{
+    *__attr = s_default_mutex_attributes;
+    return 0;
+}
+
+int pthread_mutexattr_destroy(pthread_mutexattr_t *__attr)
+{
+    __attr->is_initialized = false;
+    return 0;
+}
+
+int pthread_mutexattr_getpshared(const pthread_mutexattr_t *__attr, int *__pshared)
+{
+    *__pshared = 1;
+    return 0;
+}
+
+int pthread_mutexattr_setpshared(pthread_mutexattr_t *__attr, int __pshared)
+{
+    return 0;
+}
+
+int pthread_mutexattr_gettype(const pthread_mutexattr_t * __attr, int *__kind)
+{
+    *__kind = __attr->type;
+    return 0;
+}
+
+int pthread_mutexattr_settype(pthread_mutexattr_t * __attr, int __kind)
+{
+    __attr->type = __kind;
+    return 0;
+}
+
+int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
+{
+    int iStatus = 0;
+    k_pthread_mutex *k_mutex = nullptr;
+
+    k_mutex = new (std::nothrow) k_pthread_mutex(attr ? *attr : s_default_mutex_attributes);
+
+    if (!k_mutex)
+    {
+        iStatus = ENOMEM;
+    }
+
+    if (iStatus == 0)
+    {
+        /* Set the output. */
+        *mutex = reinterpret_cast<uintptr_t>(k_mutex);
+    }
+
+    return iStatus;
+}
+
+int pthread_mutex_destroy(pthread_mutex_t *mutex)
+{
+    k_pthread_mutex *k_mutex = reinterpret_cast<k_pthread_mutex *>(*mutex);
+
+    /* Free resources in use by the mutex. */
+    if (k_mutex->owner == NULL)
+    {
+        delete k_mutex;
+    }
+
+    return 0;
+}
+
 int pthread_mutex_lock(pthread_mutex_t *mutex)
 {
     return pthread_mutex_timedlock(mutex, NULL);
@@ -69,8 +142,7 @@ int pthread_mutex_lock(pthread_mutex_t *mutex)
 
 int pthread_mutex_timedlock(pthread_mutex_t *mutex, const struct timespec *abstime)
 {
-    if (*mutex == PTHREAD_MUTEX_INITIALIZER)
-        return 0;
+    pthread_mutex_init_if_static(mutex);
 
     int iStatus = 0;
     k_pthread_mutex *k_mutex = reinterpret_cast<k_pthread_mutex *>(*mutex);
@@ -115,10 +187,30 @@ int pthread_mutex_timedlock(pthread_mutex_t *mutex, const struct timespec *absti
     return iStatus;
 }
 
+int pthread_mutex_trylock(pthread_mutex_t *mutex)
+{
+    int iStatus = 0;
+    struct timespec xTimeout = {
+        .tv_sec = 0,
+        .tv_nsec = 0
+    };
+
+    /* Attempt to lock with no timeout. */
+    iStatus = pthread_mutex_timedlock(mutex, &xTimeout);
+
+    /* POSIX specifies that this function should return EBUSY instead of
+     * ETIMEDOUT for attempting to lock a locked mutex. */
+    if (iStatus == ETIMEDOUT)
+    {
+        iStatus = EBUSY;
+    }
+
+    return iStatus;
+}
+
 int pthread_mutex_unlock(pthread_mutex_t *mutex)
 {
-    if (*mutex == PTHREAD_MUTEX_INITIALIZER)
-        return 0;
+    pthread_mutex_init_if_static(mutex);
 
     int iStatus = 0;
     k_pthread_mutex *k_mutex = reinterpret_cast<k_pthread_mutex *>(*mutex);
@@ -140,46 +232,6 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
     }
 
     return iStatus;
-}
-
-int pthread_mutex_init(pthread_mutex_t *mutex, const pthread_mutexattr_t *attr)
-{
-    int iStatus = 0;
-    k_pthread_mutex *k_mutex = nullptr;
-
-    pthread_mutexattr_t k_attr;
-    memset(&k_attr, 0, sizeof(k_attr));
-    if (attr)
-        k_attr = *attr;
-
-    k_mutex = new (std::nothrow) k_pthread_mutex(k_attr);
-
-    if (!k_mutex)
-    {
-        iStatus = ENOMEM;
-    }
-
-    if (iStatus == 0)
-    {
-        /* Set the output. */
-        *mutex = reinterpret_cast<uintptr_t>(k_mutex);
-    }
-
-    return iStatus;
-}
-
-int pthread_mutex_destroy(pthread_mutex_t *mutex)
-{
-    printf("pthread_mutex_destroy\n");
-    k_pthread_mutex *k_mutex = reinterpret_cast<k_pthread_mutex *>(*mutex);
-
-    /* Free resources in use by the mutex. */
-    if (k_mutex->owner == NULL)
-    {
-        delete k_mutex;
-    }
-
-    return 0;
 }
 
 int pthread_equal(pthread_t t1, pthread_t t2)

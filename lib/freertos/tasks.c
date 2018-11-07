@@ -3467,6 +3467,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 	void vTaskSetThreadLocalStoragePointer( TaskHandle_t xTaskToSet, BaseType_t xIndex, void *pvValue )
 	{
 	TCB_t *pxTCB;
+	UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		if( xIndex < configNUM_THREAD_LOCAL_STORAGE_POINTERS )
 		{
@@ -3484,6 +3485,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 	{
 	void *pvReturn = NULL;
 	TCB_t *pxTCB;
+	UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		if( xIndex < configNUM_THREAD_LOCAL_STORAGE_POINTERS )
 		{

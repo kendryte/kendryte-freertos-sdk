@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <FreeRTOS.h>
+#include <atomic.h>
 #include <atomic>
 #include <climits>
 #include <cstring>
@@ -22,11 +23,29 @@
 #include <pthread.h>
 #include <semphr.h>
 #include <task.h>
+#include <unordered_map>
+
+// Workaround for keeping pthread functions
+void *g_pthread_keep[] = {
+    (void *)pthread_cond_init,
+    (void *)pthread_mutex_init,
+    (void *)pthread_self
+};
 
 static const pthread_attr_t s_default_thread_attributes = {
     .stacksize = 4096,
     .schedparam = { .sched_priority = tskIDLE_PRIORITY },
     .detachstate = PTHREAD_CREATE_JOINABLE
+};
+
+struct k_pthread_key
+{
+    void (*destructor)(void *);
+};
+
+struct k_pthread_tls
+{
+    std::unordered_map<pthread_key_t, uintptr_t> storage;
 };
 
 struct k_pthread
@@ -91,6 +110,7 @@ private:
         {
             /* For a detached thread, perform cleanup of thread object. */
             delete this;
+            delete reinterpret_cast<k_pthread_tls *>(pvTaskGetThreadLocalStoragePointer(NULL, PTHREAD_TLS_INDEX));
             vTaskDelete(NULL);
         }
     }
@@ -186,9 +206,6 @@ int pthread_join(pthread_t pthread, void **retval)
         (void)xSemaphoreGive(&k_thrd->join_mutex);
         vSemaphoreDelete(&k_thrd->join_mutex);
 
-        /* Delete the FreeRTOS task that ran the thread. */
-        vTaskDelete(k_thrd->handle);
-
         /* Set the return value. */
         if (retval != NULL)
         {
@@ -196,6 +213,9 @@ int pthread_join(pthread_t pthread, void **retval)
         }
 
         /* Free the thread object. */
+        delete reinterpret_cast<k_pthread_tls *>(pvTaskGetThreadLocalStoragePointer(k_thrd->handle, PTHREAD_TLS_INDEX));
+        /* Delete the FreeRTOS task that ran the thread. */
+        vTaskDelete(k_thrd->handle);
         delete k_thrd;
 
         /* End the critical section. */
@@ -212,11 +232,87 @@ pthread_t pthread_self(void)
     return (uintptr_t)xTaskGetApplicationTaskTag(NULL);
 }
 
-//int pthread_cancel(pthread_t pthread)
-//{
-//    k_pthread *k_thrd = reinterpret_cast<k_pthread *>(pthread);
-//
-//    k_thrd->cancel();
-//
-//    return 0;
-//}
+#include <stdio.h>
+
+int pthread_cancel(pthread_t pthread)
+{
+    printf("pthread: %d\n", pthread);
+    k_pthread *k_thrd = reinterpret_cast<k_pthread *>(pthread);
+
+    k_thrd->cancel();
+
+    return 0;
+}
+
+int pthread_key_create(pthread_key_t *__key, void (*__destructor)(void *))
+{
+    auto k_key = new (std::nothrow) k_pthread_key;
+    if (k_key)
+    {
+        k_key->destructor = __destructor;
+
+        *__key = reinterpret_cast<uintptr_t>(k_key);
+        return 0;
+    }
+
+    return ENOMEM;
+}
+
+int pthread_key_delete(pthread_key_t key)
+{
+    auto k_key = reinterpret_cast<k_pthread_key *>(key);
+    delete k_key;
+    return 0;
+}
+
+void *pthread_getspecific(pthread_key_t key)
+{
+    auto tls = reinterpret_cast<k_pthread_tls *>(pvTaskGetThreadLocalStoragePointer(NULL, PTHREAD_TLS_INDEX));
+
+    if (tls)
+    {
+        auto it = tls->storage.find(key);
+        if (it != tls->storage.end())
+            return reinterpret_cast<void *>(it->second);
+    }
+
+    return nullptr;
+}
+
+int pthread_setspecific(pthread_key_t key, const void *value)
+{
+    auto tls = reinterpret_cast<k_pthread_tls *>(pvTaskGetThreadLocalStoragePointer(NULL, PTHREAD_TLS_INDEX));
+    if (!tls)
+    {
+        tls = new (std::nothrow) k_pthread_tls;
+        if (!tls)
+            return ENOMEM;
+        vTaskSetThreadLocalStoragePointer(NULL, PTHREAD_TLS_INDEX, tls);
+    }
+
+    try
+    {
+        tls->storage[key] = uintptr_t(value);
+        return 0;
+    }
+    catch (...)
+    {
+        return ENOMEM;
+    }
+}
+
+int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
+{
+    while (true)
+    {
+        if (atomic_read(&once_control->init_executed) == 1)
+            return 0;
+
+        if (atomic_cas(&once_control->init_executed, 0, 2) == 0)
+            break;
+    }
+
+    init_routine();
+    atomic_set(&once_control->init_executed, 1);
+    return 0;
+}

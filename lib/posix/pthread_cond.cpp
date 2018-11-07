@@ -16,6 +16,7 @@
 #include <FreeRTOS.h>
 #include <atomic>
 #include <climits>
+#include <cstring>
 #include <errno.h>
 #include <kernel/driver_impl.hpp>
 #include <platform.h>
@@ -24,6 +25,11 @@
 #include <task.h>
 
 using namespace sys;
+
+static const pthread_condattr_t s_default_cond_attributes = {
+    .is_initialized = true,
+    .clock = portMAX_DELAY
+};
 
 struct k_pthread_cond
 {
@@ -56,29 +62,46 @@ struct k_pthread_cond
     }
 };
 
-int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+static void pthread_cond_init_if_static(pthread_cond_t *cond)
 {
-    return pthread_cond_timedwait(cond, mutex, NULL);
+    if (*cond == PTHREAD_COND_INITIALIZER)
+    {
+        configASSERT(pthread_cond_init(cond, nullptr) == 0);
+    }
 }
 
-int pthread_cond_signal(pthread_cond_t *cond)
+int pthread_condattr_init(pthread_condattr_t *__attr)
 {
-    k_pthread_cond *k_cond = reinterpret_cast<k_pthread_cond *>(*cond);
+    *__attr = s_default_cond_attributes;
+    return 0;
+}
 
-    /* Check that at least one thread is waiting for a signal. */
-    if (k_cond->waiting_threads)
-    {
-        /* Lock xCondMutex to protect access to iWaitingThreads.
-         * This call will never fail because it blocks forever. */
-        auto lock = k_cond->lock();
-        xSemaphoreTake(&k_cond->mutex, portMAX_DELAY);
+int pthread_condattr_destroy(pthread_condattr_t *__attr)
+{
+    __attr->is_initialized = false;
+    return 0;
+}
 
-        /* Check again that at least one thread is waiting for a signal after
-         * taking xCondMutex. If so, unblock it. */
-        if (k_cond->waiting_threads)
-            k_cond->give();
-    }
+int pthread_condattr_getclock(const pthread_condattr_t *__attr, clockid_t *__clock_id)
+{
+    *__clock_id = __attr->clock;
+    return 0;
+}
 
+int pthread_condattr_setclock(pthread_condattr_t *__attr, clockid_t __clock_id)
+{
+    __attr->clock = __clock_id;
+    return 0;
+}
+
+int pthread_condattr_getpshared(const pthread_condattr_t *__attr, int *__pshared)
+{
+    *__pshared = 1;
+    return 0;
+}
+
+int pthread_condattr_setpshared(pthread_condattr_t *__attr, int __pshared)
+{
     return 0;
 }
 
@@ -114,9 +137,37 @@ int pthread_cond_destroy(pthread_cond_t *cond)
     return 0;
 }
 
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex)
+{
+    return pthread_cond_timedwait(cond, mutex, NULL);
+}
+
+int pthread_cond_signal(pthread_cond_t *cond)
+{
+    pthread_cond_init_if_static(cond);
+    k_pthread_cond *k_cond = reinterpret_cast<k_pthread_cond *>(*cond);
+
+    /* Check that at least one thread is waiting for a signal. */
+    if (k_cond->waiting_threads)
+    {
+        /* Lock xCondMutex to protect access to iWaitingThreads.
+         * This call will never fail because it blocks forever. */
+        auto lock = k_cond->lock();
+        xSemaphoreTake(&k_cond->mutex, portMAX_DELAY);
+
+        /* Check again that at least one thread is waiting for a signal after
+         * taking xCondMutex. If so, unblock it. */
+        if (k_cond->waiting_threads)
+            k_cond->give();
+    }
+
+    return 0;
+}
+
 int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime)
 {
     int iStatus = 0;
+    pthread_cond_init_if_static(cond);
     k_pthread_cond *k_cond = reinterpret_cast<k_pthread_cond *>(*cond);
     TickType_t xDelay = portMAX_DELAY;
 
@@ -160,4 +211,26 @@ int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const s
     }
 
     return iStatus;
+}
+
+int pthread_cond_broadcast(pthread_cond_t *cond)
+{
+    int i = 0;
+    pthread_cond_init_if_static(cond);
+    k_pthread_cond *k_cond = reinterpret_cast<k_pthread_cond *>(*cond);
+
+    /* Lock xCondMutex to protect access to iWaitingThreads.
+     * This call will never fail because it blocks forever. */
+    auto locker = k_cond->lock();
+
+    /* Unblock all threads waiting on this condition variable. */
+    for (i = 0; i < k_cond->waiting_threads; i++)
+    {
+        xSemaphoreGive(&k_cond->wait_semphr);
+    }
+
+    /* All threads were unblocked, set waiting threads to 0. */
+    k_cond->waiting_threads = 0;
+
+    return 0;
 }

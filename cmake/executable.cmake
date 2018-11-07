@@ -23,7 +23,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 target_link_libraries(${PROJECT_NAME}
         -Wl,--start-group
-        m freertos posix atomic c bsp drivers ${SDK_ROOT}/third_party/userland/libtensorflow-lite.a
+        m freertos posix atomic bsp c stdc++ drivers ${SDK_ROOT}/third_party/userland/libtensorflow-lite.a
         -Wl,--end-group
         )
 
