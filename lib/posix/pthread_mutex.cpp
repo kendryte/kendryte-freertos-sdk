@@ -233,16 +233,3 @@ int pthread_mutex_unlock(pthread_mutex_t *mutex)
 
     return iStatus;
 }
-
-int pthread_equal(pthread_t t1, pthread_t t2)
-{
-    int iStatus = 0;
-
-    /* Compare the thread IDs. */
-    if (t1 && t2)
-    {
-        iStatus = (t1 == t2);
-    }
-
-    return iStatus;
-}

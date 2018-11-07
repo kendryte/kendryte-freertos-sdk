@@ -232,11 +232,8 @@ pthread_t pthread_self(void)
     return (uintptr_t)xTaskGetApplicationTaskTag(NULL);
 }
 
-#include <stdio.h>
-
 int pthread_cancel(pthread_t pthread)
 {
-    printf("pthread: %d\n", pthread);
     k_pthread *k_thrd = reinterpret_cast<k_pthread *>(pthread);
 
     k_thrd->cancel();
@@ -315,4 +312,17 @@ int pthread_once(pthread_once_t *once_control, void (*init_routine)(void))
     init_routine();
     atomic_set(&once_control->init_executed, 1);
     return 0;
+}
+
+int pthread_equal(pthread_t t1, pthread_t t2)
+{
+    int iStatus = 0;
+
+    /* Compare the thread IDs. */
+    if (t1 && t2)
+    {
+        iStatus = (t1 == t2);
+    }
+
+    return iStatus;
 }

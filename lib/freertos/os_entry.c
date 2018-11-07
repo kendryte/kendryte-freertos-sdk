@@ -65,7 +65,7 @@ int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char **))
         main_thunk_param_t param = {};
         param.user_main = user_main;
 
-        if (xTaskCreate(main_thunk, "Core 0 Main", configMAIN_TASK_STACK_SIZE * 10, &param, configMAIN_TASK_PRIORITY, &mainTask) != pdPASS)
+        if (xTaskCreate(main_thunk, "Core 0 Main", configMAIN_TASK_STACK_SIZE, &param, configMAIN_TASK_PRIORITY, &mainTask) != pdPASS)
         {
             return -1;
         }
