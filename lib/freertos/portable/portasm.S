@@ -273,16 +273,13 @@
   mret
   .endm
   
-.section .text.start, "ax", @progbits
 xPortSysTickInt:
   portSAVE_CONTEXT
-  la t0, vPortSysTickHandler
-  jalr t0
+  jal vPortSysTickHandler
   portRESTORE_CONTEXT
 
 xPortStartScheduler:
-  la t0, vPortSysTickHandler
-  jalr   t0
+  jal     vPortSetupTimer
   portRESTORE_CONTEXT
 
 vPortEndScheduler:

@@ -1962,7 +1962,7 @@ BaseType_t xReturn;
 UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 	/* Add the idle task at the lowest priority. */
-	#if( configSUPPORT_STATIC_ALLOCATION == 1 )
+	#if( configSUPPORT_STATIC_ALLOCATION == 1 && 0)
 	{
 		StaticTask_t *pxIdleTaskTCBBuffer = NULL;
 		StackType_t *pxIdleTaskStackBuffer = NULL;
