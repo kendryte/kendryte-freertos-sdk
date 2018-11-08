@@ -44,11 +44,11 @@ public:
     {
         sysctl_clock_enable(clock_);
 
-        rtc_timer_set_mode(RTC_TIMER_SETTING);
         /* Unprotect RTC */
-        rtc_protect_set( 0);
+        rtc_protect_set(0);
         /* Set RTC clock frequency */
-        rtc_timer_set_clock_frequency(sysctl_clock_get_freq(SYSCTL_CLOCK_PLL0));
+        rtc_timer_set_clock_frequency(sysctl_clock_get_freq(SYSCTL_CLOCK_IN0));
+        //rtc_timer_set_mode(RTC_TIMER_SETTING);
         rtc_timer_set_clock_count_value(1);
 
         /* Set RTC mode to timer running mode */
@@ -62,6 +62,9 @@ public:
 
     virtual void get_datetime(tm &datetime) override
     {
+        if (rtc_timer_get_mode() != RTC_TIMER_RUNNING)
+            return;
+
         rtc_date_t timer_date = read_pod(rtc_.date);
         rtc_time_t timer_time = read_pod(rtc_.time);
         rtc_extended_t timer_extended = read_pod(rtc_.extended);
@@ -69,8 +72,8 @@ public:
         datetime.tm_sec = timer_time.second % 60;
         datetime.tm_min = timer_time.minute % 60;
         datetime.tm_hour = timer_time.hour % 24;
-        datetime.tm_mday = timer_date.day % 31;
-        datetime.tm_mon = (timer_date.month % 12) - 1;
+        datetime.tm_mday = (timer_date.day - 1)% 31 + 1;
+        datetime.tm_mon = (timer_date.month - 1) % 12;
         datetime.tm_year = (timer_date.year % 100) + (timer_extended.century * 100) - 1900;
         datetime.tm_wday = timer_date.week;
         datetime.tm_yday = rtc_get_yday(datetime.tm_year + 1900, datetime.tm_mon + 1, datetime.tm_mday);
@@ -224,6 +227,35 @@ private:
         return 0;
     }
 
+	rtc_timer_mode_t rtc_timer_get_mode(void)
+    {
+		rtc_register_ctrl_t register_ctrl = read_pod(rtc_.register_ctrl);
+        rtc_timer_mode_t timer_mode = RTC_TIMER_PAUSE;
+
+        if ((!register_ctrl.read_enable) && (!register_ctrl.write_enable))
+        {
+            /* RTC_TIMER_PAUSE */
+            timer_mode = RTC_TIMER_PAUSE;
+        }
+        else if ((register_ctrl.read_enable) && (!register_ctrl.write_enable))
+        {
+            /* RTC_TIMER_RUNNING */
+            timer_mode = RTC_TIMER_RUNNING;
+        }
+        else if ((!register_ctrl.read_enable) && (register_ctrl.write_enable))
+        {
+            /* RTC_TIMER_SETTING */
+            timer_mode = RTC_TIMER_SETTING;
+        }
+        else
+        {
+            /* Something is error, reset timer mode */
+            rtc_timer_set_mode(timer_mode);
+        }
+
+        return timer_mode;
+    }
+
     int rtc_protect_set(int enable)
     {
         rtc_register_ctrl_t register_ctrl = read_pod(rtc_.register_ctrl);
@@ -286,9 +318,11 @@ private:
     int rtc_timer_set_clock_frequency(unsigned int frequency)
     {
         rtc_initial_count_t initial_count;
-
+        
         initial_count.count = frequency;
+        rtc_timer_set_mode(RTC_TIMER_SETTING);
         write_pod(rtc_.initial_count, initial_count);
+        rtc_timer_set_mode(RTC_TIMER_RUNNING);
         return 0;
     }
 
@@ -297,7 +331,9 @@ private:
         rtc_current_count_t current_count;
 
         current_count.count = count;
+        rtc_timer_set_mode(RTC_TIMER_SETTING);
         write_pod(rtc_.current_count, current_count);
+        rtc_timer_set_mode(RTC_TIMER_RUNNING);
         return 0;
     }
 
