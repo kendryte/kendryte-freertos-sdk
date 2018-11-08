@@ -90,7 +90,7 @@ int main()
     printf("\n\n=== Post-invoke Interpreter State ===\n");
     tflite::PrintInterpreterState(interpreter.get());
 
-    printf("Infer used %dms.\n", (int)((tv2.tv_sec * 1000 + tv2.tv_usec / 1e6) - (tv.tv_sec * 1000 + tv.tv_usec / 1e6)));
+    printf("Infer used %dms.\n", (int)((tv2.tv_sec * 1000 + tv2.tv_usec / 1e3) - (tv.tv_sec * 1000 + tv.tv_usec / 1e3)));
 
     const float threshold = 0.001f;
 

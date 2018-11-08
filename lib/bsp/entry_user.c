@@ -24,7 +24,7 @@
 #include <stdio.h>
 
 #define PLL1_OUTPUT_FREQ 160000000UL
-#define PLL2_OUTPUT_FREQ 45158400UL
+#define PLL2_OUTPUT_FREQ 16384000UL
 
 extern uint8_t __bss_start[];
 extern uint8_t __bss_end[];
