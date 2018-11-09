@@ -48,7 +48,6 @@ public:
         rtc_protect_set(0);
         /* Set RTC clock frequency */
         rtc_timer_set_clock_frequency(sysctl_clock_get_freq(SYSCTL_CLOCK_IN0));
-        //rtc_timer_set_mode(RTC_TIMER_SETTING);
         rtc_timer_set_clock_count_value(1);
 
         /* Set RTC mode to timer running mode */
@@ -227,9 +226,9 @@ private:
         return 0;
     }
 
-	rtc_timer_mode_t rtc_timer_get_mode(void)
+    rtc_timer_mode_t rtc_timer_get_mode(void)
     {
-		rtc_register_ctrl_t register_ctrl = read_pod(rtc_.register_ctrl);
+        rtc_register_ctrl_t register_ctrl = read_pod(rtc_.register_ctrl);
         rtc_timer_mode_t timer_mode = RTC_TIMER_PAUSE;
 
         if ((!register_ctrl.read_enable) && (!register_ctrl.write_enable))
