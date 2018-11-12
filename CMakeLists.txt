@@ -13,7 +13,7 @@ cmake_minimum_required(VERSION 3.0)
 include(./cmake/common.cmake)
 project(${PROJ})
 
-INCLUDE_DIRECTORIES(${CMAKE_CURRENT_LIST_DIR}/lib/arch/include ${CMAKE_CURRENT_LIST_DIR}/lib/utils/include ${CMAKE_CURRENT_LIST_DIR}/third_party/userland)
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_LIST_DIR}/lib/arch/include ${CMAKE_CURRENT_LIST_DIR}/lib/utils/include)
 # config self use headers
 header_directories(${SDK_ROOT}/lib)
 # build library first
@@ -23,4 +23,3 @@ add_subdirectory(third_party)
 # compile project
 add_source_files(src/${PROJ}/*.c src/${PROJ}/*.s src/${PROJ}/*.S src/${PROJ}/*.cpp)
 include(./cmake/executable.cmake)
-

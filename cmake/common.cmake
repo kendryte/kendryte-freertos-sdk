@@ -24,7 +24,7 @@ IF (CMAKE_BUILD_TYPE STREQUAL Debug)
 ENDIF ()
 
 # definitions in macros
-add_definitions(-DCONFIG_LOG_LEVEL=LOG_INFO -DCONFIG_LOG_ENABLE -DCONFIG_LOG_COLORS -DLOG_KERNEL -D__riscv64 -D__freertos__)
+add_definitions(-DCONFIG_LOG_LEVEL=LOG_INFO -DCONFIG_LOG_ENABLE -DCONFIG_LOG_COLORS -DLOG_KERNEL -D__riscv64)
 
 if (NOT SDK_ROOT)
     get_filename_component(_SDK_ROOT ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
@@ -36,8 +36,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/toolchain.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/compile-flags.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/fix-9985.cmake)
-
-#add_source_files(${CMAKE_CURRENT_LIST_DIR}/../lib/bsp/crt.S)
 
 removeDuplicateSubstring(${CMAKE_C_FLAGS} CMAKE_C_FLAGS)
 removeDuplicateSubstring(${CMAKE_CXX_FLAGS} CMAKE_CXX_FLAGS)
