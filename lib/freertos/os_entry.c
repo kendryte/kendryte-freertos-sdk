@@ -28,6 +28,9 @@ typedef struct
     int ret;
 } main_thunk_param_t;
 
+static StaticTask_t s_idle_task;
+static StackType_t s_idle_task_stack[configMINIMAL_STACK_SIZE];
+
 void start_scheduler(int core_id);
 
 static void main_thunk(void *p)
@@ -90,4 +93,24 @@ void start_scheduler(int core_id)
 
 void vApplicationIdleHook(void)
 {
+}
+
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize)
+{
+    /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
+    state will be stored. */
+    *ppxIdleTaskTCBBuffer = &s_idle_task;
+
+    /* Pass out the array that will be used as the Idle task's stack. */
+    *ppxIdleTaskStackBuffer = s_idle_task_stack;
+
+    /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
+    Note that, as the array is necessarily of type StackType_t,
+    configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+    *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+    configASSERT(!"Stackoverflow !");
 }

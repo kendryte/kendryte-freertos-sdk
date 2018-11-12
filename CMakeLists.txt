@@ -23,4 +23,3 @@ add_subdirectory(third_party)
 # compile project
 add_source_files(src/${PROJ}/*.c src/${PROJ}/*.s src/${PROJ}/*.S src/${PROJ}/*.cpp)
 include(./cmake/executable.cmake)
-
