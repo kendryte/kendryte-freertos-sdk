@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-cmake_policy(VERSION 3.10)
+cmake_policy(VERSION 3.0)
 
 include(${CMAKE_CURRENT_LIST_DIR}/macros.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/macros.internal.cmake)

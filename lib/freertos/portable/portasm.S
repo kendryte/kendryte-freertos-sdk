@@ -272,11 +272,6 @@
   addi    sp, sp, REGBYTES * 64
   mret
   .endm
-  
-xPortSysTickInt:
-  portSAVE_CONTEXT
-  jal vPortSysTickHandler
-  portRESTORE_CONTEXT
 
 xPortStartScheduler:
   jal     vPortSetupTimer
@@ -284,3 +279,9 @@ xPortStartScheduler:
 
 vPortEndScheduler:
   ret
+  
+.section .text.systick, "ax", @progbits
+xPortSysTickInt:
+  portSAVE_CONTEXT
+  call vPortSysTickHandler
+  portRESTORE_CONTEXT
