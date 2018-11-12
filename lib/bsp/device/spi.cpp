@@ -249,7 +249,8 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
     spi_.ctrlr1 = frames - 1;
     spi_.dmacr = 0x1;
     spi_.ssienr = 0x01;
-    spi_.dr[0] = 0xFF;
+	if(device.frame_format_ == SPI_FF_STANDARD)
+    	spi_.dr[0] = 0xFF;
     SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
 
     dma_transmit_async(dma_read, &spi_.dr[0], ori_buffer, 0, 1, device.buffer_width_, frames, 1, event_read);
@@ -397,10 +398,6 @@ void k_spi_driver::setup_device(k_spi_device_driver &device)
     spi_.ssienr = 0x00;
     spi_.ctrlr0 = (device.mode_ << mod_off_) | (device.frame_format_ << frf_off_) | ((device.data_bit_length_ - 1) << dfs_off_);
     spi_.spi_ctrlr0 = 0;
-    if (device.data_bit_length_ == 32)
-        spi_.endian = 1;
-    else
-        spi_.endian = 0;
 
     if (device.frame_format_ != SPI_FF_STANDARD)
     {

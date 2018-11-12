@@ -23,7 +23,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 target_link_libraries(${PROJECT_NAME}
         -Wl,--start-group
-        c m freertos bsp drivers
+        m freertos c bsp drivers
         -Wl,--end-group
         )
 

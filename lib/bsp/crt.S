@@ -277,6 +277,10 @@ trap_entry:
   jal handle_syscall
   csrw mepc, a1
 
+  # /* Run in machine mode */
+  li t0, MSTATUS_MPP | MSTATUS_MPIE
+  csrs mstatus, t0
+
   ld ra,  0 * REGBYTES(sp)
   ld t0,  1 * REGBYTES(sp)
   ld t1,  2 * REGBYTES(sp)

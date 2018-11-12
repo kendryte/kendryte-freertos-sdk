@@ -32,6 +32,7 @@
 #include <sys/time.h>
 #include <sys/unistd.h>
 #include <sys/file.h>
+#include "syscalls/syscalls.h"
 #include <sysctl.h>
 #include <syslog.h>
 #include <uarths.h>
@@ -234,65 +235,6 @@ static ssize_t sys_read(int file, void *ptr, size_t len)
     return res;
 }
 
-static int sys_open(const char *name, int flags, int mode)
-{
-    if (strstr(name, "/dev/") != NULL)
-    {
-        return io_open(name);
-    }
-    else if (strstr(name, "/fs/") != NULL)
-    {
-        file_access_t file_access = FILE_ACCESS_READ;
-        if (flags == O_WRONLY)
-            file_access = FILE_ACCESS_WRITE;
-        else if (flags == O_RDWR)
-            file_access = FILE_ACCESS_READ_WRITE;
-
-        file_mode_t file_mode = FILE_MODE_OPEN_EXISTING;
-        if (mode & O_CREAT)
-            file_mode |= FILE_MODE_CREATE_NEW;
-        if (mode & O_APPEND)
-            file_mode |= FILE_MODE_APPEND;
-        return filesystem_file_open(name, file_access, file_mode);
-    }
-    else
-    {
-        return -EINVAL;
-    }
-}
-
-static int sys_fstat(int file, struct stat *st)
-{
-    int res = -EBADF;
-
-    /*
-     * Status of an open file. The sys/stat.h header file required
-     * is
-     * distributed in the include subdirectory for this C library.
-     *
-     * int fstat(int file, struct stat* st)
-     *
-     * IN : regs[10] = file, regs[11] = st
-     * OUT: regs[10] = Upon successful completion, 0 shall be
-     * returned.
-     * Otherwise, -1 shall be returned and errno set to indicate
-     * the error.
-     */
-
-    UNUSED(file);
-
-    if (st != NULL)
-        memset(st, 0, sizeof(struct stat));
-    /* Return the result */
-    res = -ENOSYS;
-    /*
-     * Note: This value will return to syscall wrapper, syscall
-     * wrapper will set errno to ENOSYS and return -1
-     */
-
-    return res;
-}
-
 static int sys_close(int file)
 {
     /*
@@ -349,6 +291,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         SYS_ID_FSTAT,
         SYS_ID_CLOSE,
         SYS_ID_GETTIMEOFDAY,
+        SYS_ID_LSEEK,
         SYS_ID_MAX
     };
 
@@ -363,6 +306,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         [SYS_ID_FSTAT] = (void *)sys_fstat,
         [SYS_ID_CLOSE] = (void *)sys_close,
         [SYS_ID_GETTIMEOFDAY] = (void *)sys_gettimeofday,
+        [SYS_ID_LSEEK] = (void *)sys_lseek,
     };
 
 #if defined(__GNUC__)
@@ -379,7 +323,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         [0xFF & SYS_open] = SYS_ID_OPEN,
         [0xFF & SYS_openat] = SYS_ID_NOSYS,
         [0xFF & SYS_close] = SYS_ID_CLOSE,
-        [0xFF & SYS_lseek] = SYS_ID_NOSYS,
+        [0xFF & SYS_lseek] = SYS_ID_LSEEK,
         [0xFF & SYS_brk] = SYS_ID_BRK,
         [0xFF & SYS_link] = SYS_ID_NOSYS,
         [0xFF & SYS_unlink] = SYS_ID_NOSYS,
@@ -426,7 +370,7 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         n /* n */
     );
 
-    epc += ((*(unsigned short *)epc & 3) == 3 ? 4 : 2);
+    epc += 4;
     SYS_RET(epc, err);
 }
 

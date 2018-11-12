@@ -228,11 +228,17 @@ typedef enum _file_access
 
 typedef enum _file_mode
 {
+    /* Opens the file. The function fails if the file is not existing. (Default) */
     FILE_MODE_OPEN_EXISTING,
+    /* Creates a new file. The function fails with FR_EXIST if the file is existing. */
     FILE_MODE_CREATE_NEW,
+    /* Creates a new file. If the file is existing, it will be truncated and overwritten. */
     FILE_MODE_CREATE_ALWAYS,
+    /* Opens the file if it is existing. If not, a new file will be created. */
     FILE_MODE_OPEN_ALWAYS,
-    FILE_MODE_APPEND
+    /* Same as FILE_MODE_OPEN_ALWAYS except the read/write pointer is set end of the file. */
+    FILE_MODE_APPEND,
+    FILE_MODE_TRUNCATE
 } file_mode_t;
 
 typedef struct _find_file_data

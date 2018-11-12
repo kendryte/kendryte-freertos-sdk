@@ -1,5 +1,7 @@
 #project(kendryte)
 
+INCLUDE_DIRECTORIES(${SDK_ROOT}/third_party)
+
 ADD_SUBDIRECTORY(hal)
 ADD_SUBDIRECTORY(freertos)
 ADD_SUBDIRECTORY(bsp)
