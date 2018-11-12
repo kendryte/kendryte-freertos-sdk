@@ -51,6 +51,7 @@ SECTIONS
   .text.start :
   {
     KEEP( *(.text.start) )
+    KEEP( *(.text.systick) )
   } > ram : DATA
 
   .init :

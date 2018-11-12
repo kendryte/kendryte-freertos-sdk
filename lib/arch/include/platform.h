@@ -16,8 +16,10 @@
 #define _BSP_PLATFORM_H
 
 #ifdef __INTELLISENSE__
+#define __freertos__ 1
 #define __attribute__(x)
 #define _HAS_CXX17 1
+#define noexcept
 #endif
 
 /* clang-format off */

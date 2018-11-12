@@ -638,7 +638,7 @@ static void prvAddNewTaskToReadyList( UBaseType_t xProcessorId, TCB_t *pxNewTCB 
 			#endif /* configSUPPORT_DYNAMIC_ALLOCATION */
 
 			prvInitialiseNewTask( pxTaskCode, pcName, ulStackDepth, pvParameters, uxPriority, &xReturn, pxNewTCB, NULL );
-			prvAddNewTaskToReadyList( pxNewTCB );
+			prvAddNewTaskToReadyList( uxPortGetProcessorId(), pxNewTCB );
 		}
 		else
 		{
@@ -1962,7 +1962,7 @@ BaseType_t xReturn;
 UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 	/* Add the idle task at the lowest priority. */
-	#if( configSUPPORT_STATIC_ALLOCATION == 1 )
+	#if( configSUPPORT_STATIC_ALLOCATION == 1 && 0)
 	{
 		StaticTask_t *pxIdleTaskTCBBuffer = NULL;
 		StackType_t *pxIdleTaskStackBuffer = NULL;
@@ -2833,12 +2833,13 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	void vTaskSetApplicationTaskTag( TaskHandle_t xTask, TaskHookFunction_t pxHookFunction )
 	{
 	TCB_t *xTCB;
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		/* If xTask is NULL then it is the task hook of the calling task that is
 		getting set. */
 		if( xTask == NULL )
 		{
-			xTCB = ( TCB_t * ) pxCurrentTCB;
+			xTCB = ( TCB_t * ) pxCurrentTCB[uxPsrId];
 		}
 		else
 		{
@@ -2860,12 +2861,13 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	TaskHookFunction_t xTaskGetApplicationTaskTag( TaskHandle_t xTask )
 	{
 	TCB_t *xTCB;
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 	TaskHookFunction_t xReturn;
 
 		/* If xTask is NULL then we are setting our own task hook. */
 		if( xTask == NULL )
 		{
-			xTCB = ( TCB_t * ) pxCurrentTCB;
+			xTCB = ( TCB_t * ) pxCurrentTCB[uxPsrId];
 		}
 		else
 		{
@@ -2891,12 +2893,13 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	BaseType_t xTaskCallApplicationTaskHook( TaskHandle_t xTask, void *pvParameter )
 	{
 	TCB_t *xTCB;
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 	BaseType_t xReturn;
 
 		/* If xTask is NULL then we are calling our own task hook. */
 		if( xTask == NULL )
 		{
-			xTCB = ( TCB_t * ) pxCurrentTCB;
+			xTCB = ( TCB_t * ) pxCurrentTCB[uxPsrId];
 		}
 		else
 		{
@@ -3464,6 +3467,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 	void vTaskSetThreadLocalStoragePointer( TaskHandle_t xTaskToSet, BaseType_t xIndex, void *pvValue )
 	{
 	TCB_t *pxTCB;
+	UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		if( xIndex < configNUM_THREAD_LOCAL_STORAGE_POINTERS )
 		{
@@ -3481,6 +3485,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 	{
 	void *pvReturn = NULL;
 	TCB_t *pxTCB;
+	UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		if( xIndex < configNUM_THREAD_LOCAL_STORAGE_POINTERS )
 		{

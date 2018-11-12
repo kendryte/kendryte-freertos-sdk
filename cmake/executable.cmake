@@ -23,9 +23,13 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 
 target_link_libraries(${PROJECT_NAME}
         -Wl,--start-group
-        m freertos c bsp drivers
+        m freertos atomic bsp c stdc++ drivers
         -Wl,--end-group
         )
+
+if (EXISTS ${SDK_ROOT}/src/${PROJ}/project.cmake)
+    include(${SDK_ROOT}/src/${PROJ}/project.cmake)
+endif ()
 
 IF(SUFFIX)
     SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES SUFFIX ${SUFFIX})
