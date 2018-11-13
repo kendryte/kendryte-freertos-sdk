@@ -231,7 +231,7 @@ public:
     {
         auto spi = make_accessor(spi_driver_);
         spi_dev_ = make_accessor(spi->get_device(SPI_MODE_0, SPI_FF_STANDARD, spi_cs_mask_, 8));
-        spi_dev_->set_clock_rate(10000000);
+        spi_dev_->set_clock_rate(20000000);
 
         uint32_t value = 0;
         /* Read DM9051 PID / VID, Check MCU SPI Setting correct */
@@ -273,7 +273,7 @@ public:
         write(DM9051_GPR, 0x00); //Power on PHY
         usleep(1e5);
 
-        set_phy_mode(DM9051_10MFD);
+        set_phy_mode(DM9051_AUTO);
         set_mac_address(mac_address_);
 
         /* set multicast address */
@@ -322,11 +322,6 @@ public:
         while (read(DM9051_TCR) & DM9051_TCR_SET)
             ;
 
-        calc_mwr_ = (read(DM9051_MWRH) << 8) + read(DM9051_MWRL);
-        calc_mwr_ += length;
-        if (calc_mwr_ > 0x0bff)
-            calc_mwr_ -= 0x0c00;
-
         write(DM9051_TXPLL, length & 0xff);
         write(DM9051_TXPLH, (length >> 8) & 0xff);
     }
@@ -344,6 +339,19 @@ public:
 
     virtual size_t begin_receive() override
     {
+        uint8_t rxchk;
+        /* Disable DM9051a interrupt */
+        write(DM9051_IMR, IMR_PAR);
+        /* Must rx packet available */
+        rxchk = read(DM9051_ISR);
+        if (!(rxchk & ISR_PRS))
+        {
+
+            /* clear packet received latch status */
+            /* restore receive interrupt */
+            write(DM9051_IMR, IMR_PAR | IMR_PRM);
+        }
+
         /* Check packet ready or not */
         uint8_t rxbyte = read(DM9051_MRCMDX);
         rxbyte = read(DM9051_MRCMDX);
@@ -355,24 +363,41 @@ public:
             write(DM9051_MPCR, 0x01); //Reset RX FIFO pointer
             usleep(2e3);
             write(DM9051_RCR, (RCR_DEFAULT | RCR_RXEN)); //RX Enable
+            write(DM9051_IMR, IMR_PAR | IMR_PRM);
             return 0;
         }
-
-        read(DM9051_MRCMDX); // dummy read
-
-        calc_mrr_ = (read(DM9051_MRRH) << 8) + read(DM9051_MRRL); // Save RX SRAM pointer
-        uint16_t len;
+        uint16_t len = 0;
+        uint16_t status;
+        if (rxbyte)
         {
-            uint8_t header[4];
-            read_memory({ header });
-            // status = header[0] | (header[1] << 8);
-            len = header[2] | (header[3] << 8);
-        }
+			read(DM9051_MRCMDX); // dummy read
 
-        calc_mrr_ += (len + 4);
-        if (calc_mrr_ > 0x3fff)
-            calc_mrr_ -= 0x3400;
-        printf("len: %d\n", len);
+			{
+				uint8_t header[4];
+				read_memory({ header });
+				status = header[0] | (header[1] << 8);
+				len = header[2] | (header[3] << 8);
+			}
+            if (len > DM9051_PKT_MAX)
+            { // read-error
+                len = 0; // read-error (keep no change to rx fifo)
+            }
+			printf("len: %d\n", len);
+            if ((status & 0xbf00) || (len < 0x40) || (len > DM9051_PKT_MAX))
+            {
+                //DM9051_TRACE2("rx error: status %04x, rx_len: %d \r\n", rx_status, rx_len);
+
+                if (status & 0x8000)
+                {
+                    printf("rx length error \r\n");
+                }
+                if (len > DM9051_PKT_MAX)
+                {
+                    printf("rx length too big \r\n");
+                }
+            }
+		}
+        write(DM9051_IMR, IMR_PAR | IMR_PRM);
         return len;
     }
 
@@ -513,7 +538,6 @@ private:
     network_adapter_handler *handler_;
 
     object_accessor<spi_device_driver> spi_dev_;
-    uint16_t calc_mwr_, calc_mrr_;
 };
 
 handle_t dm9051_driver_install(handle_t spi_handle, uint32_t spi_cs_mask, const mac_address_t *mac_address)
