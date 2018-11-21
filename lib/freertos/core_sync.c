@@ -25,6 +25,7 @@ static volatile UBaseType_t s_core_sync_events[portNUM_PROCESSORS] = { 0 };
 static volatile TaskHandle_t s_pending_to_add_tasks[portNUM_PROCESSORS] = { 0 };
 static volatile UBaseType_t s_core_awake[portNUM_PROCESSORS] = { 1, 0 };
 static volatile UBaseType_t s_core_sync_in_progress[portNUM_PROCESSORS] = { 0 };
+extern UBaseType_t *volatile pxCurrentTCB[portNUM_PROCESSORS];
 
 void handle_irq_m_soft(uintptr_t cause, uintptr_t epc)
 {
@@ -54,12 +55,18 @@ void handle_irq_m_soft(uintptr_t cause, uintptr_t epc)
 
 void handle_irq_m_timer(uintptr_t cause, uintptr_t epc)
 {
-    prvSetNextTimerInterrupt();
-
-    /* Increment the RTOS tick. */
-    if (xTaskIncrementTick() != pdFALSE)
+    if (pxCurrentTCB[uxPortGetProcessorId()])
     {
-        core_sync_request_context_switch(uxPortGetProcessorId());
+        prvSetNextTimerInterrupt();
+        /* Increment the RTOS tick. */
+        if (xTaskIncrementTick() != pdFALSE)
+        {
+            core_sync_request_context_switch(uxPortGetProcessorId());
+        }
+    }
+    else
+    {
+        clear_csr(mie, MIP_MTIP);
     }
 }
 
