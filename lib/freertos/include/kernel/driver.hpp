@@ -395,8 +395,11 @@ class network_adapter_driver : public driver
 public:
     virtual void set_handler(network_adapter_handler *handler) = 0;
     virtual mac_address_t get_mac_address() = 0;
+    virtual void disable_rx(void) = 0;
+    virtual void enable_rx(void) = 0;
+    virtual bool interface_check() = 0;
     virtual bool is_packet_available() = 0;
-    virtual void reset() = 0;
+    virtual void reset(SemaphoreHandle_t interrupt_event) = 0;
     virtual void begin_send(size_t length) = 0;
     virtual void send(gsl::span<const uint8_t> buffer) = 0;
     virtual void end_send() = 0;

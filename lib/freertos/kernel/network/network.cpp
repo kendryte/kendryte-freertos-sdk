@@ -27,7 +27,7 @@ using namespace sys;
 
 int network_init()
 {
-    lwip_init();
+    tcpip_init(NULL, NULL);
     return 0;
 }
 
@@ -38,6 +38,7 @@ public:
         : adapter_(std::move(adapter))
     {
         ip4_addr_t ipaddr, netmask, gw;
+        completion_event_ = xSemaphoreCreateCounting(20, 0);
 
         IP4_ADDR(&ipaddr, ip_address.data[0], ip_address.data[1], ip_address.data[2], ip_address.data[3]);
         IP4_ADDR(&netmask, net_mask.data[0], net_mask.data[1], net_mask.data[2], net_mask.data[3]);
@@ -79,12 +80,20 @@ private:
 
     static void poll_thread(void *args)
     {
-        printf("aa\n");
+        printf("bb\n");
         auto &ethnetif = *reinterpret_cast<k_ethernet_interface *>(args);
+        auto &adapter = ethnetif.adapter_;
         while (1)
         {
-            ethnetif.notify_input();
-            vTaskDelay(pdMS_TO_TICKS(100));
+            if (xSemaphoreTake(ethnetif.completion_event_, portMAX_DELAY) == pdTRUE)
+            {
+                if (adapter->interface_check())
+                {
+                    adapter->disable_rx();
+                    ethnetif.notify_input();
+                    adapter->enable_rx();
+                }
+            }
         }
     }
 
@@ -167,7 +176,7 @@ private:
 #endif /* LWIP_IPV6 && LWIP_IPV6_MLD */
 
         /* Do whatever else is needed to initialize interface. */
-        adapter->reset();
+        adapter->reset(ethnetif.completion_event_);
     }
 
     static struct pbuf *low_level_input(struct netif *netif)
@@ -287,6 +296,7 @@ private:
 private:
     object_accessor<network_adapter_driver> adapter_;
     netif netif_;
+    SemaphoreHandle_t completion_event_;
 };
 
 #define NETIF_ENTRY                                    \

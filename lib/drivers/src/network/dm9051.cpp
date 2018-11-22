@@ -12,12 +12,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "network/dm9051.h"
+#include <FreeRTOS.h>
+#include <atomic.h>
+#include <semphr.h>
 #include <hal.h>
 #include <kernel/driver_impl.hpp>
 #include <stdlib.h>
 #include <string.h>
+#include <printf.h>
 #include <sys/unistd.h>
+#include "network/dm9051.h"
+#include "task.h"
 
 using namespace sys;
 
@@ -216,10 +221,12 @@ enum DM9051_TYPE
 class dm9051_driver : public network_adapter_driver, public heap_object, public exclusive_object_access
 {
 public:
-    dm9051_driver(handle_t spi_handle, uint32_t spi_cs_mask, const mac_address_t &mac_address)
+    dm9051_driver(handle_t spi_handle, uint32_t spi_cs_mask, handle_t int_gpio_handle, uint32_t int_gpio_pin, const mac_address_t &mac_address)
         : spi_driver_(system_handle_to_object(spi_handle).get_object().as<spi_driver>())
         , spi_cs_mask_(spi_cs_mask)
         , mac_address_(mac_address)
+        , int_gpio_driver_(system_handle_to_object(int_gpio_handle).get_object().as<gpio_driver>())
+        , int_gpio_pin_(int_gpio_pin)
     {
     }
 
@@ -232,6 +239,11 @@ public:
         auto spi = make_accessor(spi_driver_);
         spi_dev_ = make_accessor(spi->get_device(SPI_MODE_0, SPI_FF_STANDARD, spi_cs_mask_, 8));
         spi_dev_->set_clock_rate(20000000);
+
+        int_gpio_ = make_accessor(int_gpio_driver_);
+        int_gpio_->set_drive_mode(int_gpio_pin_, GPIO_DM_INPUT);
+        int_gpio_->set_pin_edge(int_gpio_pin_, GPIO_PE_FALLING);
+        int_gpio_->set_on_changed(int_gpio_pin_, (gpio_on_changed_t)isr_handle, this);
 
         uint32_t value = 0;
         /* Read DM9051 PID / VID, Check MCU SPI Setting correct */
@@ -260,11 +272,27 @@ public:
 
     virtual bool is_packet_available() override
     {
-        return (read(DM9051_MRCMDX) & 0b11) == 0b1;
+        uint8_t rxbyte;
+        /* Check packet ready or not */
+        rxbyte = read(DM9051_MRCMDX);
+        rxbyte = read(DM9051_MRCMDX);
+
+        if ((rxbyte != 1) && (rxbyte != 0))
+        {
+            /* Reset RX FIFO pointer */
+            write(DM9051_RCR, RCR_DEFAULT); //RX disable
+            write(DM9051_MPCR, 0x01); //Reset RX FIFO pointer
+            usleep(2e3);
+            write(DM9051_RCR, (RCR_DEFAULT | RCR_RXEN)); //RX Enable
+
+            return false;
+        }
+        return (rxbyte & 0b1) == 0b1;
     }
 
-    virtual void reset() override
+    virtual void reset(SemaphoreHandle_t interrupt_event) override
     {
+        interrupt_event_ = interrupt_event;
         write(DM9051_NCR, DM9051_REG_RESET);
         while (read(DM9051_NCR) & DM9051_REG_RESET)
             ;
@@ -339,65 +367,32 @@ public:
 
     virtual size_t begin_receive() override
     {
-        uint8_t rxchk;
-        /* Disable DM9051a interrupt */
-        write(DM9051_IMR, IMR_PAR);
-        /* Must rx packet available */
-        rxchk = read(DM9051_ISR);
-        if (!(rxchk & ISR_PRS))
-        {
-
-            /* clear packet received latch status */
-            /* restore receive interrupt */
-            write(DM9051_IMR, IMR_PAR | IMR_PRM);
-        }
-
-        /* Check packet ready or not */
-        uint8_t rxbyte = read(DM9051_MRCMDX);
-        rxbyte = read(DM9051_MRCMDX);
-
-        if ((rxbyte != 1) && (rxbyte != 0))
-        {
-            /* Reset RX FIFO pointer */
-            write(DM9051_RCR, RCR_DEFAULT); //RX disable
-            write(DM9051_MPCR, 0x01); //Reset RX FIFO pointer
-            usleep(2e3);
-            write(DM9051_RCR, (RCR_DEFAULT | RCR_RXEN)); //RX Enable
-            write(DM9051_IMR, IMR_PAR | IMR_PRM);
-            return 0;
-        }
         uint16_t len = 0;
         uint16_t status;
-        if (rxbyte)
+
+		read(DM9051_MRCMDX); // dummy read
+
+		uint8_t header[4];
+		read_memory({ header });
+		status = header[0] | (header[1] << 8);
+		len = header[2] | (header[3] << 8);
+        if (len > DM9051_PKT_MAX)
+        { // read-error
+            len = 0; // read-error (keep no change to rx fifo)
+        }
+		printf("len: %d\n", len);
+        if ((status & 0xbf00) || (len < 0x40) || (len > DM9051_PKT_MAX))
         {
-			read(DM9051_MRCMDX); // dummy read
-
-			{
-				uint8_t header[4];
-				read_memory({ header });
-				status = header[0] | (header[1] << 8);
-				len = header[2] | (header[3] << 8);
-			}
-            if (len > DM9051_PKT_MAX)
-            { // read-error
-                len = 0; // read-error (keep no change to rx fifo)
-            }
-			printf("len: %d\n", len);
-            if ((status & 0xbf00) || (len < 0x40) || (len > DM9051_PKT_MAX))
+            if (status & 0x8000)
             {
-                //DM9051_TRACE2("rx error: status %04x, rx_len: %d \r\n", rx_status, rx_len);
-
-                if (status & 0x8000)
-                {
-                    printf("rx length error \r\n");
-                }
-                if (len > DM9051_PKT_MAX)
-                {
-                    printf("rx length too big \r\n");
-                }
+                printf("rx length error \r\n");
             }
-		}
-        write(DM9051_IMR, IMR_PAR | IMR_PRM);
+            if (len > DM9051_PKT_MAX)
+            {
+                printf("rx length too big \r\n");
+            }
+        }
+
         return len;
     }
 
@@ -410,7 +405,60 @@ public:
     {
     }
 
+    virtual void disable_rx() override
+    {
+        uint8_t rxchk;
+
+        /* Disable DM9051a interrupt */
+        write(DM9051_IMR, IMR_PAR);
+
+        /* Must rx packet available */
+        rxchk = read(DM9051_ISR);
+        if (!(rxchk & ISR_PRS))
+        {
+            /* restore receive interrupt */
+            //.DM9051_device.imr_all |= IMR_PRM;
+            //.DM9051_Write_Reg(DM9051_IMR, DM9051_device.imr_all);
+            //.return false;
+        }
+        /* clear the rx interrupt-event */
+        write(DM9051_ISR, rxchk);
+    }
+
+    virtual void enable_rx() override
+    {
+        /* restore receive interrupt */
+        write(DM9051_IMR, IMR_PAR | IMR_PRM);
+    }
+
+    virtual bool interface_check() override
+    {
+        uint8_t link_status = 0;
+        link_status = read(DM9051_NSR);
+        link_status = read(DM9051_NSR);
+        if ((link_status)&0x40)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
 private:
+    
+    static void isr_handle(uint32_t pin, void *userdata)
+    {
+        auto &driver = *reinterpret_cast<dm9051_driver *>(userdata);
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(driver.interrupt_event_, &xHigherPriorityTaskWoken);
+        if (xHigherPriorityTaskWoken)
+        {
+            portYIELD();
+        }
+    }
+
     uint8_t read(uint8_t addr)
     {
         const uint8_t to_write[1] = { addr };
@@ -537,15 +585,21 @@ private:
     mac_address_t mac_address_;
     network_adapter_handler *handler_;
 
+    object_ptr<gpio_driver> int_gpio_driver_;
+    uint32_t int_gpio_pin_;
+
+    object_accessor<gpio_driver> int_gpio_;
     object_accessor<spi_device_driver> spi_dev_;
+
+    SemaphoreHandle_t interrupt_event_;
 };
 
-handle_t dm9051_driver_install(handle_t spi_handle, uint32_t spi_cs_mask, const mac_address_t *mac_address)
+handle_t dm9051_driver_install(handle_t spi_handle, uint32_t spi_cs_mask, handle_t int_gpio_handle, uint32_t int_gpio_pin, const mac_address_t *mac_address)
 {
     try
     {
         configASSERT(mac_address);
-        auto driver = make_object<dm9051_driver>(spi_handle, spi_cs_mask, *mac_address);
+        auto driver = make_object<dm9051_driver>(spi_handle, spi_cs_mask, int_gpio_handle, int_gpio_pin, * mac_address);
         driver->install();
         return system_alloc_handle(make_accessor(driver));
     }

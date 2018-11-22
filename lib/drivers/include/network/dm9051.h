@@ -23,7 +23,7 @@ extern "C"
 {
 #endif
 
-handle_t dm9051_driver_install(handle_t spi_handle, uint32_t spi_cs_mask, const mac_address_t *mac_address);
+handle_t dm9051_driver_install(handle_t spi_handle, uint32_t spi_cs_mask, handle_t int_gpio_handle, uint32_t int_gpio_pin, const mac_address_t *mac_address);
 
 #ifdef __cplusplus
 }
