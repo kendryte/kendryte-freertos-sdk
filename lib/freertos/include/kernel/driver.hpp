@@ -411,7 +411,7 @@ public:
 class network_socket : public virtual object_access
 {
 public:
-    virtual object_accessor<network_socket> accept() = 0;
+    virtual object_accessor<network_socket> accept(socket_address_t *remote_address) = 0;
     virtual void bind(const socket_address_t &address) = 0;
     virtual void connect(const socket_address_t &address) = 0;
     virtual void listen(uint32_t backlog) = 0;

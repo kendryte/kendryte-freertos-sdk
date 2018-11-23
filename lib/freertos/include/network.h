@@ -34,6 +34,16 @@ handle_t network_socket_open(address_family_t address_family, socket_type_t type
 
 handle_t network_socket_close(handle_t socket_handle);
 
+int network_socket_bind(handle_t socket_handle, const socket_address_t* remote_address);
+
+int network_socket_connect(handle_t socket_handle, const socket_address_t* remote_address);
+
+int network_socket_listen(handle_t socket_handle, uint32_t backlog);
+
+handle_t network_socket_accept(handle_t socket_handle, socket_address_t* remote_address);
+
+int network_socket_shutdown(handle_t socket_handle, socket_shutdown_t how);
+
 #ifdef __cplusplus
 }
 #endif

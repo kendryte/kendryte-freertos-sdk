@@ -12,7 +12,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef _POSIX_UTILS_H
+#define _POSIX_UTILS_H
+
 #include <cstdint>
 #include <sys/time.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 uint32_t timespec_to_ticks(const struct timespec &ts);
+
+#ifdef __cplusplus
+}
+#endif
+#endif

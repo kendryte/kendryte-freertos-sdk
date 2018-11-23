@@ -37,6 +37,17 @@ static void to_lwip_sockaddr(sockaddr_in &addr, const socket_address_t &socket_a
     addr.sin_addr.s_addr = LWIP_MAKEU32(socket_addr.data[0], socket_addr.data[1], socket_addr.data[2], socket_addr.data[3]);
 }
 
+static void to_sys_sockaddr(socket_address_t &addr, const sockaddr_in &socket_addr)
+{
+    if (socket_addr.sin_family != AF_INET)
+        throw std::runtime_error("Invalid socket address.");
+    addr.data[0] = (socket_addr.sin_addr.s_addr >> 24) & 0xFF;
+    addr.data[1] = (socket_addr.sin_addr.s_addr >> 16) & 0xFF;
+    addr.data[2] = (socket_addr.sin_addr.s_addr >> 8) & 0xFF;
+    addr.data[3] = socket_addr.sin_addr.s_addr & 0xFF;
+    *reinterpret_cast<uint16_t *>(addr.data + 4) = ntohs(socket_addr.sin_port);
+}
+
 class k_network_socket : public network_socket, public heap_object, public exclusive_object_access
 {
 public:
@@ -91,7 +102,7 @@ public:
         lwip_close(sock_);
     }
 
-    virtual object_accessor<network_socket> accept() override
+    virtual object_accessor<network_socket> accept(socket_address_t *remote_address) override
     {
         object_ptr<k_network_socket> socket(std::in_place, new k_network_socket());
 
@@ -101,6 +112,8 @@ public:
         auto sock = lwip_accept(sock_, reinterpret_cast<sockaddr *>(&remote), &remote_len);
         check_lwip_error(sock);
         socket->sock_ = sock;
+        if (remote_address)
+            to_sys_sockaddr(*remote_address, remote);
         return make_accessor(socket);
     }
 
@@ -169,6 +182,17 @@ private:
     int sock_;
 };
 
+#define SOCKET_ENTRY                                      \
+    auto &obj = system_handle_to_object(socket_handle);   \
+    configASSERT(obj.is<k_network_socket>());             \
+    auto f = obj.as<k_network_socket>();
+
+#define CATCH_ALL \
+    catch (...) { return -1; }
+
+#define CHECK_ARG(x) \
+    if (!x) throw std::invalid_argument(#x " is invalid.");
+
 handle_t network_socket_open(address_family_t address_family, socket_type_t type, protocol_type_t protocol)
 {
     try
@@ -185,4 +209,69 @@ handle_t network_socket_open(address_family_t address_family, socket_type_t type
 handle_t network_socket_close(handle_t socket_handle)
 {
     return io_close(socket_handle);
+}
+
+int network_socket_connect(handle_t socket_handle, const socket_address_t* remote_address)
+{
+    try
+    {
+        SOCKET_ENTRY;
+        CHECK_ARG(remote_address);
+
+        f->connect(*remote_address);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int network_socket_listen(handle_t socket_handle, uint32_t backlog)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        f->listen(backlog);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+handle_t network_socket_accept(handle_t socket_handle, socket_address_t* remote_address)
+{
+    try
+    {
+        SOCKET_ENTRY;
+        CHECK_ARG(remote_address);
+
+        return system_alloc_handle(f->accept(remote_address));
+    }
+    catch (...)
+    {
+        return NULL_HANDLE;
+    }
+}
+
+int network_socket_shutdown(handle_t socket_handle, socket_shutdown_t how)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        f->shutdown(how);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int network_socket_bind(handle_t socket_handle, const socket_address_t* remote_address)
+{
+    try
+    {
+        SOCKET_ENTRY;
+        CHECK_ARG(remote_address);
+
+        f->bind(*remote_address);
+        return 0;
+    }
+    CATCH_ALL;
 }
