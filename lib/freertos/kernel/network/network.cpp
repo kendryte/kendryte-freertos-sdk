@@ -76,8 +76,6 @@ public:
 
     dhcp_state_t dhcp_pooling()
     {
-        printf("dhcp\n");
-
         auto &netif = netif_;
         uint32_t ip_address;
         dhcp_state_t dhcp_state;
@@ -169,7 +167,6 @@ private:
 
     static void poll_thread(void *args)
     {
-        printf("bb\n");
         auto &ethnetif = *reinterpret_cast<k_ethernet_interface *>(args);
         auto &adapter = ethnetif.adapter_;
         while (1)
