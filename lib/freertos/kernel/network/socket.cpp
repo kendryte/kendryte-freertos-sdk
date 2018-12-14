@@ -174,11 +174,11 @@ public:
         return ret;
     }
 
-    virtual size_t send_to(gsl::span<const uint8_t> buffer, uint8_t flags, const socket_address_t *to) override
+    virtual size_t send_to(gsl::span<const uint8_t> buffer, uint8_t flags, const socket_address_t &to) override
     {
         sockaddr_in remote;
         socklen_t remote_len = sizeof(remote);
-        to_lwip_sockaddr(remote, *to);
+        to_lwip_sockaddr(remote, to);
 
         auto ret = lwip_sendto(sock_, buffer.data(), buffer.size_bytes(), flags, reinterpret_cast<const sockaddr *>(&remote), remote_len);
         check_lwip_error(ret);
@@ -347,7 +347,7 @@ int network_socket_send_to(handle_t socket_handle, const uint8_t *data, size_t l
     {
         SOCKET_ENTRY;
 
-        f->send_to({ data, std::ptrdiff_t(len) }, flags, to);
+        f->send_to({ data, std::ptrdiff_t(len) }, flags, *to);
         return 0;
     }
     CATCH_ALL;

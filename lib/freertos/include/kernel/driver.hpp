@@ -418,7 +418,7 @@ public:
     virtual void shutdown(socket_shutdown_t how) = 0;
     virtual size_t send(gsl::span<const uint8_t> buffer, uint8_t flags) = 0;
     virtual size_t receive(gsl::span<uint8_t> buffer, uint8_t flags) = 0;
-    virtual size_t send_to(gsl::span<const uint8_t> buffer, uint8_t flags, const socket_address_t *to) = 0;
+    virtual size_t send_to(gsl::span<const uint8_t> buffer, uint8_t flags, const socket_address_t &to) = 0;
     virtual size_t receive_from(gsl::span<uint8_t> buffer, uint8_t flags, socket_address_t *from) = 0;
     virtual size_t read(gsl::span<uint8_t> buffer) = 0;
     virtual size_t write(gsl::span<const uint8_t> buffer) = 0;

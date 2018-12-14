@@ -226,7 +226,7 @@ int sendto(int socket, const void *data, size_t size, int flags, const struct so
         socket_address_t remote_addr;
         to_sys_sockaddr(remote_addr, *reinterpret_cast<const sockaddr_in *>(to));
 
-        f->send_to({ (const uint8_t *)data, std::ptrdiff_t(size) }, flags, &remote_addr);
+        f->send_to({ (const uint8_t *)data, std::ptrdiff_t(size) }, flags, remote_addr);
         return 0;
     }
     CATCH_ALL;

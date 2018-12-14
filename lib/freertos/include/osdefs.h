@@ -301,8 +301,6 @@ typedef struct _hostent
     /* A pointer to an array of pointers to network addresses (in
     network byte order) for the host, terminated by a null pointer. */
     uint8_t **h_addr_list; 
-    /* for backward compatibility */
-#define h_addr h_addr_list[0]
 } hostent_t;
 
 typedef enum _dhcp_state
