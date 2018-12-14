@@ -42,7 +42,7 @@ handle_t network_socket_close(handle_t socket_handle);
 
 int network_socket_bind(handle_t socket_handle, const socket_address_t *remote_address);
 
-    int network_socket_connect(handle_t socket_handle, const socket_address_t *remote_address);
+int network_socket_connect(handle_t socket_handle, const socket_address_t *remote_address);
 
 int network_socket_listen(handle_t socket_handle, uint32_t backlog);
 
@@ -60,9 +60,9 @@ int network_socket_receive_from(handle_t socket_handle, uint8_t *data, size_t le
 
 hostent_t *network_socket_gethostbyname(const char *name);
 
-void network_socket_addr_parse(const char *ip_addr, int port, uint8_t *socket_addr);
+int network_socket_addr_parse(const char *ip_addr, int port, uint8_t *socket_addr);
 
-void network_socket_addr_to_string(uint8_t *socket_addr, char *ip_addr, int *port);
+int network_socket_addr_to_string(uint8_t *socket_addr, char *ip_addr, int *port);
 
 #ifdef __cplusplus
 }

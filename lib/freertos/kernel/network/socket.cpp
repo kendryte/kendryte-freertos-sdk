@@ -364,41 +364,51 @@ int network_socket_receive_from(handle_t socket_handle, uint8_t *data, size_t le
     CATCH_ALL;
 }
 
-void network_socket_addr_parse(const char *ip_addr, int port, uint8_t *socket_addr)
+int network_socket_addr_parse(const char *ip_addr, int port, uint8_t *socket_addr)
 {
-    const char *sep = ".";
-    char *p;
-    int data;
-    char ip_addr_p[16];
-    strcpy(ip_addr_p, ip_addr);
-    uint8_t *socket_addr_p = socket_addr;
-    p = strtok(ip_addr_p, sep);
-    while (p)
+    try
     {
-        data = atoi(p);
-        if (data > 255)
-            throw std::invalid_argument(" ipaddr is invalid.");
-        *socket_addr_p++ = (uint8_t)data;
-        p = strtok(NULL, sep);
+        const char *sep = ".";
+        char *p;
+        int data;
+        char ip_addr_p[16];
+        strcpy(ip_addr_p, ip_addr);
+        uint8_t *socket_addr_p = socket_addr;
+        p = strtok(ip_addr_p, sep);
+        while (p)
+        {
+            data = atoi(p);
+            if (data > 255)
+                throw std::invalid_argument(" ipaddr is invalid.");
+            *socket_addr_p++ = (uint8_t)data;
+            p = strtok(NULL, sep);
+        }
+        if (socket_addr_p - socket_addr != 4)
+            throw std::invalid_argument(" ipaddr size is invalid.");
+        *socket_addr_p++ = port & 0xff;
+        *socket_addr_p = (port >> 8) & 0xff;
+        return 0;
     }
-    if (socket_addr_p - socket_addr != 4)
-        throw std::invalid_argument(" ipaddr size is invalid.");
-    *socket_addr_p++ = port & 0xff;
-    *socket_addr_p = (port >> 8) & 0xff;
+    CATCH_ALL;
 }
 
-void network_socket_addr_to_string(uint8_t *socket_addr, char *ip_addr, int *port)
+int network_socket_addr_to_string(uint8_t *socket_addr, char *ip_addr, int *port)
 {
-    char *p = ip_addr;
-
-    int i = 0;
-    do
+    try
     {
-        char tmp[8] = { 0 };
-        itoa(socket_addr[i++], tmp, 10);
-        strcpy(p, tmp);
-        p += strlen(tmp);
-    } while ((i < 4) && (*p++ = '.'));
+        char *p = ip_addr;
 
-    *port = (int)(socket_addr[4] | (socket_addr[5] << 8));
+        int i = 0;
+        do
+        {
+            char tmp[8] = { 0 };
+            itoa(socket_addr[i++], tmp, 10);
+            strcpy(p, tmp);
+            p += strlen(tmp);
+        } while ((i < 4) && (*p++ = '.'));
+
+        *port = (int)(socket_addr[4] | (socket_addr[5] << 8));
+        return 0;
+    }
+    CATCH_ALL;
 }
