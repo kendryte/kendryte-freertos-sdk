@@ -17,6 +17,7 @@
 #include "kernel/driver_impl.hpp"
 #include "network.h"
 #include <lwip/sockets.h>
+#include <string.h>
 
 using namespace sys;
 
@@ -34,17 +35,18 @@ static void to_lwip_sockaddr(sockaddr_in &addr, const socket_address_t &socket_a
     addr.sin_len = sizeof(addr);
     addr.sin_family = AF_INET;
     addr.sin_port = htons(*reinterpret_cast<const uint16_t *>(socket_addr.data + 4));
-    addr.sin_addr.s_addr = LWIP_MAKEU32(socket_addr.data[0], socket_addr.data[1], socket_addr.data[2], socket_addr.data[3]);
+    addr.sin_addr.s_addr = LWIP_MAKEU32(socket_addr.data[3], socket_addr.data[2], socket_addr.data[1], socket_addr.data[0]);
 }
 
 static void to_sys_sockaddr(socket_address_t &addr, const sockaddr_in &socket_addr)
 {
     if (socket_addr.sin_family != AF_INET)
         throw std::runtime_error("Invalid socket address.");
-    addr.data[0] = (socket_addr.sin_addr.s_addr >> 24) & 0xFF;
-    addr.data[1] = (socket_addr.sin_addr.s_addr >> 16) & 0xFF;
-    addr.data[2] = (socket_addr.sin_addr.s_addr >> 8) & 0xFF;
-    addr.data[3] = socket_addr.sin_addr.s_addr & 0xFF;
+    addr.family = AF_INTERNETWORK;
+    addr.data[3] = (socket_addr.sin_addr.s_addr >> 24) & 0xFF;
+    addr.data[2] = (socket_addr.sin_addr.s_addr >> 16) & 0xFF;
+    addr.data[1] = (socket_addr.sin_addr.s_addr >> 8) & 0xFF;
+    addr.data[0] = socket_addr.sin_addr.s_addr & 0xFF;
     *reinterpret_cast<uint16_t *>(addr.data + 4) = ntohs(socket_addr.sin_port);
 }
 
@@ -80,8 +82,8 @@ public:
         int s_protocol;
         switch (protocol)
         {
-        case PROTCL_TCP:
-            s_protocol = IPPROTO_TCP;
+        case PROTCL_IP:
+            s_protocol = IPPROTO_IP;
             break;
         default:
             throw std::invalid_argument("Invalid protocol type.");
@@ -157,18 +159,57 @@ public:
         check_lwip_error(lwip_shutdown(sock_, s_how));
     }
 
-    virtual size_t send(gsl::span<const uint8_t> buffer) override
+    virtual size_t send(gsl::span<const uint8_t> buffer, uint8_t flags) override
     {
-        auto ret = lwip_write(sock_, buffer.data(), buffer.size_bytes());
+        auto ret = lwip_send(sock_, buffer.data(), buffer.size_bytes(), flags);
         check_lwip_error(ret);
         configASSERT(ret == buffer.size_bytes());
         return ret;
     }
 
-    virtual size_t receive(gsl::span<uint8_t> buffer) override
+    virtual size_t receive(gsl::span<uint8_t> buffer, uint8_t flags) override
+    {
+        auto ret = lwip_recv(sock_, buffer.data(), buffer.size_bytes(), flags);
+        check_lwip_error(ret);
+        return ret;
+    }
+
+    virtual size_t send_to(gsl::span<const uint8_t> buffer, uint8_t flags, const socket_address_t *to) override
+    {
+        sockaddr_in remote;
+        socklen_t remote_len = sizeof(remote);
+        to_lwip_sockaddr(remote, *to);
+
+        auto ret = lwip_sendto(sock_, buffer.data(), buffer.size_bytes(), flags, reinterpret_cast<const sockaddr *>(&remote), remote_len);
+        check_lwip_error(ret);
+        configASSERT(ret == buffer.size_bytes());
+        return ret;
+    }
+
+    virtual size_t receive_from(gsl::span<uint8_t> buffer, uint8_t flags, socket_address_t *from) override
+    {
+        sockaddr_in remote;
+        socklen_t remote_len = sizeof(remote);
+
+        auto ret = lwip_recvfrom(sock_, buffer.data(), buffer.size_bytes(), flags, reinterpret_cast<sockaddr *>(&remote), &remote_len);
+        check_lwip_error(ret);
+        if (from)
+            to_sys_sockaddr(*from, remote);
+        return ret;
+    }
+
+    virtual size_t read(gsl::span<uint8_t> buffer) override
     {
         auto ret = lwip_read(sock_, buffer.data(), buffer.size_bytes());
         check_lwip_error(ret);
+        return ret;
+    }
+
+    virtual size_t write(gsl::span<const uint8_t> buffer) override
+    {
+        auto ret = lwip_write(sock_, buffer.data(), buffer.size_bytes());
+        check_lwip_error(ret);
+        configASSERT(ret == buffer.size_bytes());
         return ret;
     }
 
@@ -182,16 +223,17 @@ private:
     int sock_;
 };
 
-#define SOCKET_ENTRY                                      \
-    auto &obj = system_handle_to_object(socket_handle);   \
-    configASSERT(obj.is<k_network_socket>());             \
+#define SOCKET_ENTRY                                    \
+    auto &obj = system_handle_to_object(socket_handle); \
+    configASSERT(obj.is<k_network_socket>());           \
     auto f = obj.as<k_network_socket>();
 
 #define CATCH_ALL \
     catch (...) { return -1; }
 
 #define CHECK_ARG(x) \
-    if (!x) throw std::invalid_argument(#x " is invalid.");
+    if (!x)          \
+        throw std::invalid_argument(#x " is invalid.");
 
 handle_t network_socket_open(address_family_t address_family, socket_type_t type, protocol_type_t protocol)
 {
@@ -211,7 +253,7 @@ handle_t network_socket_close(handle_t socket_handle)
     return io_close(socket_handle);
 }
 
-int network_socket_connect(handle_t socket_handle, const socket_address_t* remote_address)
+int network_socket_connect(handle_t socket_handle, const socket_address_t *remote_address)
 {
     try
     {
@@ -236,7 +278,7 @@ int network_socket_listen(handle_t socket_handle, uint32_t backlog)
     CATCH_ALL;
 }
 
-handle_t network_socket_accept(handle_t socket_handle, socket_address_t* remote_address)
+handle_t network_socket_accept(handle_t socket_handle, socket_address_t *remote_address)
 {
     try
     {
@@ -263,7 +305,7 @@ int network_socket_shutdown(handle_t socket_handle, socket_shutdown_t how)
     CATCH_ALL;
 }
 
-int network_socket_bind(handle_t socket_handle, const socket_address_t* remote_address)
+int network_socket_bind(handle_t socket_handle, const socket_address_t *remote_address)
 {
     try
     {
@@ -274,4 +316,89 @@ int network_socket_bind(handle_t socket_handle, const socket_address_t* remote_a
         return 0;
     }
     CATCH_ALL;
+}
+
+int network_socket_send(handle_t socket_handle, const uint8_t *data, size_t len, uint8_t flags)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        f->send({ data, std::ptrdiff_t(len) }, flags);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int network_socket_receive(handle_t socket_handle, uint8_t *data, size_t len, uint8_t flags)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        return f->receive({ data, std::ptrdiff_t(len) }, flags);
+    }
+    CATCH_ALL;
+}
+
+int network_socket_send_to(handle_t socket_handle, const uint8_t *data, size_t len, uint8_t flags, const socket_address_t *to)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        f->send_to({ data, std::ptrdiff_t(len) }, flags, to);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int network_socket_receive_from(handle_t socket_handle, uint8_t *data, size_t len, uint8_t flags, socket_address_t *from)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        return f->receive_from({ data, std::ptrdiff_t(len) }, flags, from);
+    }
+    CATCH_ALL;
+}
+
+void network_socket_addr_parse(const char *ip_addr, int port, uint8_t *socket_addr)
+{
+    const char *sep = ".";
+    char *p;
+    int data;
+    char ip_addr_p[16];
+    strcpy(ip_addr_p, ip_addr);
+    uint8_t *socket_addr_p = socket_addr;
+    p = strtok(ip_addr_p, sep);
+    while (p)
+    {
+        data = atoi(p);
+        if (data > 255)
+            throw std::invalid_argument(" ipaddr is invalid.");
+        *socket_addr_p++ = (uint8_t)data;
+        p = strtok(NULL, sep);
+    }
+    if (socket_addr_p - socket_addr != 4)
+        throw std::invalid_argument(" ipaddr size is invalid.");
+    *socket_addr_p++ = port & 0xff;
+    *socket_addr_p = (port >> 8) & 0xff;
+}
+
+void network_socket_addr_to_string(uint8_t *socket_addr, char *ip_addr, int *port)
+{
+    char *p = ip_addr;
+
+    int i = 0;
+    do
+    {
+        char tmp[8] = { 0 };
+        itoa(socket_addr[i++], tmp, 10);
+        strcpy(p, tmp);
+        p += strlen(tmp);
+    } while ((i < 4) && (*p++ = '.'));
+
+    *port = (int)(socket_addr[4] | (socket_addr[5] << 8));
 }

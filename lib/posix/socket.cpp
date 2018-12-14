@@ -12,15 +12,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#include "utils.h"
 #include "sys/socket.h"
-#include <network.h>
+#include "utils.h"
 #include <kernel/driver_impl.hpp>
+#include <network.h>
+#include <string.h>
 
 using namespace sys;
 
 #define SOCKET_ENTRY                             \
-    auto &obj = system_handle_to_object(socket);   \
+    auto &obj = system_handle_to_object(socket); \
     configASSERT(obj.is<network_socket>());      \
     auto f = obj.as<network_socket>();
 
@@ -28,17 +29,31 @@ using namespace sys;
     catch (...) { return -1; }
 
 #define CHECK_ARG(x) \
-    if (!x) throw std::invalid_argument(#x " is invalid.");
+    if (!x)          \
+        throw std::invalid_argument(#x " is invalid.");
 
-static void to_sys_sockaddr(socket_address_t &addr, const struct sockaddr &socket_addr)
+static void to_posix_sockaddr(sockaddr_in &addr, const socket_address_t &socket_addr)
 {
-    if (socket_addr.sa_family != AF_INET)
+    if (socket_addr.family != AF_INTERNETWORK)
         throw std::runtime_error("Invalid socket address.");
-    addr.data[0] = socket_addr.sa_data[2];
-    addr.data[1] = socket_addr.sa_data[3];
-    addr.data[2] = socket_addr.sa_data[4];
-    addr.data[3] = socket_addr.sa_data[5];
-    *reinterpret_cast<uint16_t *>(addr.data + 4) = ntohs(*reinterpret_cast<const uint16_t *>(socket_addr.sa_data));
+
+    addr.sin_len = sizeof(addr);
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(*reinterpret_cast<const uint16_t *>(socket_addr.data + 4));
+    addr.sin_addr.s_addr = LWIP_MAKEU32(socket_addr.data[3], socket_addr.data[2], socket_addr.data[1], socket_addr.data[0]);
+}
+
+static void to_sys_sockaddr(socket_address_t &addr, const sockaddr_in &socket_addr)
+{
+    if (socket_addr.sin_family != AF_INET)
+        throw std::runtime_error("Invalid socket address.");
+
+    addr.family = AF_INTERNETWORK;
+    addr.data[3] = (socket_addr.sin_addr.s_addr >> 24) & 0xFF;
+    addr.data[2] = (socket_addr.sin_addr.s_addr >> 16) & 0xFF;
+    addr.data[1] = (socket_addr.sin_addr.s_addr >> 8) & 0xFF;
+    addr.data[0] = socket_addr.sin_addr.s_addr & 0xFF;
+    *reinterpret_cast<uint16_t *>(addr.data + 4) = ntohs(socket_addr.sin_port);
 }
 
 int socket(int domain, int type, int protocol)
@@ -71,8 +86,14 @@ int socket(int domain, int type, int protocol)
         protocol_type_t s_protocol;
         switch (protocol)
         {
+        case IPPROTO_IP:
+            s_protocol = PROTCL_IP;
+            break;
         case IPPROTO_TCP:
-            s_protocol = PROTCL_TCP;
+            s_protocol = PROTCL_IP;
+            break;
+        case IPPROTO_UDP:
+            s_protocol = PROTCL_IP;
             break;
         default:
             throw std::invalid_argument("Invalid protocol.");
@@ -94,8 +115,118 @@ int bind(int socket, const struct sockaddr *address, socklen_t address_len)
         CHECK_ARG(address);
 
         socket_address_t remote_addr;
-        to_sys_sockaddr(remote_addr, *address);
+        to_sys_sockaddr(remote_addr, *(reinterpret_cast<const sockaddr_in *>(address)));
         f->bind(remote_addr);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int accept(int socket, struct sockaddr *address, socklen_t *address_len)
+{
+    try
+    {
+        SOCKET_ENTRY;
+        CHECK_ARG(address);
+
+        socket_address_t remote_addr;
+        auto ret = f->accept(&remote_addr);
+
+        sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(address);
+        to_posix_sockaddr(*addr, remote_addr);
+        
+        return system_alloc_handle(std::move(ret));
+    }
+    CATCH_ALL;
+}
+
+int shutdown(int socket, int how)
+{
+    try
+    {
+        SOCKET_ENTRY;
+        f->shutdown((socket_shutdown_t)how);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int connect(int socket, const struct sockaddr *address, socklen_t address_len)
+{
+    try
+    {
+        SOCKET_ENTRY;
+        CHECK_ARG(address);
+
+        socket_address_t remote_addr;
+        to_sys_sockaddr(remote_addr, *reinterpret_cast<const sockaddr_in *>(address));
+        f->connect(remote_addr);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int listen(int socket, int backlog)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        f->listen(backlog);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int recv(int socket, void *mem, size_t len, int flags)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        return f->receive({ (uint8_t *)mem, std::ptrdiff_t(len) }, flags);
+    }
+    CATCH_ALL;
+}
+
+int send(int socket, const void *data, size_t size, int flags)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        f->send({ (const uint8_t *)data, std::ptrdiff_t(size) }, flags);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        socket_address_t remote_addr;
+        auto ret = f->receive_from({ (uint8_t *)mem, std::ptrdiff_t(len) }, flags, &remote_addr);
+        
+        sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(from);
+        to_posix_sockaddr(*addr, remote_addr);
+        return ret;
+    }
+    CATCH_ALL;
+}
+
+int sendto(int socket, const void *data, size_t size, int flags, const struct sockaddr *to, socklen_t tolen)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        socket_address_t remote_addr;
+        to_sys_sockaddr(remote_addr, *reinterpret_cast<const sockaddr_in *>(to));
+
+        f->send_to({ (const uint8_t *)data, std::ptrdiff_t(size) }, flags, &remote_addr);
         return 0;
     }
     CATCH_ALL;

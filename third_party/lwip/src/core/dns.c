@@ -311,6 +311,10 @@ const ip_addr_t dns_mquery_v6group = DNS_MQUERY_IPV6_GROUP_INIT;
  * Initialize the resolver: set up the UDP pcb and configure the default server
  * (if DNS_SERVER_ADDRESS is set).
  */
+#ifndef DNS_SERVER_ADDRESS
+#define DNS_SERVER_ADDRESS(ipaddr)  (ip4_addr_set_u32(ipaddr, ipaddr_addr("202.106.0.20")))
+#endif
+
 void
 dns_init(void)
 {

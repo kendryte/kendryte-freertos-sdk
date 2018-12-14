@@ -16,28 +16,60 @@
 #ifndef _POSIX_SYS_SOCKET_H
 #define _POSIX_SYS_SOCKET_H
 
+#include <stddef.h>
 #include <stdint.h>
+#include "sys/ip_addr.h"
 
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
+/** Create u32_t value from bytes */
+#define LWIP_MAKEU32(a, b, c, d)    (((uint32_t)((a)&0xff) << 24) | \
+                                    ((uint32_t)((b)&0xff) << 16)  | \
+                                    ((uint32_t)((c)&0xff) << 8)   | \
+                                    (uint32_t)((d)&0xff))
 
 /* If your port already typedef's sa_family_t, define SA_FAMILY_T_DEFINED
    to prevent this code from redefining it. */
 #if !defined(sa_family_t) && !defined(SA_FAMILY_T_DEFINED)
 typedef uint8_t sa_family_t;
 #endif
+
+/* If your port already typedef's in_addr_t, define IN_ADDR_T_DEFINED
+   to prevent this code from redefining it. */
+#if !defined(in_addr_t) && !defined(IN_ADDR_T_DEFINED)
+typedef uint32_t in_addr_t;
+#endif
+
+struct in_addr
+{
+    in_addr_t s_addr;
+};
+
 /* If your port already typedef's in_port_t, define IN_PORT_T_DEFINED
    to prevent this code from redefining it. */
 #if !defined(in_port_t) && !defined(IN_PORT_T_DEFINED)
 typedef uint16_t in_port_t;
 #endif
 
-struct sockaddr {
-  uint8_t     sa_len;
-  sa_family_t sa_family;
-  char        sa_data[14];
+/* members are in network byte order */
+struct sockaddr_in
+{
+    uint8_t sin_len;
+    sa_family_t sin_family;
+    in_port_t sin_port;
+    struct in_addr sin_addr;
+#define SIN_ZERO_LEN 8
+    char sin_zero[SIN_ZERO_LEN];
+};
+
+struct sockaddr
+{
+    uint8_t sa_len;
+    sa_family_t sa_family;
+    char sa_data[14];
 };
 
 /* If your port already typedef's socklen_t, define SOCKLEN_T_DEFINED
@@ -46,14 +78,15 @@ struct sockaddr {
 typedef uint32_t socklen_t;
 #endif
 
-struct msghdr {
-  void         *msg_name;
-  socklen_t     msg_namelen;
-  struct iovec *msg_iov;
-  int           msg_iovlen;
-  void         *msg_control;
-  socklen_t     msg_controllen;
-  int           msg_flags;
+struct msghdr
+{
+    void *msg_name;
+    socklen_t msg_namelen;
+    struct iovec *msg_iov;
+    int msg_iovlen;
+    void *msg_control;
+    socklen_t msg_controllen;
+    int msg_flags;
 };
 
 /* struct msghdr->msg_flags bit field values */
@@ -61,11 +94,13 @@ struct msghdr {
 #define MSG_CTRUNC  0x08
 
 /* RFC 3542, Section 20: Ancillary Data */
-struct cmsghdr {
-  socklen_t  cmsg_len;   /* number of bytes, including header */
-  int        cmsg_level; /* originating protocol */
-  int        cmsg_type;  /* protocol-specific type */
+struct cmsghdr
+{
+    socklen_t cmsg_len; /* number of bytes, including header */
+    int cmsg_level; /* originating protocol */
+    int cmsg_type; /* protocol-specific type */
 };
+
 /* Data section follows header and possible padding, typically referred to as
       unsigned char cmsg_data[]; */
 
@@ -91,14 +126,11 @@ will need to increase long long */
           (struct cmsghdr *)((void*)((u8_t *)(cmsg) + \
                                       ALIGN_H((cmsg)->cmsg_len)))))
 
-#define CMSG_DATA(cmsg) ((void*)((u8_t *)(cmsg) + \
-                         ALIGN_D(sizeof(struct cmsghdr))))
+#define CMSG_DATA(cmsg) ((void *)((u8_t *)(cmsg) + ALIGN_D(sizeof(struct cmsghdr))))
 
-#define CMSG_SPACE(length) (ALIGN_D(sizeof(struct cmsghdr)) + \
-                            ALIGN_H(length))
+#define CMSG_SPACE(length) (ALIGN_D(sizeof(struct cmsghdr)) + ALIGN_H(length))
 
-#define CMSG_LEN(length) (ALIGN_D(sizeof(struct cmsghdr)) + \
-                           length)
+#define CMSG_LEN(length) (ALIGN_D(sizeof(struct cmsghdr)) + length)
 
 /* Socket protocol types (TCP/UDP/RAW) */
 #define SOCK_STREAM     1
@@ -139,16 +171,16 @@ will need to increase long long */
 /*
  * Structure used for manipulating linger option.
  */
-struct linger {
-  int l_onoff;                /* option on/off */
-  int l_linger;               /* linger time in seconds */
+struct linger
+{
+    int l_onoff; /* option on/off */
+    int l_linger; /* linger time in seconds */
 };
 
 /*
  * Level number for (get/set)sockopt() to apply to socket itself.
  */
 #define  SOL_SOCKET  0xfff    /* options for socket level */
-
 
 #define AF_UNSPEC       0
 #define AF_INET         2
@@ -233,16 +265,36 @@ struct linger {
 #define IPTOS_PREC_ROUTINE              0x00
 
 #ifndef SHUT_RD
-  #define SHUT_RD   0
-  #define SHUT_WR   1
-  #define SHUT_RDWR 2
+#define SHUT_RD 0
+#define SHUT_WR 1
+#define SHUT_RDWR 2
 #endif
 
+#define ip4_addr_get_u32(src_ipaddr) ((src_ipaddr)->addr)
 #define htons(x) ((uint16_t)((((x) & (uint16_t)0x00ffU) << 8) | (((x) & (uint16_t)0xff00U) >> 8)))
 #define ntohs(x) htons(x)
 
 int socket(int domain, int type, int protocol);
 int bind(int socket, const struct sockaddr *address, socklen_t address_len);
+int accept(int socket, struct sockaddr *address, socklen_t *address_len);
+int shutdown(int s, int how);
+int connect(int socket, const struct sockaddr *address, socklen_t address_len);
+int listen(int socket, int backlog);
+int recv(int socket, void *mem, size_t len, int flags);
+int send(int socket, const void *data, size_t size, int flags);
+int recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
+int sendto(int socket, const void *data, size_t size, int flags, const struct sockaddr *to, socklen_t tolen);
+
+#define inet_ntoa(addr) sys_ip4addr_ntoa((const ip4_addr_t *)&(addr))
+
+#define inet_ntop(af, src, dst, size) \
+    (((af) == AF_INET) ? sys_ip4addr_ntoa_r((const ip4_addr_t *)(src), (dst), (size)) : NULL)
+#define inet_pton(af, src, dst) \
+    (((af) == AF_INET) ? sys_ip4addr_aton((src), (ip4_addr_t *)(dst)) : 0)
+#define htonl(x)    ((((x)&0x000000ffUL) << 24) | \
+                    (((x)&0x0000ff00UL) << 8)   | \
+                    (((x)&0x00ff0000UL) >> 8)   | \
+                    (((x)&0xff000000UL) >> 24))
 
 #ifdef __cplusplus
 }

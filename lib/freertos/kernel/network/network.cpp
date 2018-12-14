@@ -21,9 +21,14 @@
 #include <lwip/init.h>
 #include <lwip/snmp.h>
 #include <lwip/tcpip.h>
+#include <lwip/dhcp.h>
+#include <lwip/netif.h>
+#include <lwip/netdb.h>
 #include <netif/ethernet.h>
-
+#include <string.h>
 using namespace sys;
+
+#define MAX_DHCP_TRIES 5
 
 int network_init()
 {
@@ -67,6 +72,90 @@ public:
     void set_as_default()
     {
         netif_set_default(&netif_);
+    }
+
+    dhcp_state_t dhcp_pooling()
+    {
+        printf("dhcp\n");
+
+        auto &netif = netif_;
+        uint32_t ip_address;
+        dhcp_state_t dhcp_state;
+        dhcp_state = DHCP_START;
+
+        for (;;)
+        {
+            switch (dhcp_state)
+            {
+            case DHCP_START:
+            {
+                dhcp_start(&netif);
+                ip_address = 0;
+                dhcp_state = DHCP_WAIT_ADDRESS;
+            }
+            break;
+
+            case DHCP_WAIT_ADDRESS:
+            {
+                ip_address = netif.ip_addr.addr;
+
+                if (ip_address != 0)
+                {
+                    dhcp_state = DHCP_ADDRESS_ASSIGNED;
+
+                    dhcp_stop(&netif);
+                    dhcp_cleanup(&netif);
+                    return dhcp_state;
+                }
+                else
+                {
+                    struct dhcp *dhcp = netif_dhcp_data(&netif);
+                    if (dhcp->tries > MAX_DHCP_TRIES)
+                    {
+                        dhcp_state = DHCP_TIMEOUT;
+                        dhcp_stop(&netif);
+                        dhcp_cleanup(&netif);
+                        return dhcp_state;
+                    }
+                }
+            }
+            break;
+
+            default:
+                return dhcp_state;
+            }
+
+            vTaskDelay(250);
+        }
+        return DHCP_FAIL;
+    }
+
+    void set_addr(const ip_address_t &ip_address, const ip_address_t &net_mask, const ip_address_t &gate_way)
+    {
+        ip4_addr_t ipaddr, netmask, gw;
+        IP4_ADDR(&ipaddr, ip_address.data[0], ip_address.data[1], ip_address.data[2], ip_address.data[3]);
+        IP4_ADDR(&netmask, net_mask.data[0], net_mask.data[1], net_mask.data[2], net_mask.data[3]);
+        IP4_ADDR(&gw, gate_way.data[0], gate_way.data[1], gate_way.data[2], gate_way.data[3]);
+
+        netif_set_addr(&netif_, &ipaddr, &netmask, &gw);
+    }
+
+    void get_addr(ip_address_t &ip_address, ip_address_t &net_mask, ip_address_t &gate_way)
+    {
+        ip_address.data[0] = ip4_addr1(&netif_.ip_addr);
+        ip_address.data[1] = ip4_addr2(&netif_.ip_addr);
+        ip_address.data[2] = ip4_addr3(&netif_.ip_addr);
+        ip_address.data[3] = ip4_addr4(&netif_.ip_addr);
+
+        net_mask.data[0] = ip4_addr1(&netif_.gw);
+        net_mask.data[1] = ip4_addr2(&netif_.gw);
+        net_mask.data[2] = ip4_addr3(&netif_.gw);
+        net_mask.data[3] = ip4_addr4(&netif_.gw);
+
+        gate_way.data[0] = ip4_addr1(&netif_.netmask);
+        gate_way.data[1] = ip4_addr2(&netif_.netmask);
+        gate_way.data[2] = ip4_addr3(&netif_.netmask);
+        gate_way.data[3] = ip4_addr4(&netif_.netmask);
     }
 
 private:
@@ -346,4 +435,54 @@ int network_interface_set_as_default(handle_t netif_handle)
         return 0;
     }
     CATCH_ALL;
+}
+
+int network_set_addr(handle_t netif_handle, const ip_address_t *ip_address, const ip_address_t *net_mask, const ip_address_t *gateway)
+{
+    try
+    {
+        NETIF_ENTRY;
+
+        f->set_addr(*ip_address, *net_mask, *gateway);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int network_get_addr(handle_t netif_handle, ip_address_t *ip_address, ip_address_t *net_mask, ip_address_t *gateway)
+{
+    try
+    {
+        NETIF_ENTRY;
+
+        f->get_addr(*ip_address, *net_mask, *gateway);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+dhcp_state_t network_interface_dhcp_pooling(handle_t netif_handle)
+{
+    try
+    {
+        NETIF_ENTRY;
+
+        return f->dhcp_pooling();
+    }
+    catch (...)
+    {
+        return DHCP_FAIL;
+    }
+}
+
+hostent_t *network_socket_gethostbyname(const char *name)
+{
+    try
+    {
+        return reinterpret_cast<hostent_t *>(lwip_gethostbyname(name));
+    }
+    catch (...)
+    {
+        return NULL;
+    }
 }

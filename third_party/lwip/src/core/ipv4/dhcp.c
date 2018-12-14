@@ -1368,7 +1368,7 @@ dhcp_release_and_stop(struct netif *netif)
   }
 
   /* remove IP address from interface (prevents routing from selecting this interface) */
-  netif_set_addr(netif, IP4_ADDR_ANY4, IP4_ADDR_ANY4, IP4_ADDR_ANY4);
+  //netif_set_addr(netif, IP4_ADDR_ANY4, IP4_ADDR_ANY4, IP4_ADDR_ANY4);
 
 #if LWIP_DHCP_AUTOIP_COOP
   if (dhcp->autoip_coop_state == DHCP_AUTOIP_COOP_STATE_ON) {

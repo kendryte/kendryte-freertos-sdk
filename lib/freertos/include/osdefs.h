@@ -260,7 +260,7 @@ typedef enum _socket_type
 
 typedef enum _protocol_type
 {
-    PROTCL_TCP
+    PROTCL_IP
 } protocol_type_t;
 
 typedef struct _socket_address
@@ -287,6 +287,32 @@ typedef struct _mac_address
 {
     uint8_t data[6];
 } mac_address_t;
+
+typedef struct _hostent
+{
+    /* Official name of the host. */
+    const char *h_name;
+    /* A pointer to an array of pointers to alternative host names, terminated by a null pointer. */
+    uint8_t **h_aliases;
+    /* Address type. */ 
+    uint32_t h_addrtype;
+    /* The length, in bytes, of the address. */
+    uint32_t h_length;
+    /* A pointer to an array of pointers to network addresses (in
+    network byte order) for the host, terminated by a null pointer. */
+    uint8_t **h_addr_list; 
+    /* for backward compatibility */
+#define h_addr h_addr_list[0]
+} hostent_t;
+
+typedef enum _dhcp_state
+{
+    DHCP_START = 0,
+    DHCP_WAIT_ADDRESS,
+    DHCP_ADDRESS_ASSIGNED,
+    DHCP_TIMEOUT,
+    DHCP_FAIL
+} dhcp_state_t;
 
 #ifdef __cplusplus
 }

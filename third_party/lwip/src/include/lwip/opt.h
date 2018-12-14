@@ -915,7 +915,7 @@
  * LWIP_DHCP==1: Enable DHCP module.
  */
 #if !defined LWIP_DHCP || defined __DOXYGEN__
-#define LWIP_DHCP                       0
+#define LWIP_DHCP                       1
 #endif
 #if !LWIP_IPV4
 /* disable DHCP when IPv4 is disabled */
@@ -1092,7 +1092,7 @@
  * transport.
  */
 #if !defined LWIP_DNS || defined __DOXYGEN__
-#define LWIP_DNS                        0
+#define LWIP_DNS                        1
 #endif
 
 /** DNS maximum number of entries to maintain locally. */
