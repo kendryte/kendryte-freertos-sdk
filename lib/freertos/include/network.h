@@ -58,7 +58,7 @@ int network_socket_send_to(handle_t socket_handle, const uint8_t *data, size_t l
 
 int network_socket_receive_from(handle_t socket_handle, uint8_t *data, size_t len, uint8_t flags, socket_address_t *from);
 
-hostent_t *network_socket_gethostbyname(const char *name);
+int network_socket_gethostbyname(const char *name, hostent_t *hostent);
 
 int network_socket_addr_parse(const char *ip_addr, int port, uint8_t *socket_addr);
 

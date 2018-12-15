@@ -472,14 +472,24 @@ dhcp_state_t network_interface_dhcp_pooling(handle_t netif_handle)
     }
 }
 
-hostent_t *network_socket_gethostbyname(const char *name)
+int network_socket_gethostbyname(const char *name, hostent_t *hostent)
 {
     try
     {
-        return reinterpret_cast<hostent_t *>(lwip_gethostbyname(name));
+        struct hostent *lwip_hostent = lwip_gethostbyname(name);
+        hostent->h_name = lwip_hostent->h_name;
+        hostent->h_aliases = lwip_hostent->h_aliases;
+        hostent->h_length = lwip_hostent->h_length;
+        hostent->h_addr_list = reinterpret_cast<uint8_t **>(lwip_hostent->h_addr_list);
+        switch (lwip_hostent->h_addrtype)
+        {
+        case AF_INET:
+            hostent->h_addrtype = AF_INTERNETWORK;
+            break;
+        default:
+            throw std::invalid_argument("Invalid address type.");
+        }
+        return 0;
     }
-    catch (...)
-    {
-        return NULL;
-    }
+    CATCH_ALL;
 }

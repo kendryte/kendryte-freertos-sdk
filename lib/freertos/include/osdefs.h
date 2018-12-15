@@ -291,9 +291,9 @@ typedef struct _mac_address
 typedef struct _hostent
 {
     /* Official name of the host. */
-    const char *h_name;
+    char *h_name;
     /* A pointer to an array of pointers to alternative host names, terminated by a null pointer. */
-    uint8_t **h_aliases;
+    char **h_aliases;
     /* Address type. */ 
     uint32_t h_addrtype;
     /* The length, in bytes, of the address. */

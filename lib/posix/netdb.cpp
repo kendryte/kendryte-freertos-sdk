@@ -17,11 +17,34 @@
 #include <kernel/driver_impl.hpp>
 #include <network.h>
 #include <string.h>
+#include <sys/socket.h>
 
 using namespace sys;
 
+static struct hostent posix_hostent;
 struct hostent *gethostbyname(const char *name)
 {
-    auto ret = network_socket_gethostbyname(name);
-    return (struct hostent *)ret;
+    try
+    {
+        hostent_t sys_hostent;
+        network_socket_gethostbyname(name, &sys_hostent);
+        posix_hostent.h_name = sys_hostent.h_name;
+        posix_hostent.h_aliases = sys_hostent.h_aliases;
+        posix_hostent.h_length = sys_hostent.h_length;
+        posix_hostent.h_addr_list = sys_hostent.h_addr_list;
+        switch (sys_hostent.h_addrtype)
+        {
+        case AF_INTERNETWORK:
+            posix_hostent.h_addrtype = AF_INET;
+            break;
+        default:
+            throw std::invalid_argument("Invalid address type.");
+        }
+        return &posix_hostent;
+    }
+    catch (...)
+    {
+        return NULL;
+    }
+    
 }

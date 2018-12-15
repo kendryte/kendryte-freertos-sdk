@@ -285,6 +285,8 @@ int send(int socket, const void *data, size_t size, int flags);
 int recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *from, socklen_t *fromlen);
 int sendto(int socket, const void *data, size_t size, int flags, const struct sockaddr *to, socklen_t tolen);
 
+#define inet_addr(cp) sys_ipaddr_addr(cp)
+#define inet_aton(cp, addr) sys_ip4addr_aton(cp, (ip4_addr_t *)addr)
 #define inet_ntoa(addr) sys_ip4addr_ntoa((const ip4_addr_t *)&(addr))
 
 #define inet_ntop(af, src, dst, size) \
