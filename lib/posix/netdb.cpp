@@ -31,7 +31,7 @@ struct hostent *gethostbyname(const char *name)
         posix_hostent.h_name = sys_hostent.h_name;
         posix_hostent.h_aliases = sys_hostent.h_aliases;
         posix_hostent.h_length = sys_hostent.h_length;
-        posix_hostent.h_addr_list = sys_hostent.h_addr_list;
+        posix_hostent.h_addr_list = reinterpret_cast<char **>(sys_hostent.h_addr_list);
         switch (sys_hostent.h_addrtype)
         {
         case AF_INTERNETWORK:
