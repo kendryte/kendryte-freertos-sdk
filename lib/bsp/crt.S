@@ -469,15 +469,3 @@ _fini:
   ret
   .size  _init, .-_init
   .size  _fini, .-_fini
-
-.section ".tdata.begin"
-.globl _tdata_begin
-_tdata_begin:
-
-.section ".tdata.end"
-.globl _tdata_end
-_tdata_end:
-
-.section ".tbss.end"
-.globl _tbss_end
-_tbss_end:

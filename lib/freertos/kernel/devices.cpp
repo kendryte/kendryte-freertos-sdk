@@ -192,12 +192,14 @@ static void dma_add_free();
 
 int io_read(handle_t file, uint8_t *buffer, size_t len)
 {
+    configASSERT(file >= HANDLE_OFFSET);
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     /* clang-format off */
     DEFINE_READ_PROXY(uart_driver)
     else DEFINE_READ_PROXY(i2c_device_driver)
     else DEFINE_READ_PROXY(spi_device_driver)
     else DEFINE_READ_PROXY(filesystem_file)
+    else DEFINE_READ_PROXY(network_socket)
     else
     {
         return -1;
@@ -260,6 +262,7 @@ int io_close(handle_t file)
 {
     if (file)
     {
+        configASSERT(file >= HANDLE_OFFSET);
         _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
         io_free(rfile);
         atomic_set(handles_ + file - HANDLE_OFFSET, 0);
@@ -270,12 +273,14 @@ int io_close(handle_t file)
 
 int io_write(handle_t file, const uint8_t *buffer, size_t len)
 {
+    configASSERT(file >= HANDLE_OFFSET);
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     /* clang-format off */
     DEFINE_WRITE_PROXY(uart_driver)
     else DEFINE_WRITE_PROXY(i2c_device_driver)
     else DEFINE_WRITE_PROXY(spi_device_driver)
     else DEFINE_WRITE_PROXY(filesystem_file)
+    else DEFINE_WRITE_PROXY(network_socket)
     else
     {
         return -1;
@@ -294,13 +299,13 @@ int io_control(handle_t file, uint32_t control_code, const uint8_t *write_buffer
 /* Device IO Implementation Helper Macros */
 
 #define COMMON_ENTRY(t)                                     \
-    configASSERT(file);                                     \
+    configASSERT(file >= HANDLE_OFFSET);                    \
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
     configASSERT(rfile && rfile->object.is<t##_driver>());  \
     auto t = rfile->object.as<t##_driver>();
 
 #define COMMON_ENTRY_FILE(file, t)                          \
-    configASSERT(file);                                     \
+    configASSERT(file >= HANDLE_OFFSET);                    \
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
     configASSERT(rfile && rfile->object.is<t##_driver>());  \
     auto t = rfile->object.as<t##_driver>();

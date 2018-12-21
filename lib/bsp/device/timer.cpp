@@ -26,16 +26,19 @@
 
 using namespace sys;
 
+static void *irq_context[3][4];
+
 class k_timer_driver : public timer_driver, public static_object, public exclusive_object_access
 {
 public:
-    k_timer_driver(uintptr_t base_addr, sysctl_clock_t clock, plic_irq_t irq, uint32_t channel)
-        : timer_(*reinterpret_cast<volatile kendryte_timer_t *>(base_addr)), clock_(clock), irq_(irq), channel_(channel)
+    k_timer_driver(uintptr_t base_addr, sysctl_clock_t clock, plic_irq_t irq, uint32_t num, uint32_t channel)
+        : timer_(*reinterpret_cast<volatile kendryte_timer_t *>(base_addr)), clock_(clock), irq_(irq), num_(num), channel_(channel)
     {
     }
 
     virtual void install() override
     {
+        irq_context[num_][channel_] = this;
         if (channel_ == 0)
         {
             sysctl_clock_enable(clock_);
@@ -45,13 +48,24 @@ public:
             for (i = 0; i < 4; i++)
                 timer_.channel[i].control = TIMER_CR_INTERRUPT_MASK;
 
-            pic_set_irq_handler(irq_, timer_isr, this);
-            pic_set_irq_handler(irq_ + 1, timer_isr, this);
+            pic_set_irq_handler(irq_, timer_isr, irq_context[num_]);
+            pic_set_irq_handler(irq_ + 1, timer_isr, irq_context[num_]);
             pic_set_irq_priority(irq_, 1);
             pic_set_irq_priority(irq_ + 1, 1);
             pic_set_irq_enable(irq_, 1);
             pic_set_irq_enable(irq_ + 1, 1);
+            sysctl_clock_disable(clock_);
         }
+    }
+
+    virtual void on_first_open() override
+    {
+        sysctl_clock_enable(clock_);
+    }
+
+    virtual void on_last_close() override
+    {
+        sysctl_clock_disable(clock_);
     }
 
     virtual size_t set_interval(size_t nanoseconds) override
@@ -81,7 +95,8 @@ public:
 private:
     static void timer_isr(void *userdata)
     {
-        auto &driver = *reinterpret_cast<k_timer_driver *>(userdata);
+        k_timer_driver **context = reinterpret_cast<k_timer_driver **>(userdata);
+        auto &driver = *context[0];
         auto &timer = driver.timer_;
 
         uint32_t channel = timer.intr_stat;
@@ -90,8 +105,11 @@ private:
         {
             if (channel & 1)
             {
-                if (driver.on_tick_)
-                    driver.on_tick_(driver.ontick_data_);
+                auto &driver_ch = *context[i];
+                if (driver_ch.on_tick_)
+                {
+                    driver_ch.on_tick_(driver_ch.ontick_data_);
+                }
             }
 
             channel >>= 1;
@@ -104,6 +122,7 @@ private:
     volatile kendryte_timer_t &timer_;
     sysctl_clock_t clock_;
     plic_irq_t irq_;
+    size_t num_;
     size_t channel_;
 
     timer_on_tick_t on_tick_;
@@ -112,10 +131,10 @@ private:
 
 /* clang-format off */
 #define DEFINE_TIMER_DATA(i) \
-{ TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, 0 },  \
-{ TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, 1 },  \
-{ TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, 2 },  \
-{ TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, 3 }
+{ TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, i, 0 },  \
+{ TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, i, 1 },  \
+{ TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, i, 2 },  \
+{ TIMER##i##_BASE_ADDR, SYSCTL_CLOCK_TIMER##i, IRQN_TIMER##i##A_INTERRUPT, i, 3 }
 /* clang format on */
 
 #define INIT_TIMER_DRIVER(i) { { &dev_driver[i], timer_install, timer_open, timer_close }, timer_set_interval, timer_set_on_tick, timer_set_enable }

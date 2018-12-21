@@ -586,6 +586,9 @@ private:
 
             xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
         }
+
+        if (xHigherPriorityTaskWoken)
+            portYIELD();
     }
 
     static int is_memory(uintptr_t address)
