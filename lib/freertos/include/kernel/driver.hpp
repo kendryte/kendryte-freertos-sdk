@@ -384,6 +384,46 @@ public:
     virtual void flush() = 0;
 };
 
+class network_adapter_handler
+{
+public:
+    virtual void notify_input() = 0;
+};
+
+class network_adapter_driver : public driver
+{
+public:
+    virtual void set_handler(network_adapter_handler *handler) = 0;
+    virtual mac_address_t get_mac_address() = 0;
+    virtual void disable_rx(void) = 0;
+    virtual void enable_rx(void) = 0;
+    virtual bool interface_check() = 0;
+    virtual bool is_packet_available() = 0;
+    virtual void reset(SemaphoreHandle_t interrupt_event) = 0;
+    virtual void begin_send(size_t length) = 0;
+    virtual void send(gsl::span<const uint8_t> buffer) = 0;
+    virtual void end_send() = 0;
+    virtual size_t begin_receive() = 0;
+    virtual void receive(gsl::span<uint8_t> buffer) = 0;
+    virtual void end_receive() = 0;
+};
+
+class network_socket : public virtual object_access
+{
+public:
+    virtual object_accessor<network_socket> accept(socket_address_t *remote_address) = 0;
+    virtual void bind(const socket_address_t &address) = 0;
+    virtual void connect(const socket_address_t &address) = 0;
+    virtual void listen(uint32_t backlog) = 0;
+    virtual void shutdown(socket_shutdown_t how) = 0;
+    virtual size_t send(gsl::span<const uint8_t> buffer, uint8_t flags) = 0;
+    virtual size_t receive(gsl::span<uint8_t> buffer, uint8_t flags) = 0;
+    virtual size_t send_to(gsl::span<const uint8_t> buffer, uint8_t flags, const socket_address_t &to) = 0;
+    virtual size_t receive_from(gsl::span<uint8_t> buffer, uint8_t flags, socket_address_t *from) = 0;
+    virtual size_t read(gsl::span<uint8_t> buffer) = 0;
+    virtual size_t write(gsl::span<const uint8_t> buffer) = 0;
+};
+
 extern driver_registry_t g_hal_drivers[];
 extern driver_registry_t g_dma_drivers[];
 extern driver_registry_t g_system_drivers[];

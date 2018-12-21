@@ -199,6 +199,7 @@ int io_read(handle_t file, uint8_t *buffer, size_t len)
     else DEFINE_READ_PROXY(i2c_device_driver)
     else DEFINE_READ_PROXY(spi_device_driver)
     else DEFINE_READ_PROXY(filesystem_file)
+    else DEFINE_READ_PROXY(network_socket)
     else
     {
         return -1;
@@ -279,6 +280,7 @@ int io_write(handle_t file, const uint8_t *buffer, size_t len)
     else DEFINE_WRITE_PROXY(i2c_device_driver)
     else DEFINE_WRITE_PROXY(spi_device_driver)
     else DEFINE_WRITE_PROXY(filesystem_file)
+    else DEFINE_WRITE_PROXY(network_socket)
     else
     {
         return -1;

@@ -246,6 +246,72 @@ typedef struct _find_file_data
     char filename[MAX_PATH];
 } find_find_data_t;
 
+typedef enum _address_family
+{
+    AF_UNSPECIFIED,
+    AF_INTERNETWORK
+} address_family_t;
+
+typedef enum _socket_type
+{
+    SOCKET_STREAM,
+    SOCKET_DATAGRAM
+} socket_type_t;
+
+typedef enum _protocol_type
+{
+    PROTCL_IP
+} protocol_type_t;
+
+typedef struct _socket_address
+{
+    uint8_t size;
+    address_family_t family;
+    uint8_t data[14];
+} socket_address_t;
+
+typedef enum _socket_shutdown
+{
+    SOCKSHTDN_RECEIVE,
+    SOCKSHTDN_SEND,
+    SOCKSHTDN_BOTH
+} socket_shutdown_t;
+
+typedef struct _ip_address
+{
+    address_family_t family;
+    uint8_t data[16];
+} ip_address_t;
+
+typedef struct _mac_address
+{
+    uint8_t data[6];
+} mac_address_t;
+
+typedef struct _hostent
+{
+    /* Official name of the host. */
+    char *h_name;
+    /* A pointer to an array of pointers to alternative host names, terminated by a null pointer. */
+    char **h_aliases;
+    /* Address type. */ 
+    uint32_t h_addrtype;
+    /* The length, in bytes, of the address. */
+    uint32_t h_length;
+    /* A pointer to an array of pointers to network addresses (in
+    network byte order) for the host, terminated by a null pointer. */
+    uint8_t **h_addr_list; 
+} hostent_t;
+
+typedef enum _dhcp_state
+{
+    DHCP_START = 0,
+    DHCP_WAIT_ADDRESS,
+    DHCP_ADDRESS_ASSIGNED,
+    DHCP_TIMEOUT,
+    DHCP_FAIL
+} dhcp_state_t;
+
 #ifdef __cplusplus
 }
 #endif

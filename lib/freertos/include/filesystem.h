@@ -15,8 +15,6 @@
 #ifndef _FREERTOS_FILESYSTEM_H
 #define _FREERTOS_FILESYSTEM_H
 
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include "osdefs.h"
 
