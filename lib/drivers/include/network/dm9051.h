@@ -23,6 +23,19 @@ extern "C"
 {
 #endif
 
+/**
+ * @brief       Install DM9051 driver
+ *
+ * @param[in]   spi_handle          The SPI controller handle
+ * @param[in]   spi_cs_mask         The SPI chip select
+ * @param[in]   int_gpio_handle     The GPIO controller handle for dm9051 interrupt
+ * @param[in]   int_gpio_pin        The GPIO pin for dm9051 interrupt
+ * @param[in]   mac_address         The MAC address for network
+ *
+ * @return      result
+ *     - 0      Fail
+ *     - other  The network adapter handle
+ */
 handle_t dm9051_driver_install(handle_t spi_handle, uint32_t spi_cs_mask, handle_t int_gpio_handle, uint32_t int_gpio_pin, const mac_address_t *mac_address);
 
 #ifdef __cplusplus

@@ -258,6 +258,16 @@ typedef enum _socket_type
     SOCKET_DATAGRAM
 } socket_type_t;
 
+typedef enum _socket_message_flag
+{
+    MESSAGE_NORMAL = 0x00,
+    MESSAGE_PEEK = 0x01,
+    MESSAGE_WAITALL = 0x02,
+    MESSAGE_OOB = 0x04,
+    MESSAGE_DONTWAIT = 0x08,
+    MESSAGE_MORE = 0x10
+} socket_message_flag_t;
+
 typedef enum _protocol_type
 {
     PROTCL_IP

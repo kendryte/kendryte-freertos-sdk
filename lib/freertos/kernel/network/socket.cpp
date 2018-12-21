@@ -159,39 +159,86 @@ public:
         check_lwip_error(lwip_shutdown(sock_, s_how));
     }
 
-    virtual size_t send(gsl::span<const uint8_t> buffer, uint8_t flags) override
+    virtual size_t send(gsl::span<const uint8_t> buffer, socket_message_flag_t flags) override
     {
-        auto ret = lwip_send(sock_, buffer.data(), buffer.size_bytes(), flags);
+        uint8_t send_flags = 0;
+        if (flags & MESSAGE_PEEK)
+            send_flags |= MSG_PEEK;
+        if (flags & MESSAGE_WAITALL)
+            send_flags |= MSG_WAITALL;
+        if (flags & MESSAGE_OOB)
+            send_flags |= MSG_OOB;
+        if (flags & MESSAGE_DONTWAIT)
+            send_flags |= MSG_DONTWAIT;
+        if (flags & MESSAGE_MORE)
+            send_flags |= MSG_MORE;
+
+        auto ret = lwip_send(sock_, buffer.data(), buffer.size_bytes(), send_flags);
         check_lwip_error(ret);
         configASSERT(ret == buffer.size_bytes());
         return ret;
     }
 
-    virtual size_t receive(gsl::span<uint8_t> buffer, uint8_t flags) override
+    virtual size_t receive(gsl::span<uint8_t> buffer, socket_message_flag_t flags) override
     {
-        auto ret = lwip_recv(sock_, buffer.data(), buffer.size_bytes(), flags);
+        uint8_t recv_flags = 0;
+        if (flags & MESSAGE_PEEK)
+            recv_flags |= MSG_PEEK;
+        if (flags & MESSAGE_WAITALL)
+            recv_flags |= MSG_WAITALL;
+        if (flags & MESSAGE_OOB)
+            recv_flags |= MSG_OOB;
+        if (flags & MESSAGE_DONTWAIT)
+            recv_flags |= MSG_DONTWAIT;
+        if (flags & MESSAGE_MORE)
+            recv_flags |= MSG_MORE;
+        auto ret = lwip_recv(sock_, buffer.data(), buffer.size_bytes(), recv_flags);
         check_lwip_error(ret);
         return ret;
     }
 
-    virtual size_t send_to(gsl::span<const uint8_t> buffer, uint8_t flags, const socket_address_t &to) override
+    virtual size_t send_to(gsl::span<const uint8_t> buffer, socket_message_flag_t flags, const socket_address_t &to) override
     {
+        uint8_t send_flags = 0;
+        if (flags & MESSAGE_PEEK)
+            send_flags |= MSG_PEEK;
+        if (flags & MESSAGE_WAITALL)
+            send_flags |= MSG_WAITALL;
+        if (flags & MESSAGE_OOB)
+            send_flags |= MSG_OOB;
+        if (flags & MESSAGE_DONTWAIT)
+            send_flags |= MSG_DONTWAIT;
+        if (flags & MESSAGE_MORE)
+            send_flags |= MSG_MORE;
+
         sockaddr_in remote;
         socklen_t remote_len = sizeof(remote);
         to_lwip_sockaddr(remote, to);
 
-        auto ret = lwip_sendto(sock_, buffer.data(), buffer.size_bytes(), flags, reinterpret_cast<const sockaddr *>(&remote), remote_len);
+        auto ret = lwip_sendto(sock_, buffer.data(), buffer.size_bytes(), send_flags, reinterpret_cast<const sockaddr *>(&remote), remote_len);
         check_lwip_error(ret);
         configASSERT(ret == buffer.size_bytes());
         return ret;
     }
 
-    virtual size_t receive_from(gsl::span<uint8_t> buffer, uint8_t flags, socket_address_t *from) override
+    virtual size_t receive_from(gsl::span<uint8_t> buffer, socket_message_flag_t flags, socket_address_t *from) override
     {
+        uint8_t recv_flags = 0;
+        if (flags & MESSAGE_PEEK)
+            recv_flags |= MSG_PEEK;
+        if (flags & MESSAGE_WAITALL)
+            recv_flags |= MSG_WAITALL;
+        if (flags & MESSAGE_OOB)
+            recv_flags |= MSG_OOB;
+        if (flags & MESSAGE_DONTWAIT)
+            recv_flags |= MSG_DONTWAIT;
+        if (flags & MESSAGE_MORE)
+            recv_flags |= MSG_MORE;
+
         sockaddr_in remote;
         socklen_t remote_len = sizeof(remote);
 
-        auto ret = lwip_recvfrom(sock_, buffer.data(), buffer.size_bytes(), flags, reinterpret_cast<sockaddr *>(&remote), &remote_len);
+        auto ret = lwip_recvfrom(sock_, buffer.data(), buffer.size_bytes(), recv_flags, reinterpret_cast<sockaddr *>(&remote), &remote_len);
         check_lwip_error(ret);
         if (from)
             to_sys_sockaddr(*from, remote);
@@ -305,20 +352,20 @@ int network_socket_shutdown(handle_t socket_handle, socket_shutdown_t how)
     CATCH_ALL;
 }
 
-int network_socket_bind(handle_t socket_handle, const socket_address_t *remote_address)
+int network_socket_bind(handle_t socket_handle, const socket_address_t *local_address)
 {
     try
     {
         SOCKET_ENTRY;
-        CHECK_ARG(remote_address);
+        CHECK_ARG(local_address);
 
-        f->bind(*remote_address);
+        f->bind(*local_address);
         return 0;
     }
     CATCH_ALL;
 }
 
-int network_socket_send(handle_t socket_handle, const uint8_t *data, size_t len, uint8_t flags)
+int network_socket_send(handle_t socket_handle, const uint8_t *data, size_t len, socket_message_flag_t flags)
 {
     try
     {
@@ -330,7 +377,7 @@ int network_socket_send(handle_t socket_handle, const uint8_t *data, size_t len,
     CATCH_ALL;
 }
 
-int network_socket_receive(handle_t socket_handle, uint8_t *data, size_t len, uint8_t flags)
+int network_socket_receive(handle_t socket_handle, uint8_t *data, size_t len, socket_message_flag_t flags)
 {
     try
     {
@@ -341,7 +388,7 @@ int network_socket_receive(handle_t socket_handle, uint8_t *data, size_t len, ui
     CATCH_ALL;
 }
 
-int network_socket_send_to(handle_t socket_handle, const uint8_t *data, size_t len, uint8_t flags, const socket_address_t *to)
+int network_socket_send_to(handle_t socket_handle, const uint8_t *data, size_t len, socket_message_flag_t flags, const socket_address_t *to)
 {
     try
     {
@@ -353,7 +400,7 @@ int network_socket_send_to(handle_t socket_handle, const uint8_t *data, size_t l
     CATCH_ALL;
 }
 
-int network_socket_receive_from(handle_t socket_handle, uint8_t *data, size_t len, uint8_t flags, socket_address_t *from)
+int network_socket_receive_from(handle_t socket_handle, uint8_t *data, size_t len, socket_message_flag_t flags, socket_address_t *from)
 {
     try
     {

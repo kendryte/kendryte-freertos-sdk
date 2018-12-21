@@ -114,9 +114,9 @@ int bind(int socket, const struct sockaddr *address, socklen_t address_len)
         SOCKET_ENTRY;
         CHECK_ARG(address);
 
-        socket_address_t remote_addr;
-        to_sys_sockaddr(remote_addr, *(reinterpret_cast<const sockaddr_in *>(address)));
-        f->bind(remote_addr);
+        socket_address_t local_addr;
+        to_sys_sockaddr(local_addr, *(reinterpret_cast<const sockaddr_in *>(address)));
+        f->bind(local_addr);
         return 0;
     }
     CATCH_ALL;
@@ -182,9 +182,21 @@ int recv(int socket, void *mem, size_t len, int flags)
 {
     try
     {
+        socket_message_flag_t recv_flags = MESSAGE_NORMAL;
+        if (flags & MSG_PEEK)
+            recv_flags |= MESSAGE_PEEK;
+        if (flags & MSG_WAITALL)
+            recv_flags |= MESSAGE_WAITALL;
+        if (flags & MSG_OOB)
+            recv_flags |= MESSAGE_OOB;
+        if (flags & MSG_DONTWAIT)
+            recv_flags |= MESSAGE_DONTWAIT;
+        if (flags & MSG_MORE)
+            recv_flags |= MESSAGE_MORE;
+
         SOCKET_ENTRY;
 
-        return f->receive({ (uint8_t *)mem, std::ptrdiff_t(len) }, flags);
+        return f->receive({ (uint8_t *)mem, std::ptrdiff_t(len) }, recv_flags);
     }
     CATCH_ALL;
 }
@@ -193,9 +205,21 @@ int send(int socket, const void *data, size_t size, int flags)
 {
     try
     {
+        socket_message_flag_t send_flags = MESSAGE_NORMAL;
+        if (flags & MSG_PEEK)
+            send_flags |= MESSAGE_PEEK;
+        if (flags & MSG_WAITALL)
+            send_flags |= MESSAGE_WAITALL;
+        if (flags & MSG_OOB)
+            send_flags |= MESSAGE_OOB;
+        if (flags & MSG_DONTWAIT)
+            send_flags |= MESSAGE_DONTWAIT;
+        if (flags & MSG_MORE)
+            send_flags |= MESSAGE_MORE;
+
         SOCKET_ENTRY;
 
-        f->send({ (const uint8_t *)data, std::ptrdiff_t(size) }, flags);
+        f->send({ (const uint8_t *)data, std::ptrdiff_t(size) }, send_flags);
         return 0;
     }
     CATCH_ALL;
@@ -205,10 +229,22 @@ int recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *from
 {
     try
     {
+        socket_message_flag_t recv_flags = MESSAGE_NORMAL;
+        if (flags & MSG_PEEK)
+            recv_flags |= MESSAGE_PEEK;
+        if (flags & MSG_WAITALL)
+            recv_flags |= MESSAGE_WAITALL;
+        if (flags & MSG_OOB)
+            recv_flags |= MESSAGE_OOB;
+        if (flags & MSG_DONTWAIT)
+            recv_flags |= MESSAGE_DONTWAIT;
+        if (flags & MSG_MORE)
+            recv_flags |= MESSAGE_MORE;
+
         SOCKET_ENTRY;
 
         socket_address_t remote_addr;
-        auto ret = f->receive_from({ (uint8_t *)mem, std::ptrdiff_t(len) }, flags, &remote_addr);
+        auto ret = f->receive_from({ (uint8_t *)mem, std::ptrdiff_t(len) }, recv_flags, &remote_addr);
         
         sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(from);
         to_posix_sockaddr(*addr, remote_addr);
@@ -221,12 +257,24 @@ int sendto(int socket, const void *data, size_t size, int flags, const struct so
 {
     try
     {
+        socket_message_flag_t send_flags = MESSAGE_NORMAL;
+        if (flags & MSG_PEEK)
+            send_flags |= MESSAGE_PEEK;
+        if (flags & MSG_WAITALL)
+            send_flags |= MESSAGE_WAITALL;
+        if (flags & MSG_OOB)
+            send_flags |= MESSAGE_OOB;
+        if (flags & MSG_DONTWAIT)
+            send_flags |= MESSAGE_DONTWAIT;
+        if (flags & MSG_MORE)
+            send_flags |= MESSAGE_MORE;
+
         SOCKET_ENTRY;
 
         socket_address_t remote_addr;
         to_sys_sockaddr(remote_addr, *reinterpret_cast<const sockaddr_in *>(to));
 
-        f->send_to({ (const uint8_t *)data, std::ptrdiff_t(size) }, flags, remote_addr);
+        f->send_to({ (const uint8_t *)data, std::ptrdiff_t(size) }, send_flags, remote_addr);
         return 0;
     }
     CATCH_ALL;

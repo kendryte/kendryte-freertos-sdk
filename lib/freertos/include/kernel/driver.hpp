@@ -58,6 +58,7 @@ namespace sys
 {
 MAKE_ENUM_CLASS_BITMASK_TYPE(file_access_t);
 MAKE_ENUM_CLASS_BITMASK_TYPE(file_mode_t);
+MAKE_ENUM_CLASS_BITMASK_TYPE(socket_message_flag_t);
 
 class object_access : public virtual object
 {
@@ -416,10 +417,10 @@ public:
     virtual void connect(const socket_address_t &address) = 0;
     virtual void listen(uint32_t backlog) = 0;
     virtual void shutdown(socket_shutdown_t how) = 0;
-    virtual size_t send(gsl::span<const uint8_t> buffer, uint8_t flags) = 0;
-    virtual size_t receive(gsl::span<uint8_t> buffer, uint8_t flags) = 0;
-    virtual size_t send_to(gsl::span<const uint8_t> buffer, uint8_t flags, const socket_address_t &to) = 0;
-    virtual size_t receive_from(gsl::span<uint8_t> buffer, uint8_t flags, socket_address_t *from) = 0;
+    virtual size_t send(gsl::span<const uint8_t> buffer, socket_message_flag_t flags) = 0;
+    virtual size_t receive(gsl::span<uint8_t> buffer, socket_message_flag_t flags) = 0;
+    virtual size_t send_to(gsl::span<const uint8_t> buffer, socket_message_flag_t flags, const socket_address_t &to) = 0;
+    virtual size_t receive_from(gsl::span<uint8_t> buffer, socket_message_flag_t flags, socket_address_t *from) = 0;
     virtual size_t read(gsl::span<uint8_t> buffer) = 0;
     virtual size_t write(gsl::span<const uint8_t> buffer) = 0;
 };
