@@ -77,8 +77,6 @@ void _init_bsp(int core_id, int number_of_cores)
         /* Init FPIOA */
         fpioa_init();
         bsp_pin_setup();
-        /* Setup clocks */
-        setup_clocks();
         /* Init UART */
         uarths_init();
     }
