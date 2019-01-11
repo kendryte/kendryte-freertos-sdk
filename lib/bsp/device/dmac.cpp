@@ -195,7 +195,8 @@ public:
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) override
     {
         C_COMMON_ENTRY;
-
+        free(session_.alloc_mem);
+        session_.alloc_mem = NULL;
         if (count == 0)
         {
             xSemaphoreGive(completion_event);
@@ -247,7 +248,7 @@ public:
 
         if (flow_control != DMAC_MEM2MEM_DMA && old_elm_size < 4)
         {
-            void *alloc_mem = malloc(sizeof(uint32_t) * count);
+            void *alloc_mem = malloc(sizeof(uint32_t) * count + 128);
             session_.alloc_mem = alloc_mem;
             element_size = sizeof(uint32_t);
 
@@ -369,7 +370,8 @@ public:
     virtual void loop_async(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal) override
     {
         C_COMMON_ENTRY;
-
+        free(session_.alloc_mem);
+        session_.alloc_mem = NULL;
         if (count == 0)
         {
             xSemaphoreGive(completion_event);
@@ -581,7 +583,6 @@ private:
                     configASSERT(!"Impossible");
                 }
 
-                free(driver.session_.alloc_mem);
             }
 
             xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);

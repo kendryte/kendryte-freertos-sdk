@@ -134,7 +134,7 @@ int accept(int socket, struct sockaddr *address, socklen_t *address_len)
 
         sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(address);
         to_posix_sockaddr(*addr, remote_addr);
-        
+
         return system_alloc_handle(std::move(ret));
     }
     CATCH_ALL;
@@ -245,7 +245,7 @@ int recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *from
 
         socket_address_t remote_addr;
         auto ret = f->receive_from({ (uint8_t *)mem, std::ptrdiff_t(len) }, recv_flags, &remote_addr);
-        
+
         sockaddr_in *addr = reinterpret_cast<sockaddr_in *>(from);
         to_posix_sockaddr(*addr, remote_addr);
         return ret;

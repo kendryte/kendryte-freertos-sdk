@@ -33,7 +33,7 @@ void *g_pthread_keep[] = {
 };
 
 static const pthread_attr_t s_default_thread_attributes = {
-    .stacksize = 4096,
+    .stacksize = 4096*8,
     .schedparam = { .sched_priority = tskIDLE_PRIORITY },
     .detachstate = PTHREAD_CREATE_JOINABLE
 };
