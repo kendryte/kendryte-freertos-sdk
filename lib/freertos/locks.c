@@ -5,7 +5,7 @@
 #include "portmacro.h"
 #include "task.h"
 
-
+typedef long _lock_t;
 static void lock_init_generic(_lock_t *lock, uint8_t mutex_type)
 {
     portENTER_CRITICAL();
