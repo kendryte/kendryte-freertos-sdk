@@ -14,7 +14,7 @@
 # include <encoding.h>
 
 # define REGBYTES 8
-# define STKSHIFT 15
+# define STKSHIFT 16
 
 .section .text.start, "ax", @progbits
 .globl _start
@@ -191,6 +191,9 @@ trap_entry:
   csrr a0, mcause
   csrr a1, mepc
   jal handle_irq
+
+  li t0, MSTATUS_MPP | MSTATUS_MPIE
+  csrs mstatus, t0
 
   ld ra,  0 * REGBYTES(sp)
   ld t0,  1 * REGBYTES(sp)

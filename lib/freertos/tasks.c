@@ -4152,16 +4152,24 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 #endif /* configUSE_MUTEXES */
 /*-----------------------------------------------------------*/
-
+uint32_t mstatus_t = 0;
 #if ( portCRITICAL_NESTING_IN_TCB == 1 )
 
 	void vTaskEnterCritical( void )
 	{
-		portDISABLE_INTERRUPTS();
+		
 		UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		if( xSchedulerRunning[uxPsrId] != pdFALSE )
 		{
+            if (pxCurrentTCB[uxPsrId]->uxCriticalNesting == 0U)
+            {
+                asm("csrr %0, mstatus"
+                    : "=r"(mstatus_t)
+                    :
+                    : "cc");
+                portDISABLE_INTERRUPTS();
+            }
 			( pxCurrentTCB[uxPsrId]->uxCriticalNesting )++;
 
 			/* This is not the interrupt safe version of the enter critical
@@ -4197,7 +4205,8 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 				if( pxCurrentTCB[uxPsrId]->uxCriticalNesting == 0U )
 				{
-					portENABLE_INTERRUPTS();
+                    if (mstatus_t | 0x8)
+					    portENABLE_INTERRUPTS();
 				}
 				else
 				{

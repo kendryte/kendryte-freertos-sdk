@@ -18,7 +18,7 @@ MEMORY
 }
 
 PROVIDE( _ram_end    = ORIGIN(ram) + LENGTH(ram) );
-PROVIDE( _stack_size = 1 << 15 );
+PROVIDE( _stack_size = 1 << 16 );
 
 /*
  * The OUTPUT_ARCH command specifies the machine architecture where the

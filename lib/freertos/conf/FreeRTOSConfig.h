@@ -109,7 +109,7 @@
 
 /* Main task */
 #define configMAIN_TASK_PRIORITY				1
-#define configMAIN_TASK_STACK_SIZE				4096
+#define configMAIN_TASK_STACK_SIZE				(4096 * 8)
 
 /* Set the following definitions to 1 to include the API function, or zero to exclude the API function. */
 #define INCLUDE_vTaskPrioritySet				1

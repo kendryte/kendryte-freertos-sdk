@@ -242,7 +242,6 @@ static void dma_completion_isr(void *userdata)
                 configASSERT(!"Impossible");
             }
 
-            free(data->session.alloc_mem);
         }
 
         xSemaphoreGiveFromISR(data->session.completion_event, &xHigherPriorityTaskWoken);
@@ -340,7 +339,8 @@ static int is_memory(uintptr_t address)
 static void dma_loop_async_imp(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal, void *userdata)
 {
     C_COMMON_ENTRY;
-
+    free(data->session.alloc_mem);
+    data->session.alloc_mem = NULL;
     if (count == 0)
     {
         xSemaphoreGive(completion_event);
@@ -479,7 +479,8 @@ static void dma_loop_async_imp(const volatile void **srcs, size_t src_num, volat
 static void dma_transmit_async_imp(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event, void *userdata)
 {
     C_COMMON_ENTRY;
-
+    free(data->session.alloc_mem);
+    data->session.alloc_mem = NULL;
     if (count == 0)
     {
         xSemaphoreGive(completion_event);
@@ -531,7 +532,7 @@ static void dma_transmit_async_imp(const volatile void *src, volatile void *dest
 
     if (flow_control != DMAC_MEM2MEM_DMA && old_elm_size < 4)
     {
-        void *alloc_mem = malloc(sizeof(uint32_t) * count);
+        void *alloc_mem = malloc(sizeof(uint32_t) * count + 128);
         data->session.alloc_mem = alloc_mem;
         element_size = sizeof(uint32_t);
 
