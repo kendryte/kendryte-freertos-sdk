@@ -37,15 +37,15 @@ extern "C"
                          : "memory"); \
     }
 
-#define atomic_set(ptr, val) (*(volatile typeof(*(ptr))*)(ptr) = val)
-#define atomic_read(ptr) (*(volatile typeof(*(ptr))*)(ptr))
+#define atomic_set(ptr, val) (*(volatile typeof(*(ptr)) *)(ptr) = val)
+#define atomic_read(ptr) (*(volatile typeof(*(ptr)) *)(ptr))
 
 #define atomic_add(ptr, inc) __sync_fetch_and_add(ptr, inc)
 #define atomic_or(ptr, inc) __sync_fetch_and_or(ptr, inc)
 #define atomic_swap(ptr, swp) __sync_lock_test_and_set(ptr, swp)
 #define atomic_cas(ptr, cmp, swp) __sync_val_compare_and_swap(ptr, cmp, swp)
 
-    static inline int spinlock_trylock(spinlock_t* lock)
+    static inline int spinlock_trylock(spinlock_t *lock)
     {
         int res = atomic_swap(&lock->lock, -1);
         /*Use memory barrier to keep coherency */
@@ -53,7 +53,7 @@ extern "C"
         return res;
     }
 
-    static inline void spinlock_lock(spinlock_t* lock)
+    static inline void spinlock_lock(spinlock_t *lock)
     {
         do
         {
@@ -62,7 +62,7 @@ extern "C"
         } while (spinlock_trylock(lock));
     }
 
-    static inline void spinlock_unlock(spinlock_t* lock)
+    static inline void spinlock_unlock(spinlock_t *lock)
     {
         /*Use memory barrier to keep coherency */
         mb();
@@ -83,7 +83,7 @@ extern "C"
         .core = -1             \
     }
 
-    static inline int corelock_trylock(corelock_t* lock)
+    static inline int corelock_trylock(corelock_t *lock)
     {
         int res = 0;
         unsigned long core;
@@ -115,7 +115,7 @@ extern "C"
         return res;
     }
 
-    static inline void corelock_lock(corelock_t* lock)
+    static inline void corelock_lock(corelock_t *lock)
     {
         unsigned long core;
 
@@ -148,7 +148,7 @@ extern "C"
         spinlock_unlock(&lock->lock);
     }
 
-    static inline void corelock_unlock(corelock_t* lock)
+    static inline void corelock_unlock(corelock_t *lock)
     {
         unsigned long core;
 
@@ -168,17 +168,7 @@ extern "C"
         }
         else
         {
-            /* Different core release lock */
-            spinlock_unlock(&lock->lock);
-
-            register unsigned long a7 asm("a7") = 93;
-            register unsigned long a0 asm("a0") = 0;
-            register unsigned long a1 asm("a1") = 0;
-            register unsigned long a2 asm("a2") = 0;
-
-            asm volatile("scall"
-                         : "+r"(a0)
-                         : "r"(a1), "r"(a2), "r"(a7));
+            asm volatile("sbreak");
         }
         spinlock_unlock(&lock->lock);
     }

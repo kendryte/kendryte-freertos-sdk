@@ -25,19 +25,29 @@ extern "C"
 {
 #endif
 
+#define REG_EPC 0
+#define REG_RA  1
+#define REG_SP  2
+#define REG_A0 10
+#define REG_A1 11
+#define REG_A2 12
+#define REG_A3 13
+#define REG_A4 14
+#define REG_A5 15
+#define REG_A6 16
+#define REG_A7 17
+
+#define NUM_XCEPT_REGS (64)
+
 typedef enum
 {
     CORE_SYNC_NONE,
-    CORE_SYNC_ADD_TCB,
-    CORE_SYNC_WAKE_UP
+    CORE_SYNC_ADD_TCB
 } core_sync_event_t;
 
-void core_sync_request_context_switch(uint64_t core_id);
-void core_sync_complete_context_switch(uint64_t core_id);
+void core_sync_request(uint64_t core_id, int event);
 void core_sync_complete(uint64_t core_id);
-int core_sync_is_awake(uint64_t core_id);
-void core_sync_awaken(uint64_t core_id);
-int core_sync_is_in_progress(uint64_t core_id);
+void core_sync_awaken(uintptr_t address);
 
 #ifdef __cplusplus
 }

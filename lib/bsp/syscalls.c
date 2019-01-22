@@ -92,19 +92,6 @@
 #define UNUSED(x) (void)(x)
 #endif
 
-#define SYS_RET(epc_val, err_val) \
-    syscall_ret_t ret = {         \
-        .err = err_val,           \
-        .epc = epc_val            \
-    };                            \
-    return ret;
-
-typedef struct _syscall_ret
-{
-    uintptr_t err;
-    uintptr_t epc;
-} syscall_ret_t;
-
 static const char *TAG = "SYSCALL";
 
 extern char _heap_start[];
@@ -284,7 +271,7 @@ static int sys_gettimeofday(struct timeval *tp, void *tzp)
     return 0;
 }
 
-static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n)
+static void handle_ecall(uintptr_t *regs)
 {
     enum syscall_id_e
     {
@@ -367,40 +354,35 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
 #pragma GCC diagnostic warning "-Woverride-init"
 #endif
 
-    uintptr_t err = syscall_table[syscall_id_table[0xFF & n]](
-        a0, /* a0 */
-        a1, /* a1 */
-        a2, /* a2 */
-        a3, /* a3 */
-        a4, /* a4 */
-        a5, /* a5 */
+    uintptr_t n = regs[REG_A7];
+
+    uintptr_t ret = syscall_table[syscall_id_table[0xFF & n]](
+        regs[REG_A0], /* a0 */
+        regs[REG_A1], /* a1 */
+        regs[REG_A2], /* a2 */
+        regs[REG_A3], /* a3 */
+        regs[REG_A4], /* a4 */
+        regs[REG_A5], /* a5 */
         n /* n */
     );
 
-    epc += 4;
-    SYS_RET(epc, err);
+    regs[REG_A0] = ret;
+    regs[REG_EPC] += 4;
 }
 
-syscall_ret_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_u(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
+void __attribute__((weak, alias("handle_ecall"))) handle_ecall_u(uintptr_t *regs);
+void __attribute__((weak, alias("handle_ecall"))) handle_ecall_h(uintptr_t *regs);
+void __attribute__((weak, alias("handle_ecall"))) handle_ecall_s(uintptr_t *regs);
+void __attribute__((weak, alias("handle_ecall"))) handle_ecall_m(uintptr_t *regs);
 
-syscall_ret_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_h(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
-
-syscall_ret_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_s(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
-
-syscall_ret_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_m(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
-
-syscall_ret_t handle_syscall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n)
+void handle_syscall(uintptr_t *regs, uintptr_t cause)
 {
-    static syscall_ret_t (*const cause_table[])(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n) = {
+    static void (*const cause_table[])(uintptr_t * regs) = {
         [CAUSE_USER_ECALL] = handle_ecall_u,
         [CAUSE_SUPERVISOR_ECALL] = handle_ecall_h,
         [CAUSE_HYPERVISOR_ECALL] = handle_ecall_s,
         [CAUSE_MACHINE_ECALL] = handle_ecall_m,
     };
 
-    return cause_table[read_csr(mcause)](a0, a1, a2, a3, a4, a5, epc, n);
+    cause_table[cause & CAUSE_MACHINE_IRQ_REASON_MASK](regs);
 }

@@ -44,6 +44,10 @@
  *----------------------------------------------------------*/
 
 /* Scheduler includes. */
+#include "FreeRTOS.h"
+#include "core_sync.h"
+#include "portmacro.h"
+#include "task.h"
 #include <atomic.h>
 #include <clint.h>
 #include <encoding.h>
@@ -52,17 +56,13 @@
 #include <string.h>
 #include <sysctl.h>
 #include <syslog.h>
-#include "core_sync.h"
-#include "FreeRTOS.h"
-#include "portmacro.h"
-#include "task.h"
 
 /* A variable is used to keep track of the critical section nesting.  This
 variable has to be stored as part of the task context and must be initialised to
 a non zero value to ensure interrupts don't inadvertently become unmasked before
 the scheduler starts.  As it is stored as part of the task context it will
 automatically be set to 0 when the first task is started. */
-static UBaseType_t uxCriticalNesting[portNUM_PROCESSORS] = {[0 ... portNUM_PROCESSORS - 1] = 0xaaaaaaaa};
+static UBaseType_t uxCriticalNesting[portNUM_PROCESSORS] = { [0 ... portNUM_PROCESSORS - 1] = 0xaaaaaaaa };
 PRIVILEGED_DATA static corelock_t xCoreLock = CORELOCK_INIT;
 
 UBaseType_t uxCPUClockRate = 390000000;
@@ -70,7 +70,7 @@ UBaseType_t uxCPUClockRate = 390000000;
 /* Contains context when starting scheduler, save all 31 registers */
 #ifdef __gracefulExit
 #error Not ported
-BaseType_t xStartContext[31] = {0};
+BaseType_t xStartContext[31] = { 0 };
 #endif
 
 /*
@@ -95,25 +95,32 @@ UBaseType_t uxPortGetProcessorId()
 
 /*-----------------------------------------------------------*/
 
-/* Sets and enable the timer interrupt */
-void vPortSetupTimer(void)
-{
-    UBaseType_t uxPsrId = uxPortGetProcessorId();
-    clint->mtimecmp[uxPsrId] = clint->mtime + (configTICK_CLOCK_HZ / configTICK_RATE_HZ);
-    /* Enable timer interupt */
-    __asm volatile("csrs mie,%0" ::"r"(0x80));
-}
-
-/*-----------------------------------------------------------*/
-
 /* Sets the next timer interrupt
  * Reads previous timer compare register, and adds tickrate */
 void prvSetNextTimerInterrupt(void)
 {
     UBaseType_t uxPsrId = uxPortGetProcessorId();
-    clint->mtimecmp[uxPsrId] += (configTICK_CLOCK_HZ / configTICK_RATE_HZ);
+    clint->mtimecmp[uxPsrId] = clint->mtime + (390000000 / configTICK_RATE_HZ * 10);
 }
 /*-----------------------------------------------------------*/
+
+/* Sets and enable the timer interrupt */
+void vPortSetupTimer(void)
+{
+    prvSetNextTimerInterrupt();
+    /* Enable timer interupt */
+    __asm volatile("csrs mie,%0" ::"r"(0x80));
+}
+/*-----------------------------------------------------------*/
+
+void handle_irq_m_timer(uintptr_t *regs, uintptr_t cause)
+{
+    prvSetNextTimerInterrupt();
+
+    /* Increment the RTOS tick. */
+    if (xTaskIncrementTick() != pdFALSE)
+        vTaskSwitchContext();
+}
 
 void prvTaskExitError(void)
 {
@@ -152,49 +159,39 @@ int vPortSetInterruptMask(void)
 /*
  * See header file for description.
  */
-StackType_t* pxPortInitialiseStack(StackType_t* pxTopOfStack, TaskFunction_t pxCode, void* pvParameters)
+StackType_t *pxPortInitialiseStack(StackType_t *pxTopOfStack, TaskFunction_t pxCode, void *pvParameters)
 {
     /* Simulate the stack frame as it would be created by a context switch
 	interrupt. */
-    pxTopOfStack -= 64;
-    memset(pxTopOfStack, 0, sizeof(StackType_t) * 64);
+    pxTopOfStack -= NUM_XCEPT_REGS;
+    memset(pxTopOfStack, 0, sizeof(StackType_t) * NUM_XCEPT_REGS);
 
-    pxTopOfStack[0] = (portSTACK_TYPE)prvTaskExitError; /* Register ra */
-    pxTopOfStack[1] = (portSTACK_TYPE)pxTopOfStack;
-    pxTopOfStack[8] = (portSTACK_TYPE)pvParameters; /* Register a0 */
-    pxTopOfStack[30] = 0; /* Register fsr */
-    pxTopOfStack[31] = (portSTACK_TYPE)pxCode; /* Register mepc */
+    pxTopOfStack[REG_RA] = (portSTACK_TYPE)prvTaskExitError; /* Register ra */
+    pxTopOfStack[REG_SP] = (portSTACK_TYPE)pxTopOfStack;
+    pxTopOfStack[REG_A0] = (portSTACK_TYPE)pvParameters; /* Register a0 */
+    pxTopOfStack[REG_EPC] = (portSTACK_TYPE)pxCode; /* Register mepc */
 
     return pxTopOfStack;
 }
-/*-----------------------------------------------------------*/
-void vPortSysTickHandler(void)
-{
-    core_sync_complete_context_switch(uxPortGetProcessorId());
-    vTaskSwitchContext();
-}
-/*-----------------------------------------------------------*/
 
 void vPortEnterCritical(void)
 {
-    if (!core_sync_is_in_progress(uxPortGetProcessorId()))
-        vTaskEnterCritical();
     corelock_lock(&xCoreLock);
+    vTaskEnterCritical();
 }
 
 void vPortExitCritical(void)
 {
+    vTaskExitCritical();
     corelock_unlock(&xCoreLock);
-    if (!core_sync_is_in_progress(uxPortGetProcessorId()))
-        vTaskExitCritical();
 }
 
 void vPortYield()
 {
-    core_sync_request_context_switch(uxPortGetProcessorId());
+    //core_sync_request_context_switch(uxPortGetProcessorId());
 }
 
-void vPortFatal(const char* file, int line, const char* message)
+void vPortFatal(const char *file, int line, const char *message)
 {
     portDISABLE_INTERRUPTS();
     corelock_lock(&xCoreLock);

@@ -22,7 +22,7 @@ extern "C"
 {
 #endif
 
-void dump_core(const char* reason, uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]);
+void dump_core(const char *reason, uintptr_t *regs, uintptr_t cause);
 
 #ifdef __cplusplus
 }
