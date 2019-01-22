@@ -100,7 +100,7 @@ UBaseType_t uxPortGetProcessorId()
 void prvSetNextTimerInterrupt(void)
 {
     UBaseType_t uxPsrId = uxPortGetProcessorId();
-    clint->mtimecmp[uxPsrId] = clint->mtime + (390000000 / configTICK_RATE_HZ * 10);
+    clint->mtimecmp[uxPsrId] = clint->mtime + (configTICK_CLOCK_HZ / configTICK_RATE_HZ);
 }
 /*-----------------------------------------------------------*/
 
@@ -188,7 +188,16 @@ void vPortExitCritical(void)
 
 void vPortYield()
 {
-    //core_sync_request_context_switch(uxPortGetProcessorId());
+    register long a0 asm("a0") = 0;
+    register long syscall_id asm("a7") = SYS_switch_ctx;
+    asm volatile("scall"
+                 : "+r"(a0)
+                 : "r"(syscall_id));
+}
+
+void vPortYieldFromISR(void)
+{
+    vTaskSwitchContext();
 }
 
 void vPortFatal(const char *file, int line, const char *message)

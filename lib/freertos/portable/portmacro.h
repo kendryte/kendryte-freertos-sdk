@@ -94,12 +94,13 @@ typedef unsigned long UBaseType_t;
 #define portCRITICAL_NESTING_IN_TCB					1
 /*-----------------------------------------------------------*/
 
+#define SYS_switch_ctx 2010
 
 /* Scheduler utilities. */
-extern void vPortYield( void );
-#define portYIELD()					vPortYield()
-
+extern void vPortYield(void);
 extern void vPortYieldFromISR(void);
+#define portYIELD()					vPortYield()
+#define portYIELD_FROM_ISR()        vPortYieldFromISR()
 /*-----------------------------------------------------------*/
 
 /* Architecture specific optimisations. */

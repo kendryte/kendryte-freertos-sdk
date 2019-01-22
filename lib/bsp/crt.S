@@ -111,10 +111,12 @@ _start:
   csrr t0, mhartid
   beqz t0, 2f
   la sp, _idle_stack1_top
+  j .
+  la t0, g_wake_address
 1:
-  ld t0, g_wake_address
-  beqz t0, 1b
-  jr t0
+  lr.d t1, 0(t0)
+  beqz t1, 1b
+  jr t1
 2:
   la sp, _idle_stack0_top
   la t0, _init_bsp
@@ -228,6 +230,7 @@ trap_entry:
 1:
   # Then set sp to irq stack top
   beqz t0, 2f
+  j .
   la sp, _irq_stack1_top
   j 3f
 2:
