@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "interrupt.h"
 #include "pin_cfg_priv.h"
 #include <FreeRTOSConfig.h>
 #include <clint.h>

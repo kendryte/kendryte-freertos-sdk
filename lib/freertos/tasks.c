@@ -2924,7 +2924,11 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 void vTaskSwitchContext( void )
 {
 	UBaseType_t uxPsrId = uxPortGetProcessorId();
-	if( uxSchedulerSuspended[uxPsrId] != ( UBaseType_t ) pdFALSE )
+    if (xSchedulerRunning[uxPsrId] != pdTRUE)
+    {
+        return;
+    }
+	else if( uxSchedulerSuspended[uxPsrId] != ( UBaseType_t ) pdFALSE )
 	{
 		/* The scheduler is currently suspended - do not allow a context
 		switch. */

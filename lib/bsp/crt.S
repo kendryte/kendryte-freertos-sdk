@@ -33,6 +33,9 @@ _start:
   csrw mip, 0
   la t0, trap_entry
   csrw mtvec, t0
+
+  li t0, 1
+  sd t0, _irq_enabled, t1
   
   li x1, 0
   li x2, 0
@@ -111,7 +114,6 @@ _start:
   csrr t0, mhartid
   beqz t0, 2f
   la sp, _idle_stack1_top
-  j .
   la t0, g_wake_address
 1:
   lr.d t1, 0(t0)
@@ -138,12 +140,21 @@ _start:
   .type trap_entry, @function
   .align 2
 trap_entry:
+  csrw mscratch, t0
+  ld t0, _irq_enabled
+  bnez t0, 1f
+  # Disable interrupt
+  li t0, MSTATUS_MPIE
+  csrc mstatus, t0
+  csrr t0, mscratch
+  mret
+1:
+  csrr t0, mscratch
   # Store context
   addi sp, sp, -64 * REGBYTES
   
   sd x1,   1 * REGBYTES(sp)
   sd x2,   2 * REGBYTES(sp)
-  sd x3,   3 * REGBYTES(sp)
   sd x4,   4 * REGBYTES(sp)
   sd x5,   5 * REGBYTES(sp)
   sd x6,   6 * REGBYTES(sp)
@@ -230,7 +241,6 @@ trap_entry:
 1:
   # Then set sp to irq stack top
   beqz t0, 2f
-  j .
   la sp, _irq_stack1_top
   j 3f
 2:
@@ -256,12 +266,12 @@ trap_entry:
   ld t2, 0(t2)
   beqz t2, 1f
   ld a0, 0(t2)
-1:
-  # a0 = regs
 
   # Restore context
   li t0, MSTATUS_MPP | MSTATUS_MPIE
   csrs mstatus, t0
+1:
+  # a0 = regs
 
   # Restore mepc
   ld t0, 0 * REGBYTES(a0)
@@ -273,7 +283,6 @@ trap_entry:
   
   ld x1,   1 * REGBYTES(a0)
   ld x2,   2 * REGBYTES(a0)
-  ld x3,   3 * REGBYTES(a0)
   ld x4,   4 * REGBYTES(a0)
   ld x5,   5 * REGBYTES(a0)
   ld x6,   6 * REGBYTES(a0)
@@ -358,6 +367,16 @@ xPortStartScheduler:
   j .restore
 
   .align 3
+_irq_count:
+  .8byte 0
+  .8byte 0
+_irq_enabled:
+  .8byte 0
+g_wake_address:
+  .8byte 0
+
+  .section .bss
+  .align 3
 _irq_stack_base:
   .space IRQ_STACK_SIZE
 _irq_stack0_top:
@@ -367,9 +386,3 @@ _irq_stack1_top:
 _idle_stack0_top:
   .space IRQ_STACK_SIZE
 _idle_stack1_top:
-
-_irq_count:
-   .8byte 0
-   .8byte 0
-g_wake_address:
-   .8byte 0
