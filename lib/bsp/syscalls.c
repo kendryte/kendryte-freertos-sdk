@@ -112,6 +112,9 @@ static int sys_nosys(long a0, long a1, long a2, long a3, long a4, long a5, unsig
     UNUSED(a4);
     UNUSED(a5);
 
+    LOGW(TAG, "Unimplemented syscall 0x%lx\n", (uint64_t)n);
+    exit(ENOSYS);
+
     return -ENOSYS;
 }
 
@@ -286,6 +289,7 @@ static void handle_ecall(uintptr_t *regs)
         SYS_ID_CLOSE,
         SYS_ID_GETTIMEOFDAY,
         SYS_ID_LSEEK,
+        SYS_ID_SWITCHCONTEXT,
         SYS_ID_MAX
     };
 
@@ -301,62 +305,53 @@ static void handle_ecall(uintptr_t *regs)
         [SYS_ID_CLOSE] = (void *)sys_close,
         [SYS_ID_GETTIMEOFDAY] = (void *)sys_gettimeofday,
         [SYS_ID_LSEEK] = (void *)sys_lseek,
+        [SYS_ID_SWITCHCONTEXT] = (void*)sys_switchcontext
     };
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Woverride-init"
 #endif
-    static const uint8_t syscall_id_table[0x100] = {
-        [0x00 ... 0xFF] = SYS_ID_NOSYS,
-        [0xFF & SYS_exit] = SYS_ID_EXIT,
-        [0xFF & SYS_exit_group] = SYS_ID_EXIT,
-        [0xFF & SYS_getpid] = SYS_ID_NOSYS,
-        [0xFF & SYS_kill] = SYS_ID_NOSYS,
-        [0xFF & SYS_read] = SYS_ID_READ,
-        [0xFF & SYS_write] = SYS_ID_WRITE,
-        [0xFF & SYS_open] = SYS_ID_OPEN,
-        [0xFF & SYS_openat] = SYS_ID_NOSYS,
-        [0xFF & SYS_close] = SYS_ID_CLOSE,
-        [0xFF & SYS_lseek] = SYS_ID_LSEEK,
-        [0xFF & SYS_brk] = SYS_ID_BRK,
-        [0xFF & SYS_link] = SYS_ID_NOSYS,
-        [0xFF & SYS_unlink] = SYS_ID_NOSYS,
-        [0xFF & SYS_mkdir] = SYS_ID_NOSYS,
-        [0xFF & SYS_chdir] = SYS_ID_NOSYS,
-        [0xFF & SYS_getcwd] = SYS_ID_NOSYS,
-        [0xFF & SYS_stat] = SYS_ID_NOSYS,
-        [0xFF & SYS_fstat] = SYS_ID_FSTAT,
-        [0xFF & SYS_lstat] = SYS_ID_NOSYS,
-        [0xFF & SYS_fstatat] = SYS_ID_NOSYS,
-        [0xFF & SYS_access] = SYS_ID_NOSYS,
-        [0xFF & SYS_faccessat] = SYS_ID_NOSYS,
-        [0xFF & SYS_pread] = SYS_ID_NOSYS,
-        [0xFF & SYS_pwrite] = SYS_ID_NOSYS,
-        [0xFF & SYS_uname] = SYS_ID_NOSYS,
-        [0xFF & SYS_getuid] = SYS_ID_NOSYS,
-        [0xFF & SYS_geteuid] = SYS_ID_NOSYS,
-        [0xFF & SYS_getgid] = SYS_ID_NOSYS,
-        [0xFF & SYS_getegid] = SYS_ID_NOSYS,
-        [0xFF & SYS_mmap] = SYS_ID_NOSYS,
-        [0xFF & SYS_munmap] = SYS_ID_NOSYS,
-        [0xFF & SYS_mremap] = SYS_ID_NOSYS,
-        [0xFF & SYS_time] = SYS_ID_NOSYS,
-        [0xFF & SYS_getmainvars] = SYS_ID_NOSYS,
-        [0xFF & SYS_rt_sigaction] = SYS_ID_NOSYS,
-        [0xFF & SYS_writev] = SYS_ID_NOSYS,
-        [0xFF & SYS_gettimeofday] = SYS_ID_GETTIMEOFDAY,
-        [0xFF & SYS_times] = SYS_ID_NOSYS,
-        [0xFF & SYS_fcntl] = SYS_ID_NOSYS,
-        [0xFF & SYS_getdents] = SYS_ID_NOSYS,
-        [0xFF & SYS_dup] = SYS_ID_NOSYS,
-    };
+
+    uintptr_t n = regs[REG_A7];
+    uintptr_t syscall_id = SYS_ID_NOSYS;
+    switch (n)
+    {
+    case SYS_exit:
+    case SYS_exit_group:
+        syscall_id = SYS_ID_EXIT;
+        break;
+    case SYS_read:
+        syscall_id = SYS_ID_READ;
+        break;
+    case SYS_write:
+        syscall_id = SYS_ID_WRITE;
+        break;
+    case SYS_open:
+        syscall_id = SYS_ID_OPEN;
+        break;
+    case SYS_close:
+        syscall_id = SYS_ID_CLOSE;
+        break;
+    case SYS_lseek:
+        syscall_id = SYS_ID_LSEEK;
+        break;
+    case SYS_brk:
+        syscall_id = SYS_ID_BRK;
+        break;
+    case SYS_fstat:
+        syscall_id = SYS_ID_FSTAT;
+        break;
+    case SYS_gettimeofday:
+        syscall_id = SYS_ID_GETTIMEOFDAY;
+    case SYS_switch_ctx:
+        syscall_id = SYS_ID_SWITCHCONTEXT;
+        break;
+    }
 #if defined(__GNUC__)
 #pragma GCC diagnostic warning "-Woverride-init"
 #endif
 
-    uintptr_t n = regs[REG_A7];
-
-    uintptr_t ret = syscall_table[syscall_id_table[0xFF & n]](
+    uintptr_t ret = syscall_table[syscall_id](
         regs[REG_A0], /* a0 */
         regs[REG_A1], /* a1 */
         regs[REG_A2], /* a2 */

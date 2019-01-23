@@ -176,14 +176,14 @@ StackType_t *pxPortInitialiseStack(StackType_t *pxTopOfStack, TaskFunction_t pxC
 
 void vPortEnterCritical(void)
 {
-    corelock_lock(&xCoreLock);
     vTaskEnterCritical();
+    corelock_lock(&xCoreLock);
 }
 
 void vPortExitCritical(void)
 {
-    vTaskExitCritical();
     corelock_unlock(&xCoreLock);
+    vTaskExitCritical();
 }
 
 void vPortYield()

@@ -13,12 +13,14 @@
  * limitations under the License.
  */
 #include "syscalls.h"
+#include <FreeRTOS.h>
 #include <devices.h>
 #include <filesystem.h>
 #include <kernel/driver_impl.hpp>
 #include <string.h>
 #include <sys/fcntl.h>
 #include <sys/unistd.h>
+#include <task.h>
 
 using namespace sys;
 
@@ -109,4 +111,9 @@ int sys_fstat(int fd, struct kernel_stat *buf)
     {
         return -1;
     }
+}
+
+void sys_switchcontext()
+{
+    vTaskSwitchContext();
 }
