@@ -28,13 +28,34 @@ typedef struct
     int ret;
 } main_thunk_param_t;
 
+extern void __libc_init_array(void);
+extern void __libc_fini_array(void);
+
 static StaticTask_t s_idle_task;
 static StackType_t s_idle_task_stack[configMINIMAL_STACK_SIZE];
 
 void start_scheduler(int core_id);
 
+int __attribute__((weak)) configure_fpioa()
+{
+    return 0;
+}
+
 static void main_thunk(void *p)
 {
+    /* Register finalization function */
+    atexit(__libc_fini_array);
+    /* Init libc array for C++ */
+    __libc_init_array();
+
+    clear_csr(mie, MIP_MTIP);
+    clint_ipi_enable();
+    set_csr(mstatus, MSTATUS_MIE);
+
+    install_hal();
+    install_drivers();
+    configure_fpioa();
+
     main_thunk_param_t *param = (main_thunk_param_t *)p;
     param->ret = param->user_main(0, 0);
 }
@@ -48,21 +69,8 @@ static void os_entry_core1()
     vTaskStartScheduler();
 }
 
-int __attribute__((weak)) configure_fpioa()
-{
-    return 0;
-}
-
 int os_entry(int (*user_main)(int, char **))
 {
-    clear_csr(mie, MIP_MTIP);
-    clint_ipi_enable();
-    set_csr(mstatus, MSTATUS_MIE);
-
-    install_hal();
-    install_drivers();
-    configure_fpioa();
-
     TaskHandle_t mainTask;
     main_thunk_param_t param = {};
     param.user_main = user_main;

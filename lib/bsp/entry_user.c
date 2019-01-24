@@ -32,8 +32,6 @@ extern uint8_t __bss_end[];
 extern uint8_t _tls_data[];
 
 extern int main(int argc, char *argv[]);
-extern void __libc_init_array(void);
-extern void __libc_fini_array(void);
 extern int os_entry(int (*user_main)(int, char **));
 
 static void setup_clocks()
@@ -51,10 +49,6 @@ void _init_bsp()
 {
     /* Initialize bss data to 0 */
     init_bss();
-    /* Register finalization function */
-    atexit(__libc_fini_array);
-    /* Init libc array for C++ */
-    __libc_init_array();
     /* Init FPIOA */
     fpioa_init();
     bsp_pin_setup();
