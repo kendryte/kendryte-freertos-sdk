@@ -1,26 +1,29 @@
-#include <sys/lock.h>
-#include <stdlib.h>
 #include "FreeRTOS.h"
-#include "semphr.h"
 #include "portmacro.h"
+#include "semphr.h"
 #include "task.h"
+#include <stdlib.h>
+#include <sys/lock.h>
 
 typedef long _lock_t;
 static void lock_init_generic(_lock_t *lock, uint8_t mutex_type)
 {
     portENTER_CRITICAL();
-    if (*lock)
+    if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED)
     {
+        /* nothing to do until the scheduler is running */
+        portEXIT_CRITICAL();
+        return;
     }
-    else
+
+    if (!*lock)
     {
         xSemaphoreHandle new_sem = xQueueCreateMutex(mutex_type);
         if (!new_sem)
-        {
             abort();
-        }
         *lock = (_lock_t)new_sem;
     }
+
     portEXIT_CRITICAL();
 }
 
@@ -42,12 +45,11 @@ void _lock_close(_lock_t *lock)
     if (*lock)
     {
         xSemaphoreHandle h = (xSemaphoreHandle)(*lock);
-#if (INCLUDE_xSemaphoreGetMutexHolder == 1)
         configASSERT(xSemaphoreGetMutexHolder(h) == NULL);
-#endif
         vSemaphoreDelete(h);
         *lock = 0;
     }
+
     portEXIT_CRITICAL();
 }
 
@@ -58,20 +60,43 @@ static int lock_acquire_generic(_lock_t *lock, uint32_t delay, uint8_t mutex_typ
     xSemaphoreHandle h = (xSemaphoreHandle)(*lock);
     if (!h)
     {
+        if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED)
+            return 0; /* locking is a no-op before scheduler is up, so this "succeeds" */
+
         lock_init_generic(lock, mutex_type);
         h = (xSemaphoreHandle)(*lock);
         configASSERT(h != NULL);
     }
 
     BaseType_t success;
-    if (mutex_type == queueQUEUE_TYPE_RECURSIVE_MUTEX)
+    if (uxPortIsInISR())
     {
-        success = xSemaphoreTakeRecursive(h, delay);
+        /* In ISR Context */
+        if (mutex_type == queueQUEUE_TYPE_RECURSIVE_MUTEX)
+        {
+            vPortDebugBreak();
+            abort(); /* recursive mutexes make no sense in ISR context */
+        }
+
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        success = xSemaphoreTakeFromISR(h, &xHigherPriorityTaskWoken);
+        if (!success && delay > 0)
+        {
+            vPortDebugBreak();
+            abort(); /* Tried to block on mutex from ISR, couldn't... rewrite your program to avoid libc interactions in ISRs! */
+        }
+
+        if (xHigherPriorityTaskWoken)
+            portYIELD_FROM_ISR();
     }
     else
     {
-        success = xSemaphoreTake(h, delay);
+        if (mutex_type == queueQUEUE_TYPE_RECURSIVE_MUTEX)
+            success = xSemaphoreTakeRecursive(h, delay);
+        else
+            success = xSemaphoreTake(h, delay);
     }
+
     return (success == pdTRUE) ? 0 : -1;
 }
 
@@ -103,15 +128,30 @@ static void lock_release_generic(_lock_t *lock, uint8_t mutex_type)
         return;
     }
 
-    if (mutex_type == queueQUEUE_TYPE_RECURSIVE_MUTEX)
+    if (uxPortIsInISR())
     {
-        xSemaphoreGiveRecursive(h);
+        if (mutex_type == queueQUEUE_TYPE_RECURSIVE_MUTEX)
+        {
+            vPortDebugBreak();
+            abort(); /* recursive mutexes make no sense in ISR context */
+        }
+
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(h, &xHigherPriorityTaskWoken);
+        if (xHigherPriorityTaskWoken)
+            portYIELD_FROM_ISR();
     }
     else
     {
-        xSemaphoreGive(h);
+        if (mutex_type == queueQUEUE_TYPE_RECURSIVE_MUTEX)
+        {
+            xSemaphoreGiveRecursive(h);
+        }
+        else
+        {
+            xSemaphoreGive(h);
+        }
     }
-    
 }
 
 void _lock_release(_lock_t *lock)

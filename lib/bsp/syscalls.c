@@ -96,6 +96,7 @@ static const char *TAG = "SYSCALL";
 
 extern char _heap_start[];
 extern char _heap_end[];
+extern void sys_queue_apc();
 char *_heap_cur = &_heap_start[0];
 
 void __attribute__((noreturn)) sys_exit(int code)
@@ -289,7 +290,6 @@ static void handle_ecall(uintptr_t *regs)
         SYS_ID_CLOSE,
         SYS_ID_GETTIMEOFDAY,
         SYS_ID_LSEEK,
-        SYS_ID_SWITCHCONTEXT,
         SYS_ID_MAX
     };
 
@@ -304,8 +304,7 @@ static void handle_ecall(uintptr_t *regs)
         [SYS_ID_FSTAT] = (void *)sys_fstat,
         [SYS_ID_CLOSE] = (void *)sys_close,
         [SYS_ID_GETTIMEOFDAY] = (void *)sys_gettimeofday,
-        [SYS_ID_LSEEK] = (void *)sys_lseek,
-        [SYS_ID_SWITCHCONTEXT] = (void*)sys_switchcontext
+        [SYS_ID_LSEEK] = (void *)sys_lseek
     };
 
 #if defined(__GNUC__)
@@ -313,56 +312,57 @@ static void handle_ecall(uintptr_t *regs)
 #endif
 
     uintptr_t n = regs[REG_A7];
-    uintptr_t syscall_id = SYS_ID_NOSYS;
-    switch (n)
+
+    if (n == SYS_switch_ctx)
     {
-    case SYS_exit:
-    case SYS_exit_group:
-        syscall_id = SYS_ID_EXIT;
-        break;
-    case SYS_read:
-        syscall_id = SYS_ID_READ;
-        break;
-    case SYS_write:
-        syscall_id = SYS_ID_WRITE;
-        break;
-    case SYS_open:
-        syscall_id = SYS_ID_OPEN;
-        break;
-    case SYS_close:
-        syscall_id = SYS_ID_CLOSE;
-        break;
-    case SYS_lseek:
-        syscall_id = SYS_ID_LSEEK;
-        break;
-    case SYS_brk:
-        syscall_id = SYS_ID_BRK;
-        break;
-    case SYS_fstat:
-        syscall_id = SYS_ID_FSTAT;
-        break;
-    case SYS_gettimeofday:
-        syscall_id = SYS_ID_GETTIMEOFDAY;
-    case SYS_switch_ctx:
-        syscall_id = SYS_ID_SWITCHCONTEXT;
-        break;
+        sys_switchcontext();
+        regs[REG_EPC] += 4;
     }
+    else if (n == SYS_apc_return)
+    {
+        regs[REG_EPC] = regs[REG_APC_RET];
+    }
+    else
+    {
+        uintptr_t syscall_id = SYS_ID_NOSYS;
+        switch (n)
+        {
+        case SYS_exit:
+        case SYS_exit_group:
+            syscall_id = SYS_ID_EXIT;
+            break;
+        case SYS_read:
+            syscall_id = SYS_ID_READ;
+            break;
+        case SYS_write:
+            syscall_id = SYS_ID_WRITE;
+            break;
+        case SYS_open:
+            syscall_id = SYS_ID_OPEN;
+            break;
+        case SYS_close:
+            syscall_id = SYS_ID_CLOSE;
+            break;
+        case SYS_lseek:
+            syscall_id = SYS_ID_LSEEK;
+            break;
+        case SYS_brk:
+            syscall_id = SYS_ID_BRK;
+            break;
+        case SYS_fstat:
+            syscall_id = SYS_ID_FSTAT;
+            break;
+        case SYS_gettimeofday:
+            syscall_id = SYS_ID_GETTIMEOFDAY;
+            break;
+        }
 #if defined(__GNUC__)
 #pragma GCC diagnostic warning "-Woverride-init"
 #endif
-
-    uintptr_t ret = syscall_table[syscall_id](
-        regs[REG_A0], /* a0 */
-        regs[REG_A1], /* a1 */
-        regs[REG_A2], /* a2 */
-        regs[REG_A3], /* a3 */
-        regs[REG_A4], /* a4 */
-        regs[REG_A5], /* a5 */
-        n /* n */
-    );
-
-    regs[REG_A0] = ret;
-    regs[REG_EPC] += 4;
+        regs[REG_APC_PROC] = (uintptr_t)syscall_table[syscall_id];
+        regs[REG_APC_RET] = regs[REG_EPC] + 4;
+        regs[REG_EPC] = (uintptr_t)sys_queue_apc;
+    }
 }
 
 void __attribute__((weak, alias("handle_ecall"))) handle_ecall_u(uintptr_t *regs);

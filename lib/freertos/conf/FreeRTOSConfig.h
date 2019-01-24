@@ -127,6 +127,7 @@ enum
 #define INCLUDE_vTaskDelay						1
 #define INCLUDE_eTaskGetState					1
 #define INCLUDE_xTaskAbortDelay					1
+#define INCLUDE_xTaskGetSchedulerState          1
 
 #define INCLUDE_xSemaphoreGetMutexHolder        1
 

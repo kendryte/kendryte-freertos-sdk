@@ -160,6 +160,27 @@
 
 #define PTE_TABLE(PTE) (((PTE) & (PTE_V | PTE_R | PTE_W | PTE_X)) == PTE_V)
 
+#define SYS_switch_ctx 2012
+#define SYS_apc_return 2013
+
+#define REG_EPC 0
+#define REG_RA 1
+#define REG_SP 2
+#define REG_T0 5
+#define REG_T1 6
+#define REG_A0 10
+#define REG_A1 11
+#define REG_A2 12
+#define REG_A3 13
+#define REG_A4 14
+#define REG_A5 15
+#define REG_A6 16
+#define REG_A7 17
+#define REG_APC_PROC 64
+#define REG_APC_RET 65
+
+#define NUM_XCEPT_REGS (66)
+
 #ifdef __riscv
 
 #ifdef __riscv64

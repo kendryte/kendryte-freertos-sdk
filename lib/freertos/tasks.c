@@ -3874,7 +3874,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 		}
 		else
 		{
-			if( uxSchedulerSuspended[uxPsrId] == ( UBaseType_t ) pdFALSE )
+			if( uxSchedulerSuspended[uxPortGetProcessorId()] == ( UBaseType_t ) pdFALSE )
 			{
 				xReturn = taskSCHEDULER_RUNNING;
 			}

@@ -57,6 +57,8 @@
 #include <sysctl.h>
 #include <syslog.h>
 
+extern volatile uintptr_t g_irq_count[portNUM_PROCESSORS];
+
 /* A variable is used to keep track of the critical section nesting.  This
 variable has to be stored as part of the task context and must be initialised to
 a non zero value to ensure interrupts don't inadvertently become unmasked before
@@ -93,6 +95,11 @@ UBaseType_t uxPortGetProcessorId()
     return (UBaseType_t)read_csr(mhartid);
 }
 
+UBaseType_t uxPortIsInISR()
+{
+    return g_irq_count[uxPortGetProcessorId()] > 0;
+}
+
 /*-----------------------------------------------------------*/
 
 /* Sets the next timer interrupt
@@ -117,6 +124,8 @@ void handle_irq_m_timer(uintptr_t *regs, uintptr_t cause)
 {
     prvSetNextTimerInterrupt();
 
+    if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED)
+        return;
     /* Increment the RTOS tick. */
     if (xTaskIncrementTick() != pdFALSE)
         vTaskSwitchContext();
@@ -215,4 +224,9 @@ void vPortFatal(const char *file, int line, const char *message)
 UBaseType_t uxPortGetCPUClock()
 {
     return uxCPUClockRate;
+}
+
+void vPortDebugBreak(void)
+{
+    asm volatile("sbreak");
 }
