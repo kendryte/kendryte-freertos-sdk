@@ -362,11 +362,72 @@ trap_entry:
 sys_queue_apc:
   addi sp, sp, -NUM_XCEPT_REGS * REGBYTES
   ld t0, REG_APC_PROC * REGBYTES(sp)
+  sd a7, REG_APC_PROC * REGBYTES(sp)
   jalr t0
-  csrw mscratch, a0
-  mv a0, sp
-  restore_context
-  csrr a0, mscratch
+  
+  ld x1,   1 * REGBYTES(sp)
+  ld x4,   4 * REGBYTES(sp)
+  ld x5,   5 * REGBYTES(sp)
+  ld x6,   6 * REGBYTES(sp)
+  ld x7,   7 * REGBYTES(sp)
+  ld x8,   8 * REGBYTES(sp)
+  ld x9,   9 * REGBYTES(sp)
+  ld x11, 11 * REGBYTES(sp)
+  ld x12, 12 * REGBYTES(sp)
+  ld x13, 13 * REGBYTES(sp)
+  ld x14, 14 * REGBYTES(sp)
+  ld x15, 15 * REGBYTES(sp)
+  ld x16, 16 * REGBYTES(sp)
+  ld x17, 17 * REGBYTES(sp)
+  ld x18, 18 * REGBYTES(sp)
+  ld x19, 19 * REGBYTES(sp)
+  ld x20, 20 * REGBYTES(sp)
+  ld x21, 21 * REGBYTES(sp)
+  ld x22, 22 * REGBYTES(sp)
+  ld x23, 23 * REGBYTES(sp)
+  ld x24, 24 * REGBYTES(sp)
+  ld x25, 25 * REGBYTES(sp)
+  ld x26, 26 * REGBYTES(sp)
+  ld x27, 27 * REGBYTES(sp)
+  ld x28, 28 * REGBYTES(sp)
+  ld x29, 29 * REGBYTES(sp)
+  ld x30, 30 * REGBYTES(sp)
+  ld x31, 31 * REGBYTES(sp)
+
+  flw f0,  ( 0 + 32) * REGBYTES(sp)
+  flw f1,  ( 1 + 32) * REGBYTES(sp)
+  flw f2,  ( 2 + 32) * REGBYTES(sp)
+  flw f3,  ( 3 + 32) * REGBYTES(sp)
+  flw f4,  ( 4 + 32) * REGBYTES(sp)
+  flw f5,  ( 5 + 32) * REGBYTES(sp)
+  flw f6,  ( 6 + 32) * REGBYTES(sp)
+  flw f7,  ( 7 + 32) * REGBYTES(sp)
+  flw f8,  ( 8 + 32) * REGBYTES(sp)
+  flw f9,  ( 9 + 32) * REGBYTES(sp)
+  flw f10, (10 + 32) * REGBYTES(sp)
+  flw f11, (11 + 32) * REGBYTES(sp)
+  flw f12, (12 + 32) * REGBYTES(sp)
+  flw f13, (13 + 32) * REGBYTES(sp)
+  flw f14, (14 + 32) * REGBYTES(sp)
+  flw f15, (15 + 32) * REGBYTES(sp)
+  flw f16, (16 + 32) * REGBYTES(sp)
+  flw f17, (17 + 32) * REGBYTES(sp)
+  flw f18, (18 + 32) * REGBYTES(sp)
+  flw f19, (19 + 32) * REGBYTES(sp)
+  flw f20, (20 + 32) * REGBYTES(sp)
+  flw f21, (21 + 32) * REGBYTES(sp)
+  flw f22, (22 + 32) * REGBYTES(sp)
+  flw f23, (23 + 32) * REGBYTES(sp)
+  flw f24, (24 + 32) * REGBYTES(sp)
+  flw f25, (25 + 32) * REGBYTES(sp)
+  flw f26, (26 + 32) * REGBYTES(sp)
+  flw f27, (27 + 32) * REGBYTES(sp)
+  flw f28, (28 + 32) * REGBYTES(sp)
+  flw f29, (29 + 32) * REGBYTES(sp)
+  flw f30, (30 + 32) * REGBYTES(sp)
+  flw f31, (31 + 32) * REGBYTES(sp)
+
+  addi sp, sp, NUM_XCEPT_REGS * REGBYTES
   li a7, SYS_apc_return
   ecall
   j .

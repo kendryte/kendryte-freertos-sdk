@@ -160,7 +160,6 @@
 
 #define PTE_TABLE(PTE) (((PTE) & (PTE_V | PTE_R | PTE_W | PTE_X)) == PTE_V)
 
-#define SYS_switch_ctx 2012
 #define SYS_apc_return 2013
 
 #define REG_EPC 0

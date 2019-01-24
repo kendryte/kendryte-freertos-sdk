@@ -72,7 +72,7 @@ int os_entry(int (*user_main)(int, char **))
         return -1;
     }
 
-    core_sync_awaken((uintptr_t)os_entry_core1);
+    //core_sync_awaken((uintptr_t)os_entry_core1);
     vTaskStartScheduler();
     return param.ret;
 }

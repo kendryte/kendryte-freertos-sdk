@@ -28,7 +28,8 @@ extern "C"
 typedef enum
 {
     CORE_SYNC_NONE,
-    CORE_SYNC_ADD_TCB
+    CORE_SYNC_ADD_TCB,
+    CORE_SYNC_SWITCH_CONTEXT
 } core_sync_event_t;
 
 void core_sync_request(uint64_t core_id, int event);

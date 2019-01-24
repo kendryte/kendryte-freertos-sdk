@@ -313,14 +313,10 @@ static void handle_ecall(uintptr_t *regs)
 
     uintptr_t n = regs[REG_A7];
 
-    if (n == SYS_switch_ctx)
-    {
-        sys_switchcontext();
-        regs[REG_EPC] += 4;
-    }
-    else if (n == SYS_apc_return)
+    if (n == SYS_apc_return)
     {
         regs[REG_EPC] = regs[REG_APC_RET];
+        regs[REG_A7] = regs[REG_APC_PROC];
     }
     else
     {

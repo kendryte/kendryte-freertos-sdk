@@ -42,6 +42,9 @@ void handle_irq_m_soft(uintptr_t *regs, uintptr_t cause)
         }
     }
     break;
+    case CORE_SYNC_SWITCH_CONTEXT:
+        vTaskSwitchContext();
+        break;
     default:
         break;
     }

@@ -2096,7 +2096,7 @@ void vTaskSuspendAll( void )
 	post in the FreeRTOS support forum before reporting this as a bug! -
 	http://goo.gl/wu4acr */
 	UBaseType_t uxPsrId = uxPortGetProcessorId();
-	++uxSchedulerSuspended[uxPsrId];
+    ++uxSchedulerSuspended[uxPsrId];
 }
 /*----------------------------------------------------------*/
 

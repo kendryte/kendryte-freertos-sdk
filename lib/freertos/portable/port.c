@@ -197,11 +197,7 @@ void vPortExitCritical(void)
 
 void vPortYield()
 {
-    register long a0 asm("a0") = 0;
-    register long syscall_id asm("a7") = SYS_switch_ctx;
-    asm volatile("scall"
-                 : "+r"(a0)
-                 : "r"(syscall_id));
+    core_sync_request(uxPortGetProcessorId(), CORE_SYNC_SWITCH_CONTEXT);
 }
 
 void vPortYieldFromISR(void)
