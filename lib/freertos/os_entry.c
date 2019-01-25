@@ -48,10 +48,6 @@ static void main_thunk(void *p)
     /* Init libc array for C++ */
     __libc_init_array();
 
-    clear_csr(mie, MIP_MTIP);
-    clint_ipi_enable();
-    set_csr(mstatus, MSTATUS_MIE);
-
     install_hal();
     install_drivers();
     configure_fpioa();
@@ -71,6 +67,10 @@ static void os_entry_core1()
 
 int os_entry(int (*user_main)(int, char **))
 {
+    clear_csr(mie, MIP_MTIP);
+    clint_ipi_enable();
+    set_csr(mstatus, MSTATUS_MIE);
+
     TaskHandle_t mainTask;
     main_thunk_param_t param = {};
     param.user_main = user_main;

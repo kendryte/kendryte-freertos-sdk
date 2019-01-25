@@ -123,6 +123,15 @@ _start:
   jr t1
 2:
   la sp, _idle_stack0_top
+  
+  # clear the bss segment
+  la t0, __bss_start
+  la t1, __bss_end
+1:
+  sd zero, 0(t0)
+  addi t0, t0, 8
+  bltu t0, t1, 1b
+
   la t0, _init_bsp
   jr t0
   

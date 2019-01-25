@@ -20,49 +20,49 @@
 void __attribute__((weak)) handle_misaligned_fetch(uintptr_t *regs, uintptr_t cause)
 {
     dump_core("misaligned fetch", regs, cause);
-    exit(1337);
+    sys_exit(1337);
 }
 
 void __attribute__((weak)) handle_fault_fetch(uintptr_t *regs, uintptr_t cause)
 {
     dump_core("fault fetch", regs, cause);
-    exit(1337);
+    sys_exit(1337);
 }
 
 void __attribute__((weak)) handle_illegal_instruction(uintptr_t *regs, uintptr_t cause)
 {
     dump_core("illegal instruction", regs, cause);
-    exit(1337);
+    sys_exit(1337);
 }
 
 void __attribute__((weak)) handle_breakpoint(uintptr_t *regs, uintptr_t cause)
 {
     dump_core("breakpoint", regs, cause);
-    exit(1337);
+    sys_exit(1337);
 }
 
 void __attribute__((weak)) handle_misaligned_load(uintptr_t *regs, uintptr_t cause)
 {
     dump_core("misaligned load", regs, cause);
-    exit(1337);
+    sys_exit(1337);
 }
 
 void __attribute__((weak)) handle_fault_load(uintptr_t *regs, uintptr_t cause)
 {
     dump_core("fault load", regs, cause);
-    exit(1337);
+    sys_exit(1337);
 }
 
 void __attribute__((weak)) handle_misaligned_store(uintptr_t *regs, uintptr_t cause)
 {
     dump_core("misaligned store", regs, cause);
-    exit(1337);
+    sys_exit(1337);
 }
 
 void __attribute__((weak)) handle_fault_store(uintptr_t *regs, uintptr_t cause)
 {
     dump_core("fault store", regs, cause);
-    exit(1337);
+    sys_exit(1337);
 }
 
 void handle_except(uintptr_t *regs, uintptr_t cause)

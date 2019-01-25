@@ -27,8 +27,6 @@
 #define PLL1_OUTPUT_FREQ 160000000UL
 #define PLL2_OUTPUT_FREQ 45158400UL
 
-extern uint8_t __bss_start[];
-extern uint8_t __bss_end[];
 extern uint8_t _tls_data[];
 
 extern int main(int argc, char *argv[]);
@@ -40,15 +38,8 @@ static void setup_clocks()
     sysctl_pll_set_freq(SYSCTL_PLL2, PLL2_OUTPUT_FREQ);
 }
 
-static void init_bss(void)
-{
-    memset(__bss_start, 0, __bss_end - __bss_start);
-}
-
 void _init_bsp()
 {
-    /* Initialize bss data to 0 */
-    init_bss();
     /* Init FPIOA */
     fpioa_init();
     bsp_pin_setup();

@@ -160,7 +160,7 @@ int vPortSetInterruptMask(void)
     int ret;
     __asm volatile("csrr %0,mie"
                    : "=r"(ret));
-    __asm volatile("csrc mie,%0" ::"i"(7));
+    __asm volatile("csrc mie,%0" ::"r"(0x888));
     return ret;
 }
 /*-----------------------------------------------------------*/
