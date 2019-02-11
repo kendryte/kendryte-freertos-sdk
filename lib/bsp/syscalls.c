@@ -96,7 +96,7 @@ static const char *TAG = "SYSCALL";
 
 extern char _heap_start[];
 extern char _heap_end[];
-extern void sys_queue_apc();
+extern void sys_apc_thunk();
 char *_heap_cur = &_heap_start[0];
 
 void __attribute__((noreturn)) sys_exit(int code)
@@ -357,7 +357,7 @@ static void handle_ecall(uintptr_t *regs)
 #endif
         regs[REG_APC_PROC] = (uintptr_t)syscall_table[syscall_id];
         regs[REG_APC_RET] = regs[REG_EPC] + 4;
-        regs[REG_EPC] = (uintptr_t)sys_queue_apc;
+        regs[REG_EPC] = (uintptr_t)sys_apc_thunk;
     }
 }
 

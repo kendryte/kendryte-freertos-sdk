@@ -14,7 +14,7 @@ add_compile_flags(LD
 # C Flags Settings
 add_compile_flags(BOTH
         -mcmodel=medany
-		-march=rv64imafc
+		-march=rv64imafdc
         -fno-common
         -ffunction-sections
         -fdata-sections
