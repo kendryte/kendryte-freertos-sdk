@@ -200,7 +200,7 @@ trap_entry:
   # Read 4bytes instruction from mepc
   lhu t1, 0(t0)
   lhu t2, 2(t0)
-  slli t1, t1, 16
+  slli t2, t2, 16
   or t1, t1, t2
   li t2, 0xfff0007f
   mv t3, t1
