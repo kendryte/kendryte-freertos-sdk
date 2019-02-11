@@ -46,7 +46,6 @@ struct kernel_stat
 int sys_open(const char *name, int flags, int mode);
 off_t sys_lseek(int fildes, off_t offset, int whence);
 int sys_fstat(int fd, struct kernel_stat *buf);
-void sys_switchcontext();
 
 #ifdef __cplusplus
 }

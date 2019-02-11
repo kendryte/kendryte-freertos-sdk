@@ -112,8 +112,3 @@ int sys_fstat(int fd, struct kernel_stat *buf)
         return -1;
     }
 }
-
-void sys_switchcontext()
-{
-    vTaskSwitchContext();
-}

@@ -204,9 +204,9 @@ trap_entry:
   or t1, t1, t2
   li t2, 0xfff0007f
   mv t3, t1
-  sub t3, t3, t2
+  and t3, t3, t2
   # Skip
-  bnez t3, 1f
+  bne t2, t3, 1f
 
   csrr t4, mhartid
   slli t4, t4, 3
