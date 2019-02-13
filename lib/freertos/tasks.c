@@ -2096,7 +2096,7 @@ void vTaskSuspendAll( void )
 	post in the FreeRTOS support forum before reporting this as a bug! -
 	http://goo.gl/wu4acr */
 	UBaseType_t uxPsrId = uxPortGetProcessorId();
-	++uxSchedulerSuspended[uxPsrId];
+    ++uxSchedulerSuspended[uxPsrId];
 }
 /*----------------------------------------------------------*/
 
@@ -2924,7 +2924,11 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 void vTaskSwitchContext( void )
 {
 	UBaseType_t uxPsrId = uxPortGetProcessorId();
-	if( uxSchedulerSuspended[uxPsrId] != ( UBaseType_t ) pdFALSE )
+    if (xSchedulerRunning[uxPsrId] != pdTRUE)
+    {
+        return;
+    }
+	else if( uxSchedulerSuspended[uxPsrId] != ( UBaseType_t ) pdFALSE )
 	{
 		/* The scheduler is currently suspended - do not allow a context
 		switch. */
@@ -3870,7 +3874,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 		}
 		else
 		{
-			if( uxSchedulerSuspended[uxPsrId] == ( UBaseType_t ) pdFALSE )
+			if( uxSchedulerSuspended[uxPortGetProcessorId()] == ( UBaseType_t ) pdFALSE )
 			{
 				xReturn = taskSCHEDULER_RUNNING;
 			}

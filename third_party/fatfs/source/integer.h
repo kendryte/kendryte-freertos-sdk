@@ -18,8 +18,8 @@ typedef unsigned short	WORD;
 typedef unsigned short	WCHAR;
 
 /* These types MUST be 32-bit */
-typedef long			LONG;
-typedef unsigned long	DWORD;
+typedef int			    LONG;
+typedef unsigned int	DWORD;
 
 /* This type MUST be 64-bit (Remove this for ANSI C (C89) compatibility) */
 typedef unsigned long long QWORD;

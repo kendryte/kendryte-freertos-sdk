@@ -53,12 +53,14 @@ SECTIONS
     KEEP( *(.text.start) )
     KEEP( *(.text.systick) )
   } > ram : DATA
-
+  
   .init :
   {
     KEEP (*(SORT_NONE(.init)))
   } > ram : DATA
-
+  
+  . = ALIGN(8);
+  . = .;
   .text :
   {
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
@@ -163,6 +165,7 @@ SECTIONS
   } > ram : DATA
   _edata = .; PROVIDE (edata = .);
   
+  . = ALIGN(8);
   . = .;
   __bss_start = .;
   .sbss2 : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) } > ram : DYN_DATA

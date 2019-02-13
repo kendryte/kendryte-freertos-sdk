@@ -92,23 +92,11 @@
 #define UNUSED(x) (void)(x)
 #endif
 
-#define SYS_RET(epc_val, err_val) \
-    syscall_ret_t ret = {         \
-        .err = err_val,           \
-        .epc = epc_val            \
-    };                            \
-    return ret;
-
-typedef struct _syscall_ret
-{
-    uintptr_t err;
-    uintptr_t epc;
-} syscall_ret_t;
-
 static const char *TAG = "SYSCALL";
 
 extern char _heap_start[];
 extern char _heap_end[];
+extern void sys_apc_thunk();
 char *_heap_cur = &_heap_start[0];
 
 void __attribute__((noreturn)) sys_exit(int code)
@@ -124,6 +112,9 @@ static int sys_nosys(long a0, long a1, long a2, long a3, long a4, long a5, unsig
     UNUSED(a3);
     UNUSED(a4);
     UNUSED(a5);
+
+    LOGW(TAG, "Unimplemented syscall 0x%lx\n", (uint64_t)n);
+    exit(ENOSYS);
 
     return -ENOSYS;
 }
@@ -284,7 +275,7 @@ static int sys_gettimeofday(struct timeval *tp, void *tzp)
     return 0;
 }
 
-static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n)
+static void handle_ecall(uintptr_t *regs)
 {
     enum syscall_id_e
     {
@@ -313,94 +304,76 @@ static syscall_ret_t handle_ecall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uint
         [SYS_ID_FSTAT] = (void *)sys_fstat,
         [SYS_ID_CLOSE] = (void *)sys_close,
         [SYS_ID_GETTIMEOFDAY] = (void *)sys_gettimeofday,
-        [SYS_ID_LSEEK] = (void *)sys_lseek,
+        [SYS_ID_LSEEK] = (void *)sys_lseek
     };
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic ignored "-Woverride-init"
 #endif
-    static const uint8_t syscall_id_table[0x100] = {
-        [0x00 ... 0xFF] = SYS_ID_NOSYS,
-        [0xFF & SYS_exit] = SYS_ID_EXIT,
-        [0xFF & SYS_exit_group] = SYS_ID_EXIT,
-        [0xFF & SYS_getpid] = SYS_ID_NOSYS,
-        [0xFF & SYS_kill] = SYS_ID_NOSYS,
-        [0xFF & SYS_read] = SYS_ID_READ,
-        [0xFF & SYS_write] = SYS_ID_WRITE,
-        [0xFF & SYS_open] = SYS_ID_OPEN,
-        [0xFF & SYS_openat] = SYS_ID_NOSYS,
-        [0xFF & SYS_close] = SYS_ID_CLOSE,
-        [0xFF & SYS_lseek] = SYS_ID_LSEEK,
-        [0xFF & SYS_brk] = SYS_ID_BRK,
-        [0xFF & SYS_link] = SYS_ID_NOSYS,
-        [0xFF & SYS_unlink] = SYS_ID_NOSYS,
-        [0xFF & SYS_mkdir] = SYS_ID_NOSYS,
-        [0xFF & SYS_chdir] = SYS_ID_NOSYS,
-        [0xFF & SYS_getcwd] = SYS_ID_NOSYS,
-        [0xFF & SYS_stat] = SYS_ID_NOSYS,
-        [0xFF & SYS_fstat] = SYS_ID_FSTAT,
-        [0xFF & SYS_lstat] = SYS_ID_NOSYS,
-        [0xFF & SYS_fstatat] = SYS_ID_NOSYS,
-        [0xFF & SYS_access] = SYS_ID_NOSYS,
-        [0xFF & SYS_faccessat] = SYS_ID_NOSYS,
-        [0xFF & SYS_pread] = SYS_ID_NOSYS,
-        [0xFF & SYS_pwrite] = SYS_ID_NOSYS,
-        [0xFF & SYS_uname] = SYS_ID_NOSYS,
-        [0xFF & SYS_getuid] = SYS_ID_NOSYS,
-        [0xFF & SYS_geteuid] = SYS_ID_NOSYS,
-        [0xFF & SYS_getgid] = SYS_ID_NOSYS,
-        [0xFF & SYS_getegid] = SYS_ID_NOSYS,
-        [0xFF & SYS_mmap] = SYS_ID_NOSYS,
-        [0xFF & SYS_munmap] = SYS_ID_NOSYS,
-        [0xFF & SYS_mremap] = SYS_ID_NOSYS,
-        [0xFF & SYS_time] = SYS_ID_NOSYS,
-        [0xFF & SYS_getmainvars] = SYS_ID_NOSYS,
-        [0xFF & SYS_rt_sigaction] = SYS_ID_NOSYS,
-        [0xFF & SYS_writev] = SYS_ID_NOSYS,
-        [0xFF & SYS_gettimeofday] = SYS_ID_GETTIMEOFDAY,
-        [0xFF & SYS_times] = SYS_ID_NOSYS,
-        [0xFF & SYS_fcntl] = SYS_ID_NOSYS,
-        [0xFF & SYS_getdents] = SYS_ID_NOSYS,
-        [0xFF & SYS_dup] = SYS_ID_NOSYS,
-    };
+
+    uintptr_t n = regs[REG_A7];
+
+    if (n == SYS_apc_return)
+    {
+        regs[REG_EPC] = regs[REG_APC_RET];
+        regs[REG_A7] = regs[REG_APC_PROC];
+    }
+    else
+    {
+        uintptr_t syscall_id = SYS_ID_NOSYS;
+        switch (n)
+        {
+        case SYS_exit:
+        case SYS_exit_group:
+            syscall_id = SYS_ID_EXIT;
+            break;
+        case SYS_read:
+            syscall_id = SYS_ID_READ;
+            break;
+        case SYS_write:
+            syscall_id = SYS_ID_WRITE;
+            break;
+        case SYS_open:
+            syscall_id = SYS_ID_OPEN;
+            break;
+        case SYS_close:
+            syscall_id = SYS_ID_CLOSE;
+            break;
+        case SYS_lseek:
+            syscall_id = SYS_ID_LSEEK;
+            break;
+        case SYS_brk:
+            syscall_id = SYS_ID_BRK;
+            break;
+        case SYS_fstat:
+            syscall_id = SYS_ID_FSTAT;
+            break;
+        case SYS_gettimeofday:
+            syscall_id = SYS_ID_GETTIMEOFDAY;
+            break;
+        }
 #if defined(__GNUC__)
 #pragma GCC diagnostic warning "-Woverride-init"
 #endif
-
-    uintptr_t err = syscall_table[syscall_id_table[0xFF & n]](
-        a0, /* a0 */
-        a1, /* a1 */
-        a2, /* a2 */
-        a3, /* a3 */
-        a4, /* a4 */
-        a5, /* a5 */
-        n /* n */
-    );
-
-    epc += 4;
-    SYS_RET(epc, err);
+        regs[REG_APC_PROC] = (uintptr_t)syscall_table[syscall_id];
+        regs[REG_APC_RET] = regs[REG_EPC] + 4;
+        regs[REG_EPC] = (uintptr_t)sys_apc_thunk;
+    }
 }
 
-syscall_ret_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_u(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
+void __attribute__((weak, alias("handle_ecall"))) handle_ecall_u(uintptr_t *regs);
+void __attribute__((weak, alias("handle_ecall"))) handle_ecall_h(uintptr_t *regs);
+void __attribute__((weak, alias("handle_ecall"))) handle_ecall_s(uintptr_t *regs);
+void __attribute__((weak, alias("handle_ecall"))) handle_ecall_m(uintptr_t *regs);
 
-syscall_ret_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_h(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
-
-syscall_ret_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_s(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
-
-syscall_ret_t __attribute__((weak, alias("handle_ecall")))
-handle_ecall_m(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n);
-
-syscall_ret_t handle_syscall(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n)
+void handle_syscall(uintptr_t *regs, uintptr_t cause)
 {
-    static syscall_ret_t (*const cause_table[])(uintptr_t a0, uintptr_t a1, uintptr_t a2, uintptr_t a3, uintptr_t a4, uintptr_t a5, uintptr_t epc, uintptr_t n) = {
+    static void (*const cause_table[])(uintptr_t * regs) = {
         [CAUSE_USER_ECALL] = handle_ecall_u,
         [CAUSE_SUPERVISOR_ECALL] = handle_ecall_h,
         [CAUSE_HYPERVISOR_ECALL] = handle_ecall_s,
         [CAUSE_MACHINE_ECALL] = handle_ecall_m,
     };
 
-    return cause_table[read_csr(mcause)](a0, a1, a2, a3, a4, a5, epc, n);
+    cause_table[cause & CAUSE_MACHINE_IRQ_REASON_MASK](regs);
 }

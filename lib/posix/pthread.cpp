@@ -196,7 +196,7 @@ int pthread_join(pthread_t pthread, void **retval)
         (void)xSemaphoreTake(&k_thrd->join_barrier, portMAX_DELAY);
 
         /* Create a critical section to clean up the joined thread. */
-        vTaskSuspendAll();
+        //vTaskSuspendAll();
 
         /* Release xJoinBarrier and delete it. */
         (void)xSemaphoreGive(&k_thrd->join_barrier);
@@ -219,7 +219,7 @@ int pthread_join(pthread_t pthread, void **retval)
         delete k_thrd;
 
         /* End the critical section. */
-        xTaskResumeAll();
+        //xTaskResumeAll();
     }
 
     return iStatus;

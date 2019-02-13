@@ -94,12 +94,11 @@ typedef unsigned long UBaseType_t;
 #define portCRITICAL_NESTING_IN_TCB					1
 /*-----------------------------------------------------------*/
 
-
 /* Scheduler utilities. */
-extern void vPortYield( void );
-#define portYIELD()					vPortYield()
-
+extern void vPortYield(void);
 extern void vPortYieldFromISR(void);
+#define portYIELD()					vPortYield()
+#define portYIELD_FROM_ISR()        vPortYieldFromISR()
 /*-----------------------------------------------------------*/
 
 /* Architecture specific optimisations. */
@@ -136,7 +135,9 @@ void vPortAddNewTaskToReadyListAsync(UBaseType_t uxPsrId, void* pxNewTaskHandle)
 void vPortEnterCritical(void);
 void vPortExitCritical(void);
 
-UBaseType_t uxPortGetCPUClock();
+UBaseType_t uxPortGetCPUClock(void);
+UBaseType_t uxPortIsInISR(void);
+void vPortDebugBreak(void);
 
 #define portGET_PROCESSOR_ID() uxPortGetProcessorId()
 

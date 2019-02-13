@@ -28,67 +28,61 @@ typedef struct
     int ret;
 } main_thunk_param_t;
 
+extern void __libc_init_array(void);
+extern void __libc_fini_array(void);
+
 static StaticTask_t s_idle_task;
 static StackType_t s_idle_task_stack[configMINIMAL_STACK_SIZE];
 
 void start_scheduler(int core_id);
-
-static void main_thunk(void *p)
-{
-    main_thunk_param_t *param = (main_thunk_param_t *)p;
-    param->ret = param->user_main(0, 0);
-}
-
-void enable_core(int core_id)
-{
-    core_sync_awaken(core_id);
-}
 
 int __attribute__((weak)) configure_fpioa()
 {
     return 0;
 }
 
-int os_entry(int core_id, int number_of_cores, int (*user_main)(int, char **))
+static void main_thunk(void *p)
+{
+    /* Register finalization function */
+    atexit(__libc_fini_array);
+    /* Init libc array for C++ */
+    __libc_init_array();
+
+    install_hal();
+    install_drivers();
+    configure_fpioa();
+
+    main_thunk_param_t *param = (main_thunk_param_t *)p;
+    param->ret = param->user_main(0, 0);
+}
+
+static void os_entry_core1()
 {
     clear_csr(mie, MIP_MTIP);
     clint_ipi_enable();
     set_csr(mstatus, MSTATUS_MIE);
 
-    if (core_id == 0)
-    {
-        install_hal();
-        install_drivers();
-        configure_fpioa();
-
-        TaskHandle_t mainTask;
-        main_thunk_param_t param = {};
-        param.user_main = user_main;
-
-        if (xTaskCreate(main_thunk, "Core 0 Main", configMAIN_TASK_STACK_SIZE, &param, configMAIN_TASK_PRIORITY, &mainTask) != pdPASS)
-        {
-            return -1;
-        }
-
-        enable_core(1);
-        start_scheduler(core_id);
-        return param.ret;
-    }
-    else
-    {
-        while (!core_sync_is_awake(core_id))
-        {
-            asm volatile("wfi");
-        }
-
-        start_scheduler(core_id);
-        return 0;
-    }
+    vTaskStartScheduler();
 }
 
-void start_scheduler(int core_id)
+int os_entry(int (*user_main)(int, char **))
 {
+    clear_csr(mie, MIP_MTIP);
+    clint_ipi_enable();
+    set_csr(mstatus, MSTATUS_MIE);
+
+    TaskHandle_t mainTask;
+    main_thunk_param_t param = {};
+    param.user_main = user_main;
+
+    if (xTaskCreate(main_thunk, "Core 0 Main", configMAIN_TASK_STACK_SIZE, &param, configMAIN_TASK_PRIORITY, &mainTask) != pdPASS)
+    {
+        return -1;
+    }
+
+    //core_sync_awaken((uintptr_t)os_entry_core1);
     vTaskStartScheduler();
+    return param.ret;
 }
 
 void vApplicationIdleHook(void)

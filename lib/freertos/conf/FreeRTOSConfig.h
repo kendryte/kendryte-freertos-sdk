@@ -92,7 +92,7 @@ enum
 #define configUSE_DAEMON_TASK_STARTUP_HOOK		0
 
 /* memory */
-#define configMINIMAL_STACK_SIZE			( ( unsigned short ) 1024 )
+#define configMINIMAL_STACK_SIZE			( ( unsigned short ) 20480 )
 #define configTOTAL_HEAP_SIZE				( ( size_t ) ( 1024 * 1024 ) )
 #define configSUPPORT_STATIC_ALLOCATION			1
 #define configSUPPORT_DYNAMIC_ALLOCATION		1
@@ -114,7 +114,7 @@ enum
 #define configTIMER_TASK_STACK_DEPTH			( configMINIMAL_STACK_SIZE )
 
 /* Main task */
-#define configMAIN_TASK_PRIORITY				1
+#define configMAIN_TASK_PRIORITY				0
 #define configMAIN_TASK_STACK_SIZE				(4096 * 8)
 
 /* Set the following definitions to 1 to include the API function, or zero to exclude the API function. */
@@ -127,6 +127,7 @@ enum
 #define INCLUDE_vTaskDelay						1
 #define INCLUDE_eTaskGetState					1
 #define INCLUDE_xTaskAbortDelay					1
+#define INCLUDE_xTaskGetSchedulerState          1
 
 #define INCLUDE_xSemaphoreGetMutexHolder        1
 

@@ -589,7 +589,7 @@ private:
         }
 
         if (xHigherPriorityTaskWoken)
-            portYIELD();
+            portYIELD_FROM_ISR();
     }
 
     static int is_memory(uintptr_t address)
