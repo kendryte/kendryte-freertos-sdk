@@ -75,38 +75,38 @@ _start:
   csrs mstatus, t0
   
   fssr    x0
-  fmv.d.x f0, x0
-  fmv.d.x f1, x0
-  fmv.d.x f2, x0
-  fmv.d.x f3, x0
-  fmv.d.x f4, x0
-  fmv.d.x f5, x0
-  fmv.d.x f6, x0
-  fmv.d.x f7, x0
-  fmv.d.x f8, x0
-  fmv.d.x f9, x0
-  fmv.d.x f10,x0
-  fmv.d.x f11,x0
-  fmv.d.x f12,x0
-  fmv.d.x f13,x0
-  fmv.d.x f14,x0
-  fmv.d.x f15,x0
-  fmv.d.x f16,x0
-  fmv.d.x f17,x0
-  fmv.d.x f18,x0
-  fmv.d.x f19,x0
-  fmv.d.x f20,x0
-  fmv.d.x f21,x0
-  fmv.d.x f22,x0
-  fmv.d.x f23,x0
-  fmv.d.x f24,x0
-  fmv.d.x f25,x0
-  fmv.d.x f26,x0
-  fmv.d.x f27,x0
-  fmv.d.x f28,x0
-  fmv.d.x f29,x0
-  fmv.d.x f30,x0
-  fmv.d.x f31,x0
+  fmv.w.x f0, x0
+  fmv.w.x f1, x0
+  fmv.w.x f2, x0
+  fmv.w.x f3, x0
+  fmv.w.x f4, x0
+  fmv.w.x f5, x0
+  fmv.w.x f6, x0
+  fmv.w.x f7, x0
+  fmv.w.x f8, x0
+  fmv.w.x f9, x0
+  fmv.w.x f10,x0
+  fmv.w.x f11,x0
+  fmv.w.x f12,x0
+  fmv.w.x f13,x0
+  fmv.w.x f14,x0
+  fmv.w.x f15,x0
+  fmv.w.x f16,x0
+  fmv.w.x f17,x0
+  fmv.w.x f18,x0
+  fmv.w.x f19,x0
+  fmv.w.x f20,x0
+  fmv.w.x f21,x0
+  fmv.w.x f22,x0
+  fmv.w.x f23,x0
+  fmv.w.x f24,x0
+  fmv.w.x f25,x0
+  fmv.w.x f26,x0
+  fmv.w.x f27,x0
+  fmv.w.x f28,x0
+  fmv.w.x f29,x0
+  fmv.w.x f30,x0
+  fmv.w.x f31,x0
 
 .option push
 .option norelax
@@ -195,61 +195,38 @@ trap_entry:
   sd x30, 30 * REGBYTES(sp)
   sd x31, 31 * REGBYTES(sp)
 
-  # Workaround for fdiv.s/fsqrt.s
-  csrr t0, mepc
-  # Read 4bytes instruction from mepc
-  lhu t1, 0(t0)
-  lhu t2, 2(t0)
-  slli t2, t2, 16
-  or t1, t1, t2
-  li t2, 0xfff0007f
-  mv t3, t1
-  and t3, t3, t2
-  # Skip
-  bne t2, t3, 1f
-
-  csrr t4, mhartid
-  slli t4, t4, 3
-  la t2, _patch_code
-  add t2, t2, t4
-  sd t1, 0(t2)
-  fence.i
-  jalr t1
-  addi t0, t0, 4
-  csrw mepc, t0
-1:
-  fsd f0,  ( 0 + 32) * REGBYTES(sp)
-  fsd f1,  ( 1 + 32) * REGBYTES(sp)
-  fsd f2,  ( 2 + 32) * REGBYTES(sp)
-  fsd f3,  ( 3 + 32) * REGBYTES(sp)
-  fsd f4,  ( 4 + 32) * REGBYTES(sp)
-  fsd f5,  ( 5 + 32) * REGBYTES(sp)
-  fsd f6,  ( 6 + 32) * REGBYTES(sp)
-  fsd f7,  ( 7 + 32) * REGBYTES(sp)
-  fsd f8,  ( 8 + 32) * REGBYTES(sp)
-  fsd f9,  ( 9 + 32) * REGBYTES(sp)
-  fsd f10, (10 + 32) * REGBYTES(sp)
-  fsd f11, (11 + 32) * REGBYTES(sp)
-  fsd f12, (12 + 32) * REGBYTES(sp)
-  fsd f13, (13 + 32) * REGBYTES(sp)
-  fsd f14, (14 + 32) * REGBYTES(sp)
-  fsd f15, (15 + 32) * REGBYTES(sp)
-  fsd f16, (16 + 32) * REGBYTES(sp)
-  fsd f17, (17 + 32) * REGBYTES(sp)
-  fsd f18, (18 + 32) * REGBYTES(sp)
-  fsd f19, (19 + 32) * REGBYTES(sp)
-  fsd f20, (20 + 32) * REGBYTES(sp)
-  fsd f21, (21 + 32) * REGBYTES(sp)
-  fsd f22, (22 + 32) * REGBYTES(sp)
-  fsd f23, (23 + 32) * REGBYTES(sp)
-  fsd f24, (24 + 32) * REGBYTES(sp)
-  fsd f25, (25 + 32) * REGBYTES(sp)
-  fsd f26, (26 + 32) * REGBYTES(sp)
-  fsd f27, (27 + 32) * REGBYTES(sp)
-  fsd f28, (28 + 32) * REGBYTES(sp)
-  fsd f29, (29 + 32) * REGBYTES(sp)
-  fsd f30, (30 + 32) * REGBYTES(sp)
-  fsd f31, (31 + 32) * REGBYTES(sp)
+  fsw f0,  ( 0 + 32) * REGBYTES(sp)
+  fsw f1,  ( 1 + 32) * REGBYTES(sp)
+  fsw f2,  ( 2 + 32) * REGBYTES(sp)
+  fsw f3,  ( 3 + 32) * REGBYTES(sp)
+  fsw f4,  ( 4 + 32) * REGBYTES(sp)
+  fsw f5,  ( 5 + 32) * REGBYTES(sp)
+  fsw f6,  ( 6 + 32) * REGBYTES(sp)
+  fsw f7,  ( 7 + 32) * REGBYTES(sp)
+  fsw f8,  ( 8 + 32) * REGBYTES(sp)
+  fsw f9,  ( 9 + 32) * REGBYTES(sp)
+  fsw f10, (10 + 32) * REGBYTES(sp)
+  fsw f11, (11 + 32) * REGBYTES(sp)
+  fsw f12, (12 + 32) * REGBYTES(sp)
+  fsw f13, (13 + 32) * REGBYTES(sp)
+  fsw f14, (14 + 32) * REGBYTES(sp)
+  fsw f15, (15 + 32) * REGBYTES(sp)
+  fsw f16, (16 + 32) * REGBYTES(sp)
+  fsw f17, (17 + 32) * REGBYTES(sp)
+  fsw f18, (18 + 32) * REGBYTES(sp)
+  fsw f19, (19 + 32) * REGBYTES(sp)
+  fsw f20, (20 + 32) * REGBYTES(sp)
+  fsw f21, (21 + 32) * REGBYTES(sp)
+  fsw f22, (22 + 32) * REGBYTES(sp)
+  fsw f23, (23 + 32) * REGBYTES(sp)
+  fsw f24, (24 + 32) * REGBYTES(sp)
+  fsw f25, (25 + 32) * REGBYTES(sp)
+  fsw f26, (26 + 32) * REGBYTES(sp)
+  fsw f27, (27 + 32) * REGBYTES(sp)
+  fsw f28, (28 + 32) * REGBYTES(sp)
+  fsw f29, (29 + 32) * REGBYTES(sp)
+  fsw f30, (30 + 32) * REGBYTES(sp)
+  fsw f31, (31 + 32) * REGBYTES(sp)
 
   # Store mepc
   csrr t0, mepc
@@ -345,38 +322,38 @@ trap_entry:
   ld x30, 30 * REGBYTES(a0)
   ld x31, 31 * REGBYTES(a0)
 
-  fld f0,  ( 0 + 32) * REGBYTES(a0)
-  fld f1,  ( 1 + 32) * REGBYTES(a0)
-  fld f2,  ( 2 + 32) * REGBYTES(a0)
-  fld f3,  ( 3 + 32) * REGBYTES(a0)
-  fld f4,  ( 4 + 32) * REGBYTES(a0)
-  fld f5,  ( 5 + 32) * REGBYTES(a0)
-  fld f6,  ( 6 + 32) * REGBYTES(a0)
-  fld f7,  ( 7 + 32) * REGBYTES(a0)
-  fld f8,  ( 8 + 32) * REGBYTES(a0)
-  fld f9,  ( 9 + 32) * REGBYTES(a0)
-  fld f10, (10 + 32) * REGBYTES(a0)
-  fld f11, (11 + 32) * REGBYTES(a0)
-  fld f12, (12 + 32) * REGBYTES(a0)
-  fld f13, (13 + 32) * REGBYTES(a0)
-  fld f14, (14 + 32) * REGBYTES(a0)
-  fld f15, (15 + 32) * REGBYTES(a0)
-  fld f16, (16 + 32) * REGBYTES(a0)
-  fld f17, (17 + 32) * REGBYTES(a0)
-  fld f18, (18 + 32) * REGBYTES(a0)
-  fld f19, (19 + 32) * REGBYTES(a0)
-  fld f20, (20 + 32) * REGBYTES(a0)
-  fld f21, (21 + 32) * REGBYTES(a0)
-  fld f22, (22 + 32) * REGBYTES(a0)
-  fld f23, (23 + 32) * REGBYTES(a0)
-  fld f24, (24 + 32) * REGBYTES(a0)
-  fld f25, (25 + 32) * REGBYTES(a0)
-  fld f26, (26 + 32) * REGBYTES(a0)
-  fld f27, (27 + 32) * REGBYTES(a0)
-  fld f28, (28 + 32) * REGBYTES(a0)
-  fld f29, (29 + 32) * REGBYTES(a0)
-  fld f30, (30 + 32) * REGBYTES(a0)
-  fld f31, (31 + 32) * REGBYTES(a0)
+  flw f0,  ( 0 + 32) * REGBYTES(a0)
+  flw f1,  ( 1 + 32) * REGBYTES(a0)
+  flw f2,  ( 2 + 32) * REGBYTES(a0)
+  flw f3,  ( 3 + 32) * REGBYTES(a0)
+  flw f4,  ( 4 + 32) * REGBYTES(a0)
+  flw f5,  ( 5 + 32) * REGBYTES(a0)
+  flw f6,  ( 6 + 32) * REGBYTES(a0)
+  flw f7,  ( 7 + 32) * REGBYTES(a0)
+  flw f8,  ( 8 + 32) * REGBYTES(a0)
+  flw f9,  ( 9 + 32) * REGBYTES(a0)
+  flw f10, (10 + 32) * REGBYTES(a0)
+  flw f11, (11 + 32) * REGBYTES(a0)
+  flw f12, (12 + 32) * REGBYTES(a0)
+  flw f13, (13 + 32) * REGBYTES(a0)
+  flw f14, (14 + 32) * REGBYTES(a0)
+  flw f15, (15 + 32) * REGBYTES(a0)
+  flw f16, (16 + 32) * REGBYTES(a0)
+  flw f17, (17 + 32) * REGBYTES(a0)
+  flw f18, (18 + 32) * REGBYTES(a0)
+  flw f19, (19 + 32) * REGBYTES(a0)
+  flw f20, (20 + 32) * REGBYTES(a0)
+  flw f21, (21 + 32) * REGBYTES(a0)
+  flw f22, (22 + 32) * REGBYTES(a0)
+  flw f23, (23 + 32) * REGBYTES(a0)
+  flw f24, (24 + 32) * REGBYTES(a0)
+  flw f25, (25 + 32) * REGBYTES(a0)
+  flw f26, (26 + 32) * REGBYTES(a0)
+  flw f27, (27 + 32) * REGBYTES(a0)
+  flw f28, (28 + 32) * REGBYTES(a0)
+  flw f29, (29 + 32) * REGBYTES(a0)
+  flw f30, (30 + 32) * REGBYTES(a0)
+  flw f31, (31 + 32) * REGBYTES(a0)
 
   # Restore a0
   addi sp, sp, NUM_XCEPT_REGS * REGBYTES
@@ -418,38 +395,38 @@ sys_apc_thunk:
   ld x30, 30 * REGBYTES(sp)
   ld x31, 31 * REGBYTES(sp)
 
-  fld f0,  ( 0 + 32) * REGBYTES(sp)
-  fld f1,  ( 1 + 32) * REGBYTES(sp)
-  fld f2,  ( 2 + 32) * REGBYTES(sp)
-  fld f3,  ( 3 + 32) * REGBYTES(sp)
-  fld f4,  ( 4 + 32) * REGBYTES(sp)
-  fld f5,  ( 5 + 32) * REGBYTES(sp)
-  fld f6,  ( 6 + 32) * REGBYTES(sp)
-  fld f7,  ( 7 + 32) * REGBYTES(sp)
-  fld f8,  ( 8 + 32) * REGBYTES(sp)
-  fld f9,  ( 9 + 32) * REGBYTES(sp)
-  fld f10, (10 + 32) * REGBYTES(sp)
-  fld f11, (11 + 32) * REGBYTES(sp)
-  fld f12, (12 + 32) * REGBYTES(sp)
-  fld f13, (13 + 32) * REGBYTES(sp)
-  fld f14, (14 + 32) * REGBYTES(sp)
-  fld f15, (15 + 32) * REGBYTES(sp)
-  fld f16, (16 + 32) * REGBYTES(sp)
-  fld f17, (17 + 32) * REGBYTES(sp)
-  fld f18, (18 + 32) * REGBYTES(sp)
-  fld f19, (19 + 32) * REGBYTES(sp)
-  fld f20, (20 + 32) * REGBYTES(sp)
-  fld f21, (21 + 32) * REGBYTES(sp)
-  fld f22, (22 + 32) * REGBYTES(sp)
-  fld f23, (23 + 32) * REGBYTES(sp)
-  fld f24, (24 + 32) * REGBYTES(sp)
-  fld f25, (25 + 32) * REGBYTES(sp)
-  fld f26, (26 + 32) * REGBYTES(sp)
-  fld f27, (27 + 32) * REGBYTES(sp)
-  fld f28, (28 + 32) * REGBYTES(sp)
-  fld f29, (29 + 32) * REGBYTES(sp)
-  fld f30, (30 + 32) * REGBYTES(sp)
-  fld f31, (31 + 32) * REGBYTES(sp)
+  flw f0,  ( 0 + 32) * REGBYTES(sp)
+  flw f1,  ( 1 + 32) * REGBYTES(sp)
+  flw f2,  ( 2 + 32) * REGBYTES(sp)
+  flw f3,  ( 3 + 32) * REGBYTES(sp)
+  flw f4,  ( 4 + 32) * REGBYTES(sp)
+  flw f5,  ( 5 + 32) * REGBYTES(sp)
+  flw f6,  ( 6 + 32) * REGBYTES(sp)
+  flw f7,  ( 7 + 32) * REGBYTES(sp)
+  flw f8,  ( 8 + 32) * REGBYTES(sp)
+  flw f9,  ( 9 + 32) * REGBYTES(sp)
+  flw f10, (10 + 32) * REGBYTES(sp)
+  flw f11, (11 + 32) * REGBYTES(sp)
+  flw f12, (12 + 32) * REGBYTES(sp)
+  flw f13, (13 + 32) * REGBYTES(sp)
+  flw f14, (14 + 32) * REGBYTES(sp)
+  flw f15, (15 + 32) * REGBYTES(sp)
+  flw f16, (16 + 32) * REGBYTES(sp)
+  flw f17, (17 + 32) * REGBYTES(sp)
+  flw f18, (18 + 32) * REGBYTES(sp)
+  flw f19, (19 + 32) * REGBYTES(sp)
+  flw f20, (20 + 32) * REGBYTES(sp)
+  flw f21, (21 + 32) * REGBYTES(sp)
+  flw f22, (22 + 32) * REGBYTES(sp)
+  flw f23, (23 + 32) * REGBYTES(sp)
+  flw f24, (24 + 32) * REGBYTES(sp)
+  flw f25, (25 + 32) * REGBYTES(sp)
+  flw f26, (26 + 32) * REGBYTES(sp)
+  flw f27, (27 + 32) * REGBYTES(sp)
+  flw f28, (28 + 32) * REGBYTES(sp)
+  flw f29, (29 + 32) * REGBYTES(sp)
+  flw f30, (30 + 32) * REGBYTES(sp)
+  flw f31, (31 + 32) * REGBYTES(sp)
 
   addi sp, sp, NUM_XCEPT_REGS * REGBYTES
   li a7, SYS_apc_return
@@ -481,12 +458,6 @@ _irq_enabled:
   .8byte 0
 g_wake_address:
   .8byte 0
-_patch_code:
-   .4byte 0
-   ret
-   nop
-   .4byte 0
-   ret
 
   .section .bss
   .align 3
