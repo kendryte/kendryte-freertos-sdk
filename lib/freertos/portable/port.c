@@ -197,7 +197,10 @@ void vPortExitCritical(void)
 
 void vPortYield()
 {
-    core_sync_request(uxPortGetProcessorId(), CORE_SYNC_SWITCH_CONTEXT);
+    if (uxPortIsInISR())
+        portYIELD_FROM_ISR();
+    else
+        core_sync_request(uxPortGetProcessorId(), CORE_SYNC_SWITCH_CONTEXT);
 }
 
 void vPortYieldFromISR(void)
