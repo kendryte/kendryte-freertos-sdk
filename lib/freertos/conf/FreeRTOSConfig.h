@@ -92,7 +92,7 @@ enum
 #define configUSE_DAEMON_TASK_STARTUP_HOOK		0
 
 /* memory */
-#define configMINIMAL_STACK_SIZE			( ( unsigned short ) 20480 )
+#define configMINIMAL_STACK_SIZE			( ( unsigned short ) 1024 )
 #define configTOTAL_HEAP_SIZE				( ( size_t ) ( 1024 * 1024 ) )
 #define configSUPPORT_STATIC_ALLOCATION			1
 #define configSUPPORT_DYNAMIC_ALLOCATION		1
@@ -109,7 +109,7 @@ enum
 
 /* Software timer definitions. */
 #define configUSE_TIMERS						0
-#define configTIMER_TASK_PRIORITY				( 2 )
+#define configTIMER_TASK_PRIORITY				( 0 )
 #define configTIMER_QUEUE_LENGTH				2
 #define configTIMER_TASK_STACK_DEPTH			( configMINIMAL_STACK_SIZE )
 
@@ -128,6 +128,7 @@ enum
 #define INCLUDE_eTaskGetState					1
 #define INCLUDE_xTaskAbortDelay					1
 #define INCLUDE_xTaskGetSchedulerState          1
+#define INCLUDE_xTimerPendFunctionCall          0
 
 #define INCLUDE_xSemaphoreGetMutexHolder        1
 

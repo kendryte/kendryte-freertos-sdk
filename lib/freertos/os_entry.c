@@ -31,8 +31,10 @@ typedef struct
 extern void __libc_init_array(void);
 extern void __libc_fini_array(void);
 
-static StaticTask_t s_idle_task;
-static StackType_t s_idle_task_stack[configMINIMAL_STACK_SIZE];
+static StaticTask_t s_idle_task[portNUM_PROCESSORS];
+static StackType_t s_idle_task_stack[portNUM_PROCESSORS][configMINIMAL_STACK_SIZE];
+static StaticTask_t s_timer_task[portNUM_PROCESSORS];
+static StackType_t s_timer_task_stack[portNUM_PROCESSORS][configMINIMAL_STACK_SIZE];
 
 void start_scheduler(int core_id);
 
@@ -91,17 +93,34 @@ void vApplicationIdleHook(void)
 
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize)
 {
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
     /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
     state will be stored. */
-    *ppxIdleTaskTCBBuffer = &s_idle_task;
+    *ppxIdleTaskTCBBuffer = &s_idle_task[uxPsrId];
 
     /* Pass out the array that will be used as the Idle task's stack. */
-    *ppxIdleTaskStackBuffer = s_idle_task_stack;
+    *ppxIdleTaskStackBuffer = s_idle_task_stack[uxPsrId];
 
     /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
     Note that, as the array is necessarily of type StackType_t,
     configMINIMAL_STACK_SIZE is specified in words, not bytes. */
     *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize)
+{
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
+    /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
+    state will be stored. */
+    *ppxTimerTaskTCBBuffer = &s_timer_task[uxPsrId];
+
+    /* Pass out the array that will be used as the Idle task's stack. */
+    *ppxTimerTaskStackBuffer = s_timer_task_stack[uxPsrId];
+
+    /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
+    Note that, as the array is necessarily of type StackType_t,
+    configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+    *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
 }
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)

@@ -1962,7 +1962,7 @@ BaseType_t xReturn;
 UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 	/* Add the idle task at the lowest priority. */
-	#if( configSUPPORT_STATIC_ALLOCATION == 1 && 0)
+	#if( configSUPPORT_STATIC_ALLOCATION == 1)
 	{
 		StaticTask_t *pxIdleTaskTCBBuffer = NULL;
 		StackType_t *pxIdleTaskStackBuffer = NULL;
@@ -3033,6 +3033,7 @@ void vTaskPlaceOnUnorderedEventList( List_t * pxEventList, const TickType_t xIte
 	void vTaskPlaceOnEventListRestricted( List_t * const pxEventList, TickType_t xTicksToWait, const BaseType_t xWaitIndefinitely )
 	{
 		configASSERT( pxEventList );
+        UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		/* This function should not be called by application code hence the
 		'Restricted' in its name.  It is not part of the public API.  It is
@@ -3044,7 +3045,7 @@ void vTaskPlaceOnUnorderedEventList( List_t * pxEventList, const TickType_t xIte
 		In this case it is assume that this is the only task that is going to
 		be waiting on this event list, so the faster vListInsertEnd() function
 		can be used in place of vListInsert. */
-		vListInsertEnd( pxEventList, &( pxCurrentTCB->xEventListItem ) );
+		vListInsertEnd( pxEventList, &( pxCurrentTCB[uxPsrId]->xEventListItem ) );
 
 		/* If the task should block indefinitely then set the block time to a
 		value that will be recognised as an indefinite delay inside the
