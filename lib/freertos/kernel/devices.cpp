@@ -940,7 +940,8 @@ object_accessor<object_access> &sys::system_handle_to_object(handle_t file)
 
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {
-    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, (sysctl->clk_sel0.aclk_divider_sel + 1) * 2 * frequency);
+    uint32_t divider = (sysctl->clk_sel0.aclk_divider_sel + 1) * 2;
+    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, divider * frequency) / divider;
     uxCPUClockRate = result;
     uarths_init();
     return result;
