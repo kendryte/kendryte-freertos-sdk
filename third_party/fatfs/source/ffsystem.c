@@ -5,7 +5,10 @@
 
 
 #include "ff.h"
-
+#include <FreeRTOS.h>
+#include <task.h>
+#include <semphr.h>
+#include <stdlib.h>
 
 
 #if FF_USE_LFN == 3	/* Dynamic memory allocation */
@@ -38,7 +41,6 @@ void ff_memfree (
 
 
 #if FF_FS_REENTRANT	/* Mutal exclusion */
-
 /*------------------------------------------------------------------------*/
 /* Create a Synchronization Object                                        */
 /*------------------------------------------------------------------------*/
@@ -90,8 +92,24 @@ int ff_req_grant (	/* 1:Got a grant to access the volume, 0:Could not get a gran
 	FF_SYNC_t sobj	/* Sync object to wait */
 )
 {
-	/* FreeRTOS */
-    return (int)(xSemaphoreTake(sobj, FF_FS_TIMEOUT) == pdTRUE);
+    if (uxPortIsInISR())
+    {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        int success = (int)xSemaphoreTakeFromISR(sobj, &xHigherPriorityTaskWoken);
+        if (!success && FF_FS_TIMEOUT > 0)
+        {
+            vPortDebugBreak();
+            abort(); /* Tried to block on mutex from ISR, couldn't... rewrite your program to avoid libc interactions in ISRs! */
+        }
+        if (xHigherPriorityTaskWoken)
+            portYIELD_FROM_ISR();
+        return success;
+    }
+    else
+    {
+        /* FreeRTOS */
+        return (int)(xSemaphoreTake(sobj, FF_FS_TIMEOUT) == pdTRUE);
+    }
 }
 
 
@@ -105,8 +123,18 @@ void ff_rel_grant (
 	FF_SYNC_t sobj	/* Sync object to be signaled */
 )
 {
-	/* FreeRTOS */
-    xSemaphoreGive(sobj);
+    if (uxPortIsInISR())
+    {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(sobj, &xHigherPriorityTaskWoken);
+        if (xHigherPriorityTaskWoken)
+            portYIELD_FROM_ISR();
+    }
+    else
+    {
+        /* FreeRTOS */
+        xSemaphoreGive(sobj);
+    }
 }
 
 #endif

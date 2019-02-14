@@ -638,7 +638,7 @@ static void prvAddNewTaskToReadyList( UBaseType_t xProcessorId, TCB_t *pxNewTCB 
 			#endif /* configSUPPORT_DYNAMIC_ALLOCATION */
 
 			prvInitialiseNewTask( pxTaskCode, pcName, ulStackDepth, pvParameters, uxPriority, &xReturn, pxNewTCB, NULL );
-			prvAddNewTaskToReadyList( pxNewTCB );
+			prvAddNewTaskToReadyList( uxPortGetProcessorId(), pxNewTCB );
 		}
 		else
 		{
@@ -1962,7 +1962,7 @@ BaseType_t xReturn;
 UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 	/* Add the idle task at the lowest priority. */
-	#if( configSUPPORT_STATIC_ALLOCATION == 1 )
+	#if( configSUPPORT_STATIC_ALLOCATION == 1)
 	{
 		StaticTask_t *pxIdleTaskTCBBuffer = NULL;
 		StackType_t *pxIdleTaskStackBuffer = NULL;
@@ -2096,7 +2096,7 @@ void vTaskSuspendAll( void )
 	post in the FreeRTOS support forum before reporting this as a bug! -
 	http://goo.gl/wu4acr */
 	UBaseType_t uxPsrId = uxPortGetProcessorId();
-	++uxSchedulerSuspended[uxPsrId];
+    ++uxSchedulerSuspended[uxPsrId];
 }
 /*----------------------------------------------------------*/
 
@@ -2833,12 +2833,13 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	void vTaskSetApplicationTaskTag( TaskHandle_t xTask, TaskHookFunction_t pxHookFunction )
 	{
 	TCB_t *xTCB;
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		/* If xTask is NULL then it is the task hook of the calling task that is
 		getting set. */
 		if( xTask == NULL )
 		{
-			xTCB = ( TCB_t * ) pxCurrentTCB;
+			xTCB = ( TCB_t * ) pxCurrentTCB[uxPsrId];
 		}
 		else
 		{
@@ -2860,12 +2861,13 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	TaskHookFunction_t xTaskGetApplicationTaskTag( TaskHandle_t xTask )
 	{
 	TCB_t *xTCB;
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 	TaskHookFunction_t xReturn;
 
 		/* If xTask is NULL then we are setting our own task hook. */
 		if( xTask == NULL )
 		{
-			xTCB = ( TCB_t * ) pxCurrentTCB;
+			xTCB = ( TCB_t * ) pxCurrentTCB[uxPsrId];
 		}
 		else
 		{
@@ -2891,12 +2893,13 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	BaseType_t xTaskCallApplicationTaskHook( TaskHandle_t xTask, void *pvParameter )
 	{
 	TCB_t *xTCB;
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 	BaseType_t xReturn;
 
 		/* If xTask is NULL then we are calling our own task hook. */
 		if( xTask == NULL )
 		{
-			xTCB = ( TCB_t * ) pxCurrentTCB;
+			xTCB = ( TCB_t * ) pxCurrentTCB[uxPsrId];
 		}
 		else
 		{
@@ -2921,7 +2924,11 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 void vTaskSwitchContext( void )
 {
 	UBaseType_t uxPsrId = uxPortGetProcessorId();
-	if( uxSchedulerSuspended[uxPsrId] != ( UBaseType_t ) pdFALSE )
+    if (xSchedulerRunning[uxPsrId] != pdTRUE)
+    {
+        return;
+    }
+	else if( uxSchedulerSuspended[uxPsrId] != ( UBaseType_t ) pdFALSE )
 	{
 		/* The scheduler is currently suspended - do not allow a context
 		switch. */
@@ -3026,6 +3033,7 @@ void vTaskPlaceOnUnorderedEventList( List_t * pxEventList, const TickType_t xIte
 	void vTaskPlaceOnEventListRestricted( List_t * const pxEventList, TickType_t xTicksToWait, const BaseType_t xWaitIndefinitely )
 	{
 		configASSERT( pxEventList );
+        UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		/* This function should not be called by application code hence the
 		'Restricted' in its name.  It is not part of the public API.  It is
@@ -3037,7 +3045,7 @@ void vTaskPlaceOnUnorderedEventList( List_t * pxEventList, const TickType_t xIte
 		In this case it is assume that this is the only task that is going to
 		be waiting on this event list, so the faster vListInsertEnd() function
 		can be used in place of vListInsert. */
-		vListInsertEnd( pxEventList, &( pxCurrentTCB->xEventListItem ) );
+		vListInsertEnd( pxEventList, &( pxCurrentTCB[uxPsrId]->xEventListItem ) );
 
 		/* If the task should block indefinitely then set the block time to a
 		value that will be recognised as an indefinite delay inside the
@@ -3464,6 +3472,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 	void vTaskSetThreadLocalStoragePointer( TaskHandle_t xTaskToSet, BaseType_t xIndex, void *pvValue )
 	{
 	TCB_t *pxTCB;
+	UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		if( xIndex < configNUM_THREAD_LOCAL_STORAGE_POINTERS )
 		{
@@ -3481,6 +3490,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 	{
 	void *pvReturn = NULL;
 	TCB_t *pxTCB;
+	UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		if( xIndex < configNUM_THREAD_LOCAL_STORAGE_POINTERS )
 		{
@@ -3865,7 +3875,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 		}
 		else
 		{
-			if( uxSchedulerSuspended[uxPsrId] == ( UBaseType_t ) pdFALSE )
+			if( uxSchedulerSuspended[uxPortGetProcessorId()] == ( UBaseType_t ) pdFALSE )
 			{
 				xReturn = taskSCHEDULER_RUNNING;
 			}
@@ -4152,16 +4162,24 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 #endif /* configUSE_MUTEXES */
 /*-----------------------------------------------------------*/
-
+uint32_t mstatus_t = 0;
 #if ( portCRITICAL_NESTING_IN_TCB == 1 )
 
 	void vTaskEnterCritical( void )
 	{
-		portDISABLE_INTERRUPTS();
+		
 		UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		if( xSchedulerRunning[uxPsrId] != pdFALSE )
 		{
+            if (pxCurrentTCB[uxPsrId]->uxCriticalNesting == 0U)
+            {
+                asm("csrr %0, mstatus"
+                    : "=r"(mstatus_t)
+                    :
+                    : "cc");
+                portDISABLE_INTERRUPTS();
+            }
 			( pxCurrentTCB[uxPsrId]->uxCriticalNesting )++;
 
 			/* This is not the interrupt safe version of the enter critical
@@ -4197,7 +4215,8 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 				if( pxCurrentTCB[uxPsrId]->uxCriticalNesting == 0U )
 				{
-					portENABLE_INTERRUPTS();
+                    if (mstatus_t | 0x8)
+					    portENABLE_INTERRUPTS();
 				}
 				else
 				{

@@ -15,6 +15,10 @@
 #ifndef _BSP_INTERRUPT_H
 #define _BSP_INTERRUPT_H
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <core_sync.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -36,7 +40,13 @@ extern "C" {
 
 /* Supervisor interrupt reason mask for 64 bit system, 0x7FFF FFFF FFFF FFFF */
 #define CAUSE_SUPERVISOR_IRQ_REASON_MASK  (CAUSE_SUPERVISOR_IRQ_MASK - 1)
-/* clang-format on */
+
+void handle_except(uintptr_t *regs, uintptr_t cause);
+void handle_irq_m_soft(uintptr_t *regs, uintptr_t cause);
+void handle_irq_m_timer(uintptr_t *regs, uintptr_t cause);
+void handle_irq_m_ext(uintptr_t *regs, uintptr_t cause);
+void handle_syscall(uintptr_t *regs, uintptr_t cause);
+void __attribute__((noreturn)) sys_exit(int code);
 #ifdef __cplusplus
 }
 #endif

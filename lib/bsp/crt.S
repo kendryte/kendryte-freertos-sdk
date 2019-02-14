@@ -1,4 +1,4 @@
-# Copyright 2018 Canaan Inc.
+﻿# Copyright 2018 Canaan Inc.
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,13 +14,19 @@
 # include <encoding.h>
 
 # define REGBYTES 8
-# define STKSHIFT 15
+# define STKSHIFT 16
+# define IRQ_STACK_SIZE 20480
+
+.global g_wake_address
+.global g_irq_count
+.global xPortStartScheduler
+.global sys_apc_thunk
 
 .section .text.start, "ax", @progbits
 .globl _start
 _start:
   j 1f
-  .half 0x0000
+  nop
   .word 0xdeadbeef
 1:
   csrw mideleg, 0
@@ -29,6 +35,9 @@ _start:
   csrw mip, 0
   la t0, trap_entry
   csrw mtvec, t0
+
+  li t0, 1
+  sd t0, _irq_enabled, t1
   
   li x1, 0
   li x2, 0
@@ -66,259 +75,97 @@ _start:
   csrs mstatus, t0
   
   fssr    x0
-  fmv.d.x f0, x0
-  fmv.d.x f1, x0
-  fmv.d.x f2, x0
-  fmv.d.x f3, x0
-  fmv.d.x f4, x0
-  fmv.d.x f5, x0
-  fmv.d.x f6, x0
-  fmv.d.x f7, x0
-  fmv.d.x f8, x0
-  fmv.d.x f9, x0
-  fmv.d.x f10,x0
-  fmv.d.x f11,x0
-  fmv.d.x f12,x0
-  fmv.d.x f13,x0
-  fmv.d.x f14,x0
-  fmv.d.x f15,x0
-  fmv.d.x f16,x0
-  fmv.d.x f17,x0
-  fmv.d.x f18,x0
-  fmv.d.x f19,x0
-  fmv.d.x f20,x0
-  fmv.d.x f21,x0
-  fmv.d.x f22,x0
-  fmv.d.x f23,x0
-  fmv.d.x f24,x0
-  fmv.d.x f25,x0
-  fmv.d.x f26,x0
-  fmv.d.x f27,x0
-  fmv.d.x f28,x0
-  fmv.d.x f29,x0
-  fmv.d.x f30,x0
-  fmv.d.x f31,x0
+  fmv.w.x f0, x0
+  fmv.w.x f1, x0
+  fmv.w.x f2, x0
+  fmv.w.x f3, x0
+  fmv.w.x f4, x0
+  fmv.w.x f5, x0
+  fmv.w.x f6, x0
+  fmv.w.x f7, x0
+  fmv.w.x f8, x0
+  fmv.w.x f9, x0
+  fmv.w.x f10,x0
+  fmv.w.x f11,x0
+  fmv.w.x f12,x0
+  fmv.w.x f13,x0
+  fmv.w.x f14,x0
+  fmv.w.x f15,x0
+  fmv.w.x f16,x0
+  fmv.w.x f17,x0
+  fmv.w.x f18,x0
+  fmv.w.x f19,x0
+  fmv.w.x f20,x0
+  fmv.w.x f21,x0
+  fmv.w.x f22,x0
+  fmv.w.x f23,x0
+  fmv.w.x f24,x0
+  fmv.w.x f25,x0
+  fmv.w.x f26,x0
+  fmv.w.x f27,x0
+  fmv.w.x f28,x0
+  fmv.w.x f29,x0
+  fmv.w.x f30,x0
+  fmv.w.x f31,x0
 
 .option push
 .option norelax
   la gp, __global_pointer$
 .option pop
-  la  tp, _end + 63
-  and tp, tp, -64
-  csrr a0, mhartid
 
-  sll a2, a0, STKSHIFT
-  add tp, tp, a2
-  add sp, a0, 1
-  sll sp, sp, STKSHIFT
-  add sp, sp, tp
+  csrr t0, mhartid
+  beqz t0, 2f
+  la sp, _idle_stack1_top
+  la t0, g_wake_address
+1:
+  lr.d t1, 0(t0)
+  beqz t1, 1b
+  jr t1
+2:
+  la sp, _idle_stack0_top
+  
+  # clear the bss segment
+  la t0, __bss_start
+  la t1, __bss_end
+1:
+  sd zero, 0(t0)
+  addi t0, t0, 8
+  bltu t0, t1, 1b
 
-  j _init_bsp
+  la t0, _init_bsp
+  jr t0
+  
+  # t0 = mhartid
+  # t1 = mhartid * 8
+  # t2 = _irq_count + t1
+  # t3 = _irq_count[t1]
+.macro get_irq_count
+  csrr t0, mhartid
+  slli t1, t0, 3
+  la t2, g_irq_count
+  add t2, t2, t1
+  ld t3, 0(t2)
+.endm
 
   .globl trap_entry
   .type trap_entry, @function
   .align 2
 trap_entry:
-  addi sp, sp, -REGBYTES
-  sd t0, 0x0(sp)
-  csrr t0, mcause
-  bgez t0, .handle_other
-  # Test soft interrupt
-  slli t0, t0, 1
-  addi t0, t0, -(IRQ_M_SOFT << 1)
-  bnez t0, .handle_irq
-  # Interupt is soft interrupt
-  # Get event
-  addi sp, sp, -REGBYTES
-  sd t1, 0x0(sp)
-  la   t0, g_core_pending_switch
-  csrr t1, mhartid
-  slli t1, t1, 3
-  add  t0, t0, t1
-  ld t1, 0x0(sp)
-  addi sp, sp, REGBYTES
-  # Test ContextSwitch event
-  ld   t0, 0x0(t0)
-  beqz t0, .handle_irq
-
-  ld t0, 0x0(sp)
-  addi sp, sp, REGBYTES
-  # Do not use jal here
-  j    xPortSysTickInt
+  csrw mscratch, t0
+  ld t0, _irq_enabled
+  bnez t0, 1f
+  # Disable interrupt
+  li t0, MSTATUS_MPIE
+  csrc mstatus, t0
+  csrr t0, mscratch
   mret
-.handle_irq:
-  ld t0, 0x0(sp)
-  addi sp, sp, REGBYTES
-  addi sp, sp, -36 * REGBYTES
-
-  sd ra,  0 * REGBYTES(sp)
-  sd t0,  1 * REGBYTES(sp)
-  sd t1,  2 * REGBYTES(sp)
-  sd t2,  3 * REGBYTES(sp)
-  sd a0,  4 * REGBYTES(sp)
-  sd a1,  5 * REGBYTES(sp)
-  sd a2,  6 * REGBYTES(sp)
-  sd a3,  7 * REGBYTES(sp)
-  sd a4,  8 * REGBYTES(sp)
-  sd a5,  9 * REGBYTES(sp)
-  sd a6, 10 * REGBYTES(sp)
-  sd a7, 11 * REGBYTES(sp)
-  sd t3, 12 * REGBYTES(sp)
-  sd t4, 13 * REGBYTES(sp)
-  sd t5, 14 * REGBYTES(sp)
-  sd t6, 15 * REGBYTES(sp)
-
-  fsd ft0,  ( 0 + 16) * REGBYTES(sp)
-  fsd ft1,  ( 1 + 16) * REGBYTES(sp)
-  fsd ft2,  ( 2 + 16) * REGBYTES(sp)
-  fsd ft3,  ( 3 + 16) * REGBYTES(sp)
-  fsd ft4,  ( 4 + 16) * REGBYTES(sp)
-  fsd ft5,  ( 5 + 16) * REGBYTES(sp)
-  fsd ft6,  ( 6 + 16) * REGBYTES(sp)
-  fsd ft7,  ( 7 + 16) * REGBYTES(sp)
-  fsd fa0,  ( 8 + 16) * REGBYTES(sp)
-  fsd fa1,  ( 9 + 16) * REGBYTES(sp)
-  fsd fa2,  (10 + 16) * REGBYTES(sp)
-  fsd fa3,  (11 + 16) * REGBYTES(sp)
-  fsd fa4,  (12 + 16) * REGBYTES(sp)
-  fsd fa5,  (13 + 16) * REGBYTES(sp)
-  fsd fa6,  (14 + 16) * REGBYTES(sp)
-  fsd fa7,  (15 + 16) * REGBYTES(sp)
-  fsd ft8,  (16 + 16) * REGBYTES(sp)
-  fsd ft9,  (17 + 16) * REGBYTES(sp)
-  fsd ft10, (18 + 16) * REGBYTES(sp)
-  fsd ft11, (19 + 16) * REGBYTES(sp)
-
-  csrr a0, mcause
-  csrr a1, mepc
-  jal handle_irq
-
-  ld ra,  0 * REGBYTES(sp)
-  ld t0,  1 * REGBYTES(sp)
-  ld t1,  2 * REGBYTES(sp)
-  ld t2,  3 * REGBYTES(sp)
-  ld a0,  4 * REGBYTES(sp)
-  ld a1,  5 * REGBYTES(sp)
-  ld a2,  6 * REGBYTES(sp)
-  ld a3,  7 * REGBYTES(sp)
-  ld a4,  8 * REGBYTES(sp)
-  ld a5,  9 * REGBYTES(sp)
-  ld a6, 10 * REGBYTES(sp)
-  ld a7, 11 * REGBYTES(sp)
-  ld t3, 12 * REGBYTES(sp)
-  ld t4, 13 * REGBYTES(sp)
-  ld t5, 14 * REGBYTES(sp)
-  ld t6, 15 * REGBYTES(sp)
-
-  fld ft0,  ( 0 + 16) * REGBYTES(sp)
-  fld ft1,  ( 1 + 16) * REGBYTES(sp)
-  fld ft2,  ( 2 + 16) * REGBYTES(sp)
-  fld ft3,  ( 3 + 16) * REGBYTES(sp)
-  fld ft4,  ( 4 + 16) * REGBYTES(sp)
-  fld ft5,  ( 5 + 16) * REGBYTES(sp)
-  fld ft6,  ( 6 + 16) * REGBYTES(sp)
-  fld ft7,  ( 7 + 16) * REGBYTES(sp)
-  fld fa0,  ( 8 + 16) * REGBYTES(sp)
-  fld fa1,  ( 9 + 16) * REGBYTES(sp)
-  fld fa2,  (10 + 16) * REGBYTES(sp)
-  fld fa3,  (11 + 16) * REGBYTES(sp)
-  fld fa4,  (12 + 16) * REGBYTES(sp)
-  fld fa5,  (13 + 16) * REGBYTES(sp)
-  fld fa6,  (14 + 16) * REGBYTES(sp)
-  fld fa7,  (15 + 16) * REGBYTES(sp)
-  fld ft8,  (16 + 16) * REGBYTES(sp)
-  fld ft9,  (17 + 16) * REGBYTES(sp)
-  fld ft10, (18 + 16) * REGBYTES(sp)
-  fld ft11, (19 + 16) * REGBYTES(sp)
-
-  addi sp, sp, 36 * REGBYTES
-  mret
-.handle_other:
-  csrr t0, mcause
-  addi t0, t0, -CAUSE_USER_ECALL
-  bltz t0, .handle_except
-.handle_syscall:
-  ld t0, 0x0(sp)
-  addi sp, sp, REGBYTES
-  addi sp, sp, -29 * REGBYTES
-
-  sd ra,  0 * REGBYTES(sp)
-  sd t0,  1 * REGBYTES(sp)
-  sd t1,  2 * REGBYTES(sp)
-  sd t2,  3 * REGBYTES(sp)
-  sd a6,  4 * REGBYTES(sp)
-  sd t3,  5 * REGBYTES(sp)
-  sd t4,  6 * REGBYTES(sp)
-  sd t5,  7 * REGBYTES(sp)
-  sd t6,  8 * REGBYTES(sp)
-
-  fsd ft0,  ( 0 + 9) * REGBYTES(sp)
-  fsd ft1,  ( 1 + 9) * REGBYTES(sp)
-  fsd ft2,  ( 2 + 9) * REGBYTES(sp)
-  fsd ft3,  ( 3 + 9) * REGBYTES(sp)
-  fsd ft4,  ( 4 + 9) * REGBYTES(sp)
-  fsd ft5,  ( 5 + 9) * REGBYTES(sp)
-  fsd ft6,  ( 6 + 9) * REGBYTES(sp)
-  fsd ft7,  ( 7 + 9) * REGBYTES(sp)
-  fsd fa0,  ( 8 + 9) * REGBYTES(sp)
-  fsd fa1,  ( 9 + 9) * REGBYTES(sp)
-  fsd fa2,  (10 + 9) * REGBYTES(sp)
-  fsd fa3,  (11 + 9) * REGBYTES(sp)
-  fsd fa4,  (12 + 9) * REGBYTES(sp)
-  fsd fa5,  (13 + 9) * REGBYTES(sp)
-  fsd fa6,  (14 + 9) * REGBYTES(sp)
-  fsd fa7,  (15 + 9) * REGBYTES(sp)
-  fsd ft8,  (16 + 9) * REGBYTES(sp)
-  fsd ft9,  (17 + 9) * REGBYTES(sp)
-  fsd ft10, (18 + 9) * REGBYTES(sp)
-  fsd ft11, (19 + 9) * REGBYTES(sp)
-
-  csrr a6, mepc
-  jal handle_syscall
-  csrw mepc, a1
-
-  ld ra,  0 * REGBYTES(sp)
-  ld t0,  1 * REGBYTES(sp)
-  ld t1,  2 * REGBYTES(sp)
-  ld t2,  3 * REGBYTES(sp)
-  ld a6,  4 * REGBYTES(sp)
-  ld t3,  5 * REGBYTES(sp)
-  ld t4,  6 * REGBYTES(sp)
-  ld t5,  7 * REGBYTES(sp)
-  ld t6,  8 * REGBYTES(sp)
-
-  fld ft0,  ( 0 + 9) * REGBYTES(sp)
-  fld ft1,  ( 1 + 9) * REGBYTES(sp)
-  fld ft2,  ( 2 + 9) * REGBYTES(sp)
-  fld ft3,  ( 3 + 9) * REGBYTES(sp)
-  fld ft4,  ( 4 + 9) * REGBYTES(sp)
-  fld ft5,  ( 5 + 9) * REGBYTES(sp)
-  fld ft6,  ( 6 + 9) * REGBYTES(sp)
-  fld ft7,  ( 7 + 9) * REGBYTES(sp)
-  fld fa0,  ( 8 + 9) * REGBYTES(sp)
-  fld fa1,  ( 9 + 9) * REGBYTES(sp)
-  fld fa2,  (10 + 9) * REGBYTES(sp)
-  fld fa3,  (11 + 9) * REGBYTES(sp)
-  fld fa4,  (12 + 9) * REGBYTES(sp)
-  fld fa5,  (13 + 9) * REGBYTES(sp)
-  fld fa6,  (14 + 9) * REGBYTES(sp)
-  fld fa7,  (15 + 9) * REGBYTES(sp)
-  fld ft8,  (16 + 9) * REGBYTES(sp)
-  fld ft9,  (17 + 9) * REGBYTES(sp)
-  fld ft10, (18 + 9) * REGBYTES(sp)
-  fld ft11, (19 + 9) * REGBYTES(sp)
-
-  addi sp, sp, 29 * REGBYTES
-  mret
-.handle_except:
-  ld t0, 0x0(sp)
-  addi sp, sp, REGBYTES
-  addi sp, sp, -64 * REGBYTES
+1:
+  csrr t0, mscratch
+  # Save context
+  addi sp, sp, -NUM_XCEPT_REGS * REGBYTES
   
-  sd x0,   0 * REGBYTES(sp)
   sd x1,   1 * REGBYTES(sp)
   sd x2,   2 * REGBYTES(sp)
-  sd x3,   3 * REGBYTES(sp)
   sd x4,   4 * REGBYTES(sp)
   sd x5,   5 * REGBYTES(sp)
   sd x6,   6 * REGBYTES(sp)
@@ -348,56 +195,184 @@ trap_entry:
   sd x30, 30 * REGBYTES(sp)
   sd x31, 31 * REGBYTES(sp)
 
-  fsd f0,  ( 0 + 32) * REGBYTES(sp)
-  fsd f1,  ( 1 + 32) * REGBYTES(sp)
-  fsd f2,  ( 2 + 32) * REGBYTES(sp)
-  fsd f3,  ( 3 + 32) * REGBYTES(sp)
-  fsd f4,  ( 4 + 32) * REGBYTES(sp)
-  fsd f5,  ( 5 + 32) * REGBYTES(sp)
-  fsd f6,  ( 6 + 32) * REGBYTES(sp)
-  fsd f7,  ( 7 + 32) * REGBYTES(sp)
-  fsd f8,  ( 8 + 32) * REGBYTES(sp)
-  fsd f9,  ( 9 + 32) * REGBYTES(sp)
-  fsd f10, (10 + 32) * REGBYTES(sp)
-  fsd f11, (11 + 32) * REGBYTES(sp)
-  fsd f12, (12 + 32) * REGBYTES(sp)
-  fsd f13, (13 + 32) * REGBYTES(sp)
-  fsd f14, (14 + 32) * REGBYTES(sp)
-  fsd f15, (15 + 32) * REGBYTES(sp)
-  fsd f16, (16 + 32) * REGBYTES(sp)
-  fsd f17, (17 + 32) * REGBYTES(sp)
-  fsd f18, (18 + 32) * REGBYTES(sp)
-  fsd f19, (19 + 32) * REGBYTES(sp)
-  fsd f20, (20 + 32) * REGBYTES(sp)
-  fsd f21, (21 + 32) * REGBYTES(sp)
-  fsd f22, (22 + 32) * REGBYTES(sp)
-  fsd f23, (23 + 32) * REGBYTES(sp)
-  fsd f24, (24 + 32) * REGBYTES(sp)
-  fsd f25, (25 + 32) * REGBYTES(sp)
-  fsd f26, (26 + 32) * REGBYTES(sp)
-  fsd f27, (27 + 32) * REGBYTES(sp)
-  fsd f28, (28 + 32) * REGBYTES(sp)
-  fsd f29, (29 + 32) * REGBYTES(sp)
-  fsd f30, (30 + 32) * REGBYTES(sp)
-  fsd f31, (31 + 32) * REGBYTES(sp)
+  fsw f0,  ( 0 + 32) * REGBYTES(sp)
+  fsw f1,  ( 1 + 32) * REGBYTES(sp)
+  fsw f2,  ( 2 + 32) * REGBYTES(sp)
+  fsw f3,  ( 3 + 32) * REGBYTES(sp)
+  fsw f4,  ( 4 + 32) * REGBYTES(sp)
+  fsw f5,  ( 5 + 32) * REGBYTES(sp)
+  fsw f6,  ( 6 + 32) * REGBYTES(sp)
+  fsw f7,  ( 7 + 32) * REGBYTES(sp)
+  fsw f8,  ( 8 + 32) * REGBYTES(sp)
+  fsw f9,  ( 9 + 32) * REGBYTES(sp)
+  fsw f10, (10 + 32) * REGBYTES(sp)
+  fsw f11, (11 + 32) * REGBYTES(sp)
+  fsw f12, (12 + 32) * REGBYTES(sp)
+  fsw f13, (13 + 32) * REGBYTES(sp)
+  fsw f14, (14 + 32) * REGBYTES(sp)
+  fsw f15, (15 + 32) * REGBYTES(sp)
+  fsw f16, (16 + 32) * REGBYTES(sp)
+  fsw f17, (17 + 32) * REGBYTES(sp)
+  fsw f18, (18 + 32) * REGBYTES(sp)
+  fsw f19, (19 + 32) * REGBYTES(sp)
+  fsw f20, (20 + 32) * REGBYTES(sp)
+  fsw f21, (21 + 32) * REGBYTES(sp)
+  fsw f22, (22 + 32) * REGBYTES(sp)
+  fsw f23, (23 + 32) * REGBYTES(sp)
+  fsw f24, (24 + 32) * REGBYTES(sp)
+  fsw f25, (25 + 32) * REGBYTES(sp)
+  fsw f26, (26 + 32) * REGBYTES(sp)
+  fsw f27, (27 + 32) * REGBYTES(sp)
+  fsw f28, (28 + 32) * REGBYTES(sp)
+  fsw f29, (29 + 32) * REGBYTES(sp)
+  fsw f30, (30 + 32) * REGBYTES(sp)
+  fsw f31, (31 + 32) * REGBYTES(sp)
 
-  csrr a0, mcause
-  csrr a1, mepc
-  mv a2, sp
-  add a3, sp, 32 * REGBYTES
-  jal handle_except
-  csrw mepc, a0
+  # Store mepc
+  csrr t0, mepc
+  sd t0, 0 * REGBYTES(sp)
+
+  # a0 = regs
+  mv a0, sp
+  # a1 = mcause
+  csrr a1, mcause
+  
+  get_irq_count
+  # _irq_count++
+  addi t4, t3, 1
+  sd t4, 0(t2)
+  # Test if already in trap handler
+  bnez t3, 3f
+  # If not in trap handler, store sp
+  la t2, pxCurrentTCB
+  add t2, t2, t1
+  ld t2, 0(t2)
+  beqz t2, 1f
+  sd sp, 0(t2)
+1:
+  # Then set sp to irq stack top
+  beqz t0, 2f
+  la sp, _irq_stack1_top
+  j 3f
+2:
+  la sp, _irq_stack0_top
+3:
+  la t0, handle_irq
+  jalr t0
+
+  # Disable interrupt
+  li t0, MSTATUS_MIE
+  csrc mstatus, t0
+  
+  get_irq_count
+  # _irq_count--
+  addi t4, t3, -1
+  sd t4, 0(t2)
+
+  # If restore to task, use pxCurrentTCB instead of a0
+  bnez t4, 1f
+.restore:
+  la t2, pxCurrentTCB
+  add t2, t2, t1
+  ld t2, 0(t2)
+  beqz t2, 1f
+  ld a0, 0(t2)
+
+  # Restore context
+  li t0, MSTATUS_MPP | MSTATUS_MPIE
+  csrs mstatus, t0
+1:
+  # a0 = regs
+
+  # Restore mepc
+  ld t0, 0 * REGBYTES(a0)
+  csrw mepc, t0
+  
+  # Store a0 to mscratch
+  ld t0, 10 * REGBYTES(a0)
+  csrw mscratch, t0
+  
+  ld x1,   1 * REGBYTES(a0)
+  ld x2,   2 * REGBYTES(a0)
+  ld x4,   4 * REGBYTES(a0)
+  ld x5,   5 * REGBYTES(a0)
+  ld x6,   6 * REGBYTES(a0)
+  ld x7,   7 * REGBYTES(a0)
+  ld x8,   8 * REGBYTES(a0)
+  ld x9,   9 * REGBYTES(a0)
+  ld x11, 11 * REGBYTES(a0)
+  ld x12, 12 * REGBYTES(a0)
+  ld x13, 13 * REGBYTES(a0)
+  ld x14, 14 * REGBYTES(a0)
+  ld x15, 15 * REGBYTES(a0)
+  ld x16, 16 * REGBYTES(a0)
+  ld x17, 17 * REGBYTES(a0)
+  ld x18, 18 * REGBYTES(a0)
+  ld x19, 19 * REGBYTES(a0)
+  ld x20, 20 * REGBYTES(a0)
+  ld x21, 21 * REGBYTES(a0)
+  ld x22, 22 * REGBYTES(a0)
+  ld x23, 23 * REGBYTES(a0)
+  ld x24, 24 * REGBYTES(a0)
+  ld x25, 25 * REGBYTES(a0)
+  ld x26, 26 * REGBYTES(a0)
+  ld x27, 27 * REGBYTES(a0)
+  ld x28, 28 * REGBYTES(a0)
+  ld x29, 29 * REGBYTES(a0)
+  ld x30, 30 * REGBYTES(a0)
+  ld x31, 31 * REGBYTES(a0)
+
+  flw f0,  ( 0 + 32) * REGBYTES(a0)
+  flw f1,  ( 1 + 32) * REGBYTES(a0)
+  flw f2,  ( 2 + 32) * REGBYTES(a0)
+  flw f3,  ( 3 + 32) * REGBYTES(a0)
+  flw f4,  ( 4 + 32) * REGBYTES(a0)
+  flw f5,  ( 5 + 32) * REGBYTES(a0)
+  flw f6,  ( 6 + 32) * REGBYTES(a0)
+  flw f7,  ( 7 + 32) * REGBYTES(a0)
+  flw f8,  ( 8 + 32) * REGBYTES(a0)
+  flw f9,  ( 9 + 32) * REGBYTES(a0)
+  flw f10, (10 + 32) * REGBYTES(a0)
+  flw f11, (11 + 32) * REGBYTES(a0)
+  flw f12, (12 + 32) * REGBYTES(a0)
+  flw f13, (13 + 32) * REGBYTES(a0)
+  flw f14, (14 + 32) * REGBYTES(a0)
+  flw f15, (15 + 32) * REGBYTES(a0)
+  flw f16, (16 + 32) * REGBYTES(a0)
+  flw f17, (17 + 32) * REGBYTES(a0)
+  flw f18, (18 + 32) * REGBYTES(a0)
+  flw f19, (19 + 32) * REGBYTES(a0)
+  flw f20, (20 + 32) * REGBYTES(a0)
+  flw f21, (21 + 32) * REGBYTES(a0)
+  flw f22, (22 + 32) * REGBYTES(a0)
+  flw f23, (23 + 32) * REGBYTES(a0)
+  flw f24, (24 + 32) * REGBYTES(a0)
+  flw f25, (25 + 32) * REGBYTES(a0)
+  flw f26, (26 + 32) * REGBYTES(a0)
+  flw f27, (27 + 32) * REGBYTES(a0)
+  flw f28, (28 + 32) * REGBYTES(a0)
+  flw f29, (29 + 32) * REGBYTES(a0)
+  flw f30, (30 + 32) * REGBYTES(a0)
+  flw f31, (31 + 32) * REGBYTES(a0)
+
+  # Restore a0
+  addi sp, sp, NUM_XCEPT_REGS * REGBYTES
+  csrr a0, mscratch
+  mret
+
+sys_apc_thunk:
+  addi sp, sp, -NUM_XCEPT_REGS * REGBYTES
+  ld t0, REG_APC_PROC * REGBYTES(sp)
+  sd a7, REG_APC_PROC * REGBYTES(sp)
+  jalr t0
   
   ld x1,   1 * REGBYTES(sp)
-  ld x2,   2 * REGBYTES(sp)
-  ld x3,   3 * REGBYTES(sp)
   ld x4,   4 * REGBYTES(sp)
   ld x5,   5 * REGBYTES(sp)
   ld x6,   6 * REGBYTES(sp)
   ld x7,   7 * REGBYTES(sp)
   ld x8,   8 * REGBYTES(sp)
   ld x9,   9 * REGBYTES(sp)
-  ld x10, 10 * REGBYTES(sp)
   ld x11, 11 * REGBYTES(sp)
   ld x12, 12 * REGBYTES(sp)
   ld x13, 13 * REGBYTES(sp)
@@ -420,41 +395,43 @@ trap_entry:
   ld x30, 30 * REGBYTES(sp)
   ld x31, 31 * REGBYTES(sp)
 
-  fld f0,  ( 0 + 32) * REGBYTES(sp)
-  fld f1,  ( 1 + 32) * REGBYTES(sp)
-  fld f2,  ( 2 + 32) * REGBYTES(sp)
-  fld f3,  ( 3 + 32) * REGBYTES(sp)
-  fld f4,  ( 4 + 32) * REGBYTES(sp)
-  fld f5,  ( 5 + 32) * REGBYTES(sp)
-  fld f6,  ( 6 + 32) * REGBYTES(sp)
-  fld f7,  ( 7 + 32) * REGBYTES(sp)
-  fld f8,  ( 8 + 32) * REGBYTES(sp)
-  fld f9,  ( 9 + 32) * REGBYTES(sp)
-  fld f10, (10 + 32) * REGBYTES(sp)
-  fld f11, (11 + 32) * REGBYTES(sp)
-  fld f12, (12 + 32) * REGBYTES(sp)
-  fld f13, (13 + 32) * REGBYTES(sp)
-  fld f14, (14 + 32) * REGBYTES(sp)
-  fld f15, (15 + 32) * REGBYTES(sp)
-  fld f16, (16 + 32) * REGBYTES(sp)
-  fld f17, (17 + 32) * REGBYTES(sp)
-  fld f18, (18 + 32) * REGBYTES(sp)
-  fld f19, (19 + 32) * REGBYTES(sp)
-  fld f20, (20 + 32) * REGBYTES(sp)
-  fld f21, (21 + 32) * REGBYTES(sp)
-  fld f22, (22 + 32) * REGBYTES(sp)
-  fld f23, (23 + 32) * REGBYTES(sp)
-  fld f24, (24 + 32) * REGBYTES(sp)
-  fld f25, (25 + 32) * REGBYTES(sp)
-  fld f26, (26 + 32) * REGBYTES(sp)
-  fld f27, (27 + 32) * REGBYTES(sp)
-  fld f28, (28 + 32) * REGBYTES(sp)
-  fld f29, (29 + 32) * REGBYTES(sp)
-  fld f30, (30 + 32) * REGBYTES(sp)
-  fld f31, (31 + 32) * REGBYTES(sp)
-  
-  addi sp, sp, 64 * REGBYTES
-  mret
+  flw f0,  ( 0 + 32) * REGBYTES(sp)
+  flw f1,  ( 1 + 32) * REGBYTES(sp)
+  flw f2,  ( 2 + 32) * REGBYTES(sp)
+  flw f3,  ( 3 + 32) * REGBYTES(sp)
+  flw f4,  ( 4 + 32) * REGBYTES(sp)
+  flw f5,  ( 5 + 32) * REGBYTES(sp)
+  flw f6,  ( 6 + 32) * REGBYTES(sp)
+  flw f7,  ( 7 + 32) * REGBYTES(sp)
+  flw f8,  ( 8 + 32) * REGBYTES(sp)
+  flw f9,  ( 9 + 32) * REGBYTES(sp)
+  flw f10, (10 + 32) * REGBYTES(sp)
+  flw f11, (11 + 32) * REGBYTES(sp)
+  flw f12, (12 + 32) * REGBYTES(sp)
+  flw f13, (13 + 32) * REGBYTES(sp)
+  flw f14, (14 + 32) * REGBYTES(sp)
+  flw f15, (15 + 32) * REGBYTES(sp)
+  flw f16, (16 + 32) * REGBYTES(sp)
+  flw f17, (17 + 32) * REGBYTES(sp)
+  flw f18, (18 + 32) * REGBYTES(sp)
+  flw f19, (19 + 32) * REGBYTES(sp)
+  flw f20, (20 + 32) * REGBYTES(sp)
+  flw f21, (21 + 32) * REGBYTES(sp)
+  flw f22, (22 + 32) * REGBYTES(sp)
+  flw f23, (23 + 32) * REGBYTES(sp)
+  flw f24, (24 + 32) * REGBYTES(sp)
+  flw f25, (25 + 32) * REGBYTES(sp)
+  flw f26, (26 + 32) * REGBYTES(sp)
+  flw f27, (27 + 32) * REGBYTES(sp)
+  flw f28, (28 + 32) * REGBYTES(sp)
+  flw f29, (29 + 32) * REGBYTES(sp)
+  flw f30, (30 + 32) * REGBYTES(sp)
+  flw f31, (31 + 32) * REGBYTES(sp)
+
+  addi sp, sp, NUM_XCEPT_REGS * REGBYTES
+  li a7, SYS_apc_return
+  ecall
+  j .
   
 .global _init
 .type   _init, @function
@@ -466,14 +443,30 @@ _fini:
   .size  _init, .-_init
   .size  _fini, .-_fini
 
-.section ".tdata.begin"
-.globl _tdata_begin
-_tdata_begin:
+xPortStartScheduler:
+  la t0, vPortSetupTimer
+  jalr t0
+  csrr t0, mhartid
+  slli t1, t0, 3
+  j .restore
 
-.section ".tdata.end"
-.globl _tdata_end
-_tdata_end:
+  .align 3
+g_irq_count:
+  .8byte 0
+  .8byte 0
+_irq_enabled:
+  .8byte 0
+g_wake_address:
+  .8byte 0
 
-.section ".tbss.end"
-.globl _tbss_end
-_tbss_end:
+  .section .bss
+  .align 3
+_irq_stack_base:
+  .space IRQ_STACK_SIZE
+_irq_stack0_top:
+  .space IRQ_STACK_SIZE
+_irq_stack1_top:
+  .space IRQ_STACK_SIZE
+_idle_stack0_top:
+  .space IRQ_STACK_SIZE
+_idle_stack1_top:

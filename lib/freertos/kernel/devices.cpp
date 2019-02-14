@@ -192,12 +192,14 @@ static void dma_add_free();
 
 int io_read(handle_t file, uint8_t *buffer, size_t len)
 {
+    configASSERT(file >= HANDLE_OFFSET);
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     /* clang-format off */
     DEFINE_READ_PROXY(uart_driver)
     else DEFINE_READ_PROXY(i2c_device_driver)
     else DEFINE_READ_PROXY(spi_device_driver)
     else DEFINE_READ_PROXY(filesystem_file)
+    else DEFINE_READ_PROXY(network_socket)
     else
     {
         return -1;
@@ -260,6 +262,7 @@ int io_close(handle_t file)
 {
     if (file)
     {
+        configASSERT(file >= HANDLE_OFFSET);
         _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
         io_free(rfile);
         atomic_set(handles_ + file - HANDLE_OFFSET, 0);
@@ -270,12 +273,14 @@ int io_close(handle_t file)
 
 int io_write(handle_t file, const uint8_t *buffer, size_t len)
 {
+    configASSERT(file >= HANDLE_OFFSET);
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     /* clang-format off */
     DEFINE_WRITE_PROXY(uart_driver)
     else DEFINE_WRITE_PROXY(i2c_device_driver)
     else DEFINE_WRITE_PROXY(spi_device_driver)
     else DEFINE_WRITE_PROXY(filesystem_file)
+    else DEFINE_WRITE_PROXY(network_socket)
     else
     {
         return -1;
@@ -294,13 +299,13 @@ int io_control(handle_t file, uint32_t control_code, const uint8_t *write_buffer
 /* Device IO Implementation Helper Macros */
 
 #define COMMON_ENTRY(t)                                     \
-    configASSERT(file);                                     \
+    configASSERT(file >= HANDLE_OFFSET);                    \
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
     configASSERT(rfile && rfile->object.is<t##_driver>());  \
     auto t = rfile->object.as<t##_driver>();
 
 #define COMMON_ENTRY_FILE(file, t)                          \
-    configASSERT(file);                                     \
+    configASSERT(file >= HANDLE_OFFSET);                    \
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET]; \
     configASSERT(rfile && rfile->object.is<t##_driver>());  \
     auto t = rfile->object.as<t##_driver>();
@@ -925,7 +930,9 @@ handle_t sys::system_alloc_handle(object_accessor<object_access> object)
 
 object_accessor<object_access> &sys::system_handle_to_object(handle_t file)
 {
-    configASSERT(file);
+    if (file < HANDLE_OFFSET)
+        throw std::invalid_argument("Invalid handle.");
+
     _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
     configASSERT(rfile);
     return rfile->object;
@@ -933,7 +940,8 @@ object_accessor<object_access> &sys::system_handle_to_object(handle_t file)
 
 uint32_t system_set_cpu_frequency(uint32_t frequency)
 {
-    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, (sysctl->clk_sel0.aclk_divider_sel + 1) * 2 * frequency);
+    uint32_t divider = (sysctl->clk_sel0.aclk_divider_sel + 1) * 2;
+    uint32_t result = sysctl_pll_set_freq(SYSCTL_PLL0, divider * frequency) / divider;
     uxCPUClockRate = result;
     uarths_init();
     return result;

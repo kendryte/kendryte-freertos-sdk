@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-cmake_policy(VERSION 3.10)
+cmake_policy(VERSION 3.0)
 
 include(${CMAKE_CURRENT_LIST_DIR}/macros.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/macros.internal.cmake)
@@ -36,8 +36,6 @@ include(${CMAKE_CURRENT_LIST_DIR}/toolchain.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/compile-flags.cmake)
 
 include(${CMAKE_CURRENT_LIST_DIR}/fix-9985.cmake)
-
-#add_source_files(${CMAKE_CURRENT_LIST_DIR}/../lib/bsp/crt.S)
 
 removeDuplicateSubstring(${CMAKE_C_FLAGS} CMAKE_C_FLAGS)
 removeDuplicateSubstring(${CMAKE_CXX_FLAGS} CMAKE_CXX_FLAGS)

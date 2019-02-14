@@ -520,7 +520,7 @@ private:
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         xSemaphoreGiveFromISR(driver.session_.stage_completion_event, &xHigherPriorityTaskWoken);
         if (xHigherPriorityTaskWoken)
-            portYIELD();
+            portYIELD_FROM_ISR();
     }
 
 private:

@@ -12,24 +12,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "FreeRTOS.h"
+#include "task.h"
 #include <atomic.h>
 #include <clint.h>
 #include <core_sync.h>
 #include <encoding.h>
 #include <plic.h>
-#include "FreeRTOS.h"
-#include "task.h"
 
-volatile UBaseType_t g_core_pending_switch[portNUM_PROCESSORS] = { 0 };
-static volatile UBaseType_t s_core_sync_events[portNUM_PROCESSORS] = { 0 };
-static volatile TaskHandle_t s_pending_to_add_tasks[portNUM_PROCESSORS] = { 0 };
-static volatile UBaseType_t s_core_awake[portNUM_PROCESSORS] = { 1, 0 };
-static volatile UBaseType_t s_core_sync_in_progress[portNUM_PROCESSORS] = { 0 };
+extern volatile uintptr_t g_wake_address;
 
-void handle_irq_m_soft(uintptr_t cause, uintptr_t epc)
+static volatile core_sync_event_t s_core_sync_events[portNUM_PROCESSORS];
+static corelock_t s_core_sync_locks[portNUM_PROCESSORS] = { CORELOCK_INIT, CORELOCK_INIT };
+static volatile TaskHandle_t s_pending_to_add_tasks[portNUM_PROCESSORS];
+
+void handle_irq_m_soft(uintptr_t *regs, uintptr_t cause)
 {
     uint64_t core_id = uxPortGetProcessorId();
-    atomic_set(&s_core_sync_in_progress[core_id], 1);
+    clint_ipi_clear(core_id);
     switch (s_core_sync_events[core_id])
     {
     case CORE_SYNC_ADD_TCB:
@@ -42,8 +42,8 @@ void handle_irq_m_soft(uintptr_t cause, uintptr_t epc)
         }
     }
     break;
-    case CORE_SYNC_WAKE_UP:
-        atomic_set(&s_core_awake[core_id], 1);
+    case CORE_SYNC_SWITCH_CONTEXT:
+        vTaskSwitchContext();
         break;
     default:
         break;
@@ -52,62 +52,33 @@ void handle_irq_m_soft(uintptr_t cause, uintptr_t epc)
     core_sync_complete(core_id);
 }
 
-void handle_irq_m_timer(uintptr_t cause, uintptr_t epc)
+void core_sync_request(uint64_t core_id, int event)
 {
-    prvSetNextTimerInterrupt();
-
-    /* Increment the RTOS tick. */
-    if (xTaskIncrementTick() != pdFALSE)
-    {
-        core_sync_request_context_switch(uxPortGetProcessorId());
-    }
-}
-
-void core_sync_request_context_switch(uint64_t core_id)
-{
-    atomic_set(&g_core_pending_switch[core_id], 1);
+    corelock_lock(&s_core_sync_locks[core_id]);
+    while (s_core_sync_events[core_id] != CORE_SYNC_NONE)
+        ;
+    s_core_sync_events[core_id] = event;
     clint_ipi_send(core_id);
+    corelock_unlock(&s_core_sync_locks[core_id]);
 }
 
 void core_sync_complete(uint64_t core_id)
 {
-    if (atomic_read(&g_core_pending_switch[core_id]) == 0)
-        clint_ipi_clear(core_id);
     atomic_set(&s_core_sync_events[core_id], CORE_SYNC_NONE);
-    atomic_set(&s_core_sync_in_progress[core_id], 0);
 }
 
-void core_sync_complete_context_switch(uint64_t core_id)
+void core_sync_awaken(uintptr_t address)
 {
-    if (atomic_read(&s_core_sync_events[core_id]) == CORE_SYNC_NONE)
-        clint_ipi_clear(core_id);
-    atomic_set(&g_core_pending_switch[core_id], 0);
+    g_wake_address = address;
 }
 
-int core_sync_is_awake(uint64_t core_id)
+void vPortAddNewTaskToReadyListAsync(UBaseType_t core_id, void *pxNewTaskHandle)
 {
-    return !!atomic_read(&s_core_awake[core_id]);
-}
-
-void core_sync_awaken(uint64_t core_id)
-{
-    while (atomic_cas(&s_core_sync_events[core_id], CORE_SYNC_NONE, CORE_SYNC_WAKE_UP) != CORE_SYNC_NONE)
+    corelock_lock(&s_core_sync_locks[core_id]);
+    while (s_core_sync_events[core_id] != CORE_SYNC_NONE)
         ;
+    s_pending_to_add_tasks[core_id] = pxNewTaskHandle;
+    s_core_sync_events[core_id] = CORE_SYNC_ADD_TCB;
     clint_ipi_send(core_id);
-}
-
-int core_sync_is_in_progress(uint64_t core_id)
-{
-    return !!atomic_read(&s_core_sync_in_progress[core_id]);
-}
-
-void vPortAddNewTaskToReadyListAsync(UBaseType_t uxPsrId, void* pxNewTaskHandle)
-{
-    // Wait for last adding tcb complete
-    while (atomic_read(&s_pending_to_add_tasks[uxPsrId]));
-    atomic_set(&s_pending_to_add_tasks[uxPsrId], pxNewTaskHandle);
-
-    while (atomic_cas(&s_core_sync_events[uxPsrId], CORE_SYNC_NONE, CORE_SYNC_ADD_TCB) != CORE_SYNC_NONE)
-        ;
-    clint_ipi_send(uxPsrId);
+    corelock_unlock(&s_core_sync_locks[core_id]);
 }

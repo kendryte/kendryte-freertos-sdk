@@ -72,7 +72,14 @@
 #define configUSE_16_BIT_TICKS					0
 #define configIDLE_SHOULD_YIELD					0
 #define configQUEUE_REGISTRY_SIZE				8
-#define configCHECK_FOR_STACK_OVERFLOW			0
+
+/* TLS */
+enum
+{
+    PTHREAD_TLS_INDEX = 0
+};
+
+#define configNUM_THREAD_LOCAL_STORAGE_POINTERS 1
 
 /* mutex */
 #define configUSE_MUTEXES						1
@@ -87,13 +94,12 @@
 /* memory */
 #define configMINIMAL_STACK_SIZE			( ( unsigned short ) 1024 )
 #define configTOTAL_HEAP_SIZE				( ( size_t ) ( 1024 * 1024 ) )
-#define configSUPPORT_STATIC_ALLOCATION			0
+#define configSUPPORT_STATIC_ALLOCATION			1
 #define configSUPPORT_DYNAMIC_ALLOCATION		1
 
-#define configUSE_APPLICATION_TASK_TAG			0
+#define configUSE_APPLICATION_TASK_TAG			1
 #define configUSE_COUNTING_SEMAPHORES			1
 #define configUSE_TICKLESS_IDLE					1
-#define configNUM_THREAD_LOCAL_STORAGE_POINTERS	0
 #define configGENERATE_RUN_TIME_STATS			0
 #define configUSE_STATS_FORMATTING_FUNCTIONS	1
 
@@ -103,13 +109,13 @@
 
 /* Software timer definitions. */
 #define configUSE_TIMERS						0
-#define configTIMER_TASK_PRIORITY				( 2 )
+#define configTIMER_TASK_PRIORITY				( 0 )
 #define configTIMER_QUEUE_LENGTH				2
 #define configTIMER_TASK_STACK_DEPTH			( configMINIMAL_STACK_SIZE )
 
 /* Main task */
-#define configMAIN_TASK_PRIORITY				1
-#define configMAIN_TASK_STACK_SIZE				4096
+#define configMAIN_TASK_PRIORITY				0
+#define configMAIN_TASK_STACK_SIZE				(4096 * 8)
 
 /* Set the following definitions to 1 to include the API function, or zero to exclude the API function. */
 #define INCLUDE_vTaskPrioritySet				1
@@ -121,6 +127,13 @@
 #define INCLUDE_vTaskDelay						1
 #define INCLUDE_eTaskGetState					1
 #define INCLUDE_xTaskAbortDelay					1
+#define INCLUDE_xTaskGetSchedulerState          1
+#define INCLUDE_xTimerPendFunctionCall          0
+
+#define INCLUDE_xSemaphoreGetMutexHolder        1
+
+/* Diagnostics */
+#define configCHECK_FOR_STACK_OVERFLOW          1
 
 /* configASSERT behaviour */
 extern void vPortFatal(const char* file, int line, const char* message);

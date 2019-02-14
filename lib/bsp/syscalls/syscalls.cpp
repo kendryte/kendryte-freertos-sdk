@@ -13,20 +13,23 @@
  * limitations under the License.
  */
 #include "syscalls.h"
-#include <kernel/driver_impl.hpp>
+#include <FreeRTOS.h>
 #include <devices.h>
 #include <filesystem.h>
+#include <kernel/driver_impl.hpp>
 #include <string.h>
-#include <sys/unistd.h>
 #include <sys/fcntl.h>
+#include <sys/unistd.h>
+#include <task.h>
 
 using namespace sys;
 
 int sys_open(const char *name, int flags, int mode)
 {
+    handle_t handle = NULL_HANDLE;
     if (strstr(name, "/dev/") != NULL)
     {
-        return io_open(name);
+        handle = io_open(name);
     }
     else if (strstr(name, "/fs/") != NULL)
     {
@@ -43,19 +46,22 @@ int sys_open(const char *name, int flags, int mode)
             file_mode |= FILE_MODE_APPEND;
         if (flags & O_TRUNC)
             file_mode |= FILE_MODE_TRUNCATE;
-        return filesystem_file_open(name, file_access, file_mode);
+        handle = filesystem_file_open(name, file_access, file_mode);
     }
-    else
-    {
-        return -EINVAL;
-    }
+
+    if (handle)
+        return handle;
+    return -1;
 }
 
-off_t sys_lseek(int fildes, off_t offset, int whence)
+off_t sys_lseek(int fd, off_t offset, int whence)
 {
+    if (STDOUT_FILENO == fd || STDERR_FILENO == fd)
+        return -1;
+
     try
     {
-        auto &obj = system_handle_to_object(fildes);
+        auto &obj = system_handle_to_object(fd);
         if (auto f = obj.as<filesystem_file>())
         {
             if (whence == SEEK_SET)
@@ -74,6 +80,29 @@ off_t sys_lseek(int fildes, off_t offset, int whence)
             }
 
             return f->get_position();
+        }
+
+        return -1;
+    }
+    catch (...)
+    {
+        return -1;
+    }
+}
+
+int sys_fstat(int fd, struct kernel_stat *buf)
+{
+    if (STDOUT_FILENO == fd || STDERR_FILENO == fd)
+        return 0;
+
+    try
+    {
+        memset(buf, 0, sizeof(struct kernel_stat));
+        auto &obj = system_handle_to_object(fd);
+        if (auto f = obj.as<filesystem_file>())
+        {
+            buf->st_size = f->get_size();
+            return 0;
         }
 
         return -1;

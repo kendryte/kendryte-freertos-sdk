@@ -83,7 +83,7 @@ static void plic_complete_irq(uint32_t source)
 }
 
 /* Entry Point for PLIC Interrupt Handler */
-extern "C" void handle_irq_m_ext(uintptr_t cause, uintptr_t epc)
+extern "C" void handle_irq_m_ext(uintptr_t *regs, uintptr_t cause)
 {
     /**
      * After the highest-priority pending interrupt is claimed by a target
@@ -95,22 +95,22 @@ extern "C" void handle_irq_m_ext(uintptr_t cause, uintptr_t epc)
      * without first restoring the interrupted context and taking another
      * interrupt trap.
      */
-    if (read_csr(mip) & MIP_MEIP)
+    //if (read_csr(mip) & MIP_MEIP)
     {
         /* Get current core id */
         uint64_t core_id = read_csr(mhartid);
-        uint64_t ie_flag = read_csr(mie);
+       // uint64_t ie_flag = read_csr(mie);
         uint32_t int_num = plic.targets.target[core_id].claim_complete;
         uint32_t int_threshold = plic.targets.target[core_id].priority_threshold;
 
         plic.targets.target[core_id].priority_threshold = plic.source_priorities.priority[int_num];
-        clear_csr(mie, MIP_MTIP | MIP_MSIP);
-        set_csr(mstatus, MSTATUS_MIE);
+        //clear_csr(mie, MIP_MTIP | MIP_MSIP);
+        //set_csr(mstatus, MSTATUS_MIE);
         kernel_iface_pic_on_irq(int_num);
         plic_complete_irq(int_num);
-        clear_csr(mstatus, MSTATUS_MIE);
-        set_csr(mstatus, MSTATUS_MPIE | MSTATUS_MPP);
-        write_csr(mie, ie_flag);
+        //clear_csr(mstatus, MSTATUS_MIE);
+        //set_csr(mstatus, MSTATUS_MPIE | MSTATUS_MPP);
+        //write_csr(mie, ie_flag);
         plic.targets.target[core_id].priority_threshold = int_threshold;
     }
 }

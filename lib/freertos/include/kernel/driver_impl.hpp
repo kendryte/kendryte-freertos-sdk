@@ -76,6 +76,8 @@ class semaphore_lock
 {
 public:
     semaphore_lock(SemaphoreHandle_t semaphore) noexcept;
+    semaphore_lock(semaphore_lock &) = delete;
+    semaphore_lock &operator=(semaphore_lock &) = delete;
     ~semaphore_lock();
 
 private:

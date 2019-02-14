@@ -18,15 +18,16 @@
 #include <syslog.h>
 #include <uarths.h>
 #include "dump.h"
+#include "interrupt.h"
 
 #define DUMP_PRINTF printk
 
 static corelock_t s_dump_lock = CORELOCK_INIT;
 
-void dump_core(const char* reason, uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void dump_core(const char *reason, uintptr_t *regs, uintptr_t cause)
 {
     static const char* const reg_usage[][2] = {
-        {"zero ", "Hard-wired zero"},
+        {"mpec ", "Machine exception program counter"},
         {"ra   ", "Return address"},
         {"sp   ", "Stack pointer"},
         {"gp   ", "Global pointer"},
@@ -104,8 +105,10 @@ void dump_core(const char* reason, uintptr_t cause, uintptr_t epc, uintptr_t reg
         if (!reason)
             reason = unknown_reason;
 
+        uintptr_t *fregs = regs + 32;
+
         DUMP_PRINTF("core %d, core dump: %s\n", (int)read_csr(mhartid), reason);
-        DUMP_PRINTF("Cause 0x%016lx, EPC 0x%016lx\n", cause, epc);
+        DUMP_PRINTF("Cause 0x%016lx\n", cause);
 
         int i = 0;
 

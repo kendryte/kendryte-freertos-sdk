@@ -18,7 +18,7 @@ MEMORY
 }
 
 PROVIDE( _ram_end    = ORIGIN(ram) + LENGTH(ram) );
-PROVIDE( _stack_size = 1 << 15 );
+PROVIDE( _stack_size = 1 << 16 );
 
 /*
  * The OUTPUT_ARCH command specifies the machine architecture where the
@@ -51,13 +51,16 @@ SECTIONS
   .text.start :
   {
     KEEP( *(.text.start) )
+    KEEP( *(.text.systick) )
   } > ram : DATA
-
+  
   .init :
   {
     KEEP (*(SORT_NONE(.init)))
   } > ram : DATA
-
+  
+  . = ALIGN(8);
+  . = .;
   .text :
   {
     *(.text.unlikely .text.*_unlikely .text.unlikely.*)
@@ -83,7 +86,6 @@ SECTIONS
   {
     *(.sdata2 .sdata2.* .gnu.linkonce.s2.*)
   } > ram : DATA
-  .sbss2 : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) } > ram : DYN_DATA
   /* Exception handling  */
   .eh_frame :
   {
@@ -163,8 +165,10 @@ SECTIONS
   } > ram : DATA
   _edata = .; PROVIDE (edata = .);
   
+  . = ALIGN(8);
   . = .;
   __bss_start = .;
+  .sbss2 : { *(.sbss2 .sbss2.* .gnu.linkonce.sb2.*) } > ram : DYN_DATA
   .sbss :
   {
     *(.dynsbss)

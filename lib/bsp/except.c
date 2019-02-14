@@ -12,81 +12,62 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "dump.h"
+#include "interrupt.h"
 #include <encoding.h>
 #include <stdlib.h>
-#include "dump.h"
 
-#ifndef UNUSED
-#define UNUSED(x) (void)(x)
-#endif
-
-uintptr_t __attribute__((weak))
-handle_misaligned_fetch(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void __attribute__((weak)) handle_misaligned_fetch(uintptr_t *regs, uintptr_t cause)
 {
-    dump_core("misaligned fetch", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
+    dump_core("misaligned fetch", regs, cause);
+    sys_exit(1337);
 }
 
-uintptr_t __attribute__((weak))
-handle_fault_fetch(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void __attribute__((weak)) handle_fault_fetch(uintptr_t *regs, uintptr_t cause)
 {
-    dump_core("fault fetch", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
+    dump_core("fault fetch", regs, cause);
+    sys_exit(1337);
 }
 
-uintptr_t __attribute__((weak))
-handle_illegal_instruction(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void __attribute__((weak)) handle_illegal_instruction(uintptr_t *regs, uintptr_t cause)
 {
-    dump_core("illegal instruction", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
+    dump_core("illegal instruction", regs, cause);
+    sys_exit(1337);
 }
 
-uintptr_t __attribute__((weak))
-handle_breakpoint(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void __attribute__((weak)) handle_breakpoint(uintptr_t *regs, uintptr_t cause)
 {
-    dump_core("breakpoint", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
+    dump_core("breakpoint", regs, cause);
+    sys_exit(1337);
 }
 
-uintptr_t __attribute__((weak))
-handle_misaligned_load(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void __attribute__((weak)) handle_misaligned_load(uintptr_t *regs, uintptr_t cause)
 {
-    dump_core("misaligned load", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
+    dump_core("misaligned load", regs, cause);
+    sys_exit(1337);
 }
 
-uintptr_t __attribute__((weak))
-handle_fault_load(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void __attribute__((weak)) handle_fault_load(uintptr_t *regs, uintptr_t cause)
 {
-    dump_core("fault load", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
+    dump_core("fault load", regs, cause);
+    sys_exit(1337);
 }
 
-uintptr_t __attribute__((weak))
-handle_misaligned_store(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void __attribute__((weak)) handle_misaligned_store(uintptr_t *regs, uintptr_t cause)
 {
-    dump_core("misaligned store", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
+    dump_core("misaligned store", regs, cause);
+    sys_exit(1337);
 }
 
-uintptr_t __attribute__((weak))
-handle_fault_store(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void __attribute__((weak)) handle_fault_store(uintptr_t *regs, uintptr_t cause)
 {
-    dump_core("fault store", cause, epc, regs, fregs);
-    exit(1337);
-    return epc;
+    dump_core("fault store", regs, cause);
+    sys_exit(1337);
 }
 
-uintptr_t handle_except(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32])
+void handle_except(uintptr_t *regs, uintptr_t cause)
 {
-    static uintptr_t(*const cause_table[])(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uintptr_t fregs[32]) = {
+    static void (*const cause_table[])(uintptr_t * regs, uintptr_t cause) = {
         [CAUSE_MISALIGNED_FETCH] = handle_misaligned_fetch,
         [CAUSE_FAULT_FETCH] = handle_fault_fetch,
         [CAUSE_ILLEGAL_INSTRUCTION] = handle_illegal_instruction,
@@ -97,5 +78,5 @@ uintptr_t handle_except(uintptr_t cause, uintptr_t epc, uintptr_t regs[32], uint
         [CAUSE_FAULT_STORE] = handle_fault_store
     };
 
-    return cause_table[cause](cause, epc, regs, fregs);
+    cause_table[cause & CAUSE_HYPERVISOR_IRQ_REASON_MASK](regs, cause);
 }

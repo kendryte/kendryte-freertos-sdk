@@ -27,6 +27,7 @@
 
 using namespace sys;
 
+#define SPI_TRANSMISSION_THRESHOLD 0x800UL
 /* SPI Controller */
 
 #define TMOD_MASK (3 << tmod_off_)
@@ -239,30 +240,63 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
     COMMON_ENTRY;
     setup_device(device);
 
-    size_t frames = buffer.size() / device.buffer_width_;
-    uintptr_t dma_read = dma_open_free();
-    dma_set_request_source(dma_read, dma_req_);
-
-    uint8_t *ori_buffer = buffer.data();
-
+    uint32_t i = 0;
+    size_t rx_buffer_len = buffer.size();
+    size_t rx_frames = rx_buffer_len / device.buffer_width_;
+    auto buffer_read = buffer.data();
     set_bit_mask(&spi_.ctrlr0, TMOD_MASK, TMOD_VALUE(2));
-    spi_.ctrlr1 = frames - 1;
-    spi_.dmacr = 0x1;
+    spi_.ctrlr1 = rx_frames - 1;
     spi_.ssienr = 0x01;
-	if(device.frame_format_ == SPI_FF_STANDARD)
-    	spi_.dr[0] = 0xFF;
-    SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
+    if (device.frame_format_ == SPI_FF_STANDARD)
+        spi_.dr[0] = 0xFFFFFFFF;
 
-    dma_transmit_async(dma_read, &spi_.dr[0], ori_buffer, 0, 1, device.buffer_width_, frames, 1, event_read);
+    if (rx_frames < SPI_TRANSMISSION_THRESHOLD)
+    {
+        size_t index, fifo_len;
+        while (rx_buffer_len)
+        {
+            const uint8_t *buffer_it = buffer.data();
+            write_inst_addr(spi_.dr, &buffer_it, device.inst_width_);
+            write_inst_addr(spi_.dr, &buffer_it, device.addr_width_);
+            spi_.ser = device.chip_select_mask_;
 
-    const uint8_t *buffer_it = buffer.data();
-    write_inst_addr(spi_.dr, &buffer_it, device.inst_width_);
-    write_inst_addr(spi_.dr, &buffer_it, device.addr_width_);
-    spi_.ser = device.chip_select_mask_;
-
-    configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
-    dma_close(dma_read);
-    vSemaphoreDelete(event_read);
+            fifo_len = spi_.rxflr;
+            fifo_len = fifo_len < rx_buffer_len ? fifo_len : rx_buffer_len;
+            switch (device.buffer_width_)
+            {
+            case 4:
+                fifo_len = fifo_len / 4 * 4;
+                for (index = 0; index < fifo_len / 4; index++)
+                    ((uint32_t *)buffer_read)[i++] = spi_.dr[0];
+                break;
+            case 2:
+                fifo_len = fifo_len / 2 * 2;
+                for (index = 0; index < fifo_len / 2; index++)
+                    ((uint16_t *)buffer_read)[i++] = (uint16_t)spi_.dr[0];
+                break;
+            default:
+                for (index = 0; index < fifo_len; index++)
+                    buffer_read[i++] = (uint8_t)spi_.dr[0];
+                break;
+            }
+            rx_buffer_len -= fifo_len;
+        }
+    }
+    else
+    {
+        uintptr_t dma_read = dma_open_free();
+        dma_set_request_source(dma_read, dma_req_);
+        spi_.dmacr = 0x1;
+        SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
+        dma_transmit_async(dma_read, &spi_.dr[0], buffer_read, 0, 1, device.buffer_width_, rx_frames, 1, event_read);
+        const uint8_t *buffer_it = buffer.data();
+        write_inst_addr(spi_.dr, &buffer_it, device.inst_width_);
+        write_inst_addr(spi_.dr, &buffer_it, device.addr_width_);
+        spi_.ser = device.chip_select_mask_;
+        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
+        dma_close(dma_read);
+        vSemaphoreDelete(event_read);
+    }
 
     spi_.ser = 0x00;
     spi_.ssienr = 0x00;
@@ -275,26 +309,58 @@ int k_spi_driver::write(k_spi_device_driver &device, gsl::span<const uint8_t> bu
     COMMON_ENTRY;
     setup_device(device);
 
-    uintptr_t dma_write = dma_open_free();
-    dma_set_request_source(dma_write, dma_req_ + 1);
-
+    uint32_t i = 0;
+    size_t tx_buffer_len = buffer.size() - (device.inst_width_ + device.addr_width_);
+    size_t tx_frames = tx_buffer_len / device.buffer_width_;
+    auto buffer_write = buffer.data();
     set_bit_mask(&spi_.ctrlr0, TMOD_MASK, TMOD_VALUE(1));
-    spi_.dmacr = 0x2;
-    spi_.ssienr = 0x01;
 
-    auto buffer_it = buffer.data();
-    write_inst_addr(spi_.dr, &buffer_it, device.inst_width_);
-    write_inst_addr(spi_.dr, &buffer_it, device.addr_width_);
-
-    size_t frames = (buffer.size() - (device.inst_width_ + device.addr_width_)) / device.buffer_width_;
-    SemaphoreHandle_t event_write = xSemaphoreCreateBinary();
-    dma_transmit_async(dma_write, buffer_it, &spi_.dr[0], 1, 0, device.buffer_width_, frames, 4, event_write);
-
-    spi_.ser = device.chip_select_mask_;
-    configASSERT(xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
-    dma_close(dma_write);
-    vSemaphoreDelete(event_write);
-
+    if (tx_frames < SPI_TRANSMISSION_THRESHOLD)
+    {
+        size_t index, fifo_len;
+        spi_.ssienr = 0x01;
+        write_inst_addr(spi_.dr, &buffer_write, device.inst_width_);
+        write_inst_addr(spi_.dr, &buffer_write, device.addr_width_);
+        spi_.ser = device.chip_select_mask_;
+        while (tx_buffer_len)
+        {
+            fifo_len = 32 - spi_.txflr;
+            fifo_len = fifo_len < tx_buffer_len ? fifo_len : tx_buffer_len;
+            switch (device.buffer_width_)
+            {
+            case 4:
+                fifo_len = fifo_len / 4 * 4;
+                for (index = 0; index < fifo_len / 4; index++)
+                    spi_.dr[0] = ((uint32_t *)buffer_write)[i++];
+                break;
+            case 2:
+                fifo_len = fifo_len / 2 * 2;
+                for (index = 0; index < fifo_len / 2; index++)
+                    spi_.dr[0] = ((uint16_t *)buffer_write)[i++];
+                break;
+            default:
+                for (index = 0; index < fifo_len; index++)
+                    spi_.dr[0] = buffer_write[i++];
+                break;
+            }
+            tx_buffer_len -= fifo_len;
+        }
+    }
+    else
+    {
+        uintptr_t dma_write = dma_open_free();
+        dma_set_request_source(dma_write, dma_req_ + 1);
+        spi_.dmacr = 0x2;
+        spi_.ssienr = 0x01;
+        write_inst_addr(spi_.dr, &buffer_write, device.inst_width_);
+        write_inst_addr(spi_.dr, &buffer_write, device.addr_width_);
+        SemaphoreHandle_t event_write = xSemaphoreCreateBinary();
+        dma_transmit_async(dma_write, buffer_write, &spi_.dr[0], 1, 0, device.buffer_width_, tx_frames, 4, event_write);
+        spi_.ser = device.chip_select_mask_;
+        configASSERT(xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
+        dma_close(dma_write);
+        vSemaphoreDelete(event_write);
+    }
     while ((spi_.sr & 0x05) != 0x04)
         ;
     spi_.ser = 0x00;
@@ -322,32 +388,91 @@ int k_spi_driver::transfer_sequential(k_spi_device_driver &device, gsl::span<con
 int k_spi_driver::read_write(k_spi_device_driver &device, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer)
 {
     configASSERT(device.frame_format_ == SPI_FF_STANDARD);
+    size_t tx_buffer_len = write_buffer.size();
+    size_t rx_buffer_len = read_buffer.size();
+    size_t tx_frames = tx_buffer_len / device.buffer_width_;
+    size_t rx_frames = rx_buffer_len / device.buffer_width_;
+    auto buffer_read = read_buffer.data();
+    auto buffer_write = write_buffer.data();
+    uint32_t i = 0;
 
-    uintptr_t dma_write = dma_open_free();
-    uintptr_t dma_read = dma_open_free();
+    if (rx_frames < SPI_TRANSMISSION_THRESHOLD)
+    {
+        size_t index, fifo_len;
+        spi_.ctrlr1 = rx_frames - 1;
+        spi_.ssienr = 0x01;
+        while (tx_buffer_len)
+        {
+            fifo_len = 32 - spi_.txflr;
+            fifo_len = fifo_len < tx_buffer_len ? fifo_len : tx_buffer_len;
+            switch (device.buffer_width_)
+            {
+            case 4:
+                fifo_len = fifo_len / 4 * 4;
+                for (index = 0; index < fifo_len / 4; index++)
+                    spi_.dr[0] = ((uint32_t *)buffer_write)[i++];
+                break;
+            case 2:
+                fifo_len = fifo_len / 2 * 2;
+                for (index = 0; index < fifo_len / 2; index++)
+                    spi_.dr[0] = ((uint16_t *)buffer_write)[i++];
+                break;
+            default:
+                for (index = 0; index < fifo_len; index++)
+                    spi_.dr[0] = buffer_write[i++];
+                break;
+            }
+            spi_.ser = device.chip_select_mask_;
+            tx_buffer_len -= fifo_len;
+        }
+        i = 0;
+        while (rx_buffer_len)
+        {
+            fifo_len = spi_.rxflr;
+            fifo_len = fifo_len < rx_buffer_len ? fifo_len : rx_buffer_len;
+            switch (device.buffer_width_)
+            {
+            case 4:
+                fifo_len = fifo_len / 4 * 4;
+                for (index = 0; index < fifo_len / 4; index++)
+                    ((uint32_t *)buffer_read)[i++] = spi_.dr[0];
+                break;
+            case 2:
+                fifo_len = fifo_len / 2 * 2;
+                for (index = 0; index < fifo_len / 2; index++)
+                    ((uint16_t *)buffer_read)[i++] = (uint16_t)spi_.dr[0];
+                break;
+            default:
+                for (index = 0; index < fifo_len; index++)
+                    buffer_read[i++] = (uint8_t)spi_.dr[0];
+                break;
+            }
+            spi_.ser = device.chip_select_mask_;
+            rx_buffer_len -= fifo_len;
+        }
+    }
+    else
+    {
+        uintptr_t dma_write = dma_open_free();
+        uintptr_t dma_read = dma_open_free();
 
-    dma_set_request_source(dma_write, dma_req_ + 1);
-    dma_set_request_source(dma_read, dma_req_);
+        dma_set_request_source(dma_write, dma_req_ + 1);
+        dma_set_request_source(dma_read, dma_req_);
+        spi_.ctrlr1 = rx_frames - 1;
+        spi_.dmacr = 0x3;
+        spi_.ssienr = 0x01;
+        spi_.ser = device.chip_select_mask_;
+        SemaphoreHandle_t event_read = xSemaphoreCreateBinary(), event_write = xSemaphoreCreateBinary();
+        dma_transmit_async(dma_read, &spi_.dr[0], buffer_read, 0, 1, device.buffer_width_, rx_frames, 1, event_read);
+        dma_transmit_async(dma_write, buffer_write, &spi_.dr[0], 1, 0, device.buffer_width_, tx_frames, 4, event_write);
 
-    size_t tx_frames = write_buffer.size() / device.buffer_width_;
-    size_t rx_frames = read_buffer.size() / device.buffer_width_;
+        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE && xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
 
-    spi_.ctrlr1 = rx_frames - 1;
-    spi_.dmacr = 0x3;
-    spi_.ssienr = 0x01;
-    spi_.ser = device.chip_select_mask_;
-    SemaphoreHandle_t event_read = xSemaphoreCreateBinary(), event_write = xSemaphoreCreateBinary();
-
-    dma_transmit_async(dma_read, &spi_.dr[0], read_buffer.data(), 0, 1, device.buffer_width_, rx_frames, 1, event_read);
-    dma_transmit_async(dma_write, write_buffer.data(), &spi_.dr[0], 1, 0, device.buffer_width_, tx_frames, 4, event_write);
-
-    configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE && xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
-
-    dma_close(dma_write);
-    dma_close(dma_read);
-    vSemaphoreDelete(event_read);
-    vSemaphoreDelete(event_write);
-
+        dma_close(dma_write);
+        dma_close(dma_read);
+        vSemaphoreDelete(event_read);
+        vSemaphoreDelete(event_write);
+    }
     spi_.ser = 0x00;
     spi_.ssienr = 0x00;
     spi_.dmacr = 0x00;
