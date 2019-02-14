@@ -322,6 +322,37 @@ typedef enum _dhcp_state
     DHCP_FAIL
 } dhcp_state_t;
 
+typedef struct _size_u
+{
+    uint32_t width;
+    uint32_t height;
+} size_u_t;
+
+typedef enum _color_format
+{
+    COLOR_FORMAT_B5G6R5_UNORM,
+    COLOR_FORMAT_R32G32B32A32_FLOAT,
+} color_format_t;
+
+typedef struct _color_value
+{
+    float r;
+    float g;
+    float b;
+    float a;
+} color_value_t;
+
+typedef struct _point_u
+{
+    uint32_t x;
+    uint32_t y;
+} point_u_t;
+
+typedef enum _surface_location
+{
+    SYSTEM_MEMORY,
+    DEVICE_MEMORY,
+} surface_location_t;
 #ifdef __cplusplus
 }
 #endif

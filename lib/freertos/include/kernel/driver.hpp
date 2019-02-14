@@ -425,6 +425,71 @@ public:
     virtual size_t write(gsl::span<const uint8_t> buffer) = 0;
 };
 
+template <color_format_t>
+struct color;
+
+template <>
+struct color<color_format_t::COLOR_FORMAT_B5G6R5_UNORM>
+{
+    uint16_t value;
+
+    static color from(color_value_t value) noexcept
+    {
+        auto r = value.r * 31;
+        auto g = value.g * 63;
+        auto b = value.b * 31;
+        return { static_cast<uint16_t>((uint16_t(r) << 11) | (uint16_t(g) << 5) | uint16_t(b)) };
+    }
+};
+
+template <>
+struct color<color_format_t::COLOR_FORMAT_R32G32B32A32_FLOAT>
+{
+    float r, g, b, a;
+};
+
+using rgb565 = color<color_format_t::COLOR_FORMAT_B5G6R5_UNORM>;
+
+struct rect_u_t
+{
+    uint32_t left;
+    uint32_t top;
+    uint32_t right;
+    uint32_t bottom;
+    rect_u_t() = default;
+    rect_u_t(const point_u_t &position, const size_u_t &size) noexcept
+        : left(position.x), top(position.y), right(position.x + size.width), bottom(position.y + size.height)
+    {
+    }
+    size_u_t get_size() const noexcept { return { right - left, bottom - top }; }
+};
+
+typedef struct _surface_data
+{
+    gsl::span<uint8_t> data;
+    size_t stride;
+    rect_u_t rect;
+} surface_data_t;
+
+class surface : public virtual object_access
+{
+public:
+    virtual size_u_t get_pixel_size() = 0;
+    virtual color_format_t get_format() = 0;
+    virtual surface_location_t get_location() noexcept = 0;
+
+    virtual surface_data_t lock(const rect_u_t &rect) = 0;
+    virtual void unlock(surface_data_t &data) = 0;
+};
+
+class display_driver : public driver
+{
+public:
+    virtual object_ptr<surface> get_primary_surface() = 0;
+    virtual void clear(object_ptr<surface> surface, const rect_u_t &rect, const color_value_t &color) = 0;
+    virtual void copy_subresource(object_ptr<surface> src, object_ptr<surface> dest, const rect_u_t &src_rect, const point_u_t &dest_position) = 0;
+};
+
 extern driver_registry_t g_hal_drivers[];
 extern driver_registry_t g_dma_drivers[];
 extern driver_registry_t g_system_drivers[];
