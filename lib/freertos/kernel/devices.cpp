@@ -430,6 +430,11 @@ void i2s_stop(handle_t file)
 }
 
 /* SPI */
+void spi_slave_config(handle_t file, uint32_t data_bit_length, spi_slave_handler_t *handler)
+{
+    COMMON_ENTRY(spi);
+    spi->slave_config(data_bit_length, *handler);
+}
 
 handle_t spi_get_device(handle_t file, spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
 {

@@ -70,6 +70,59 @@ public:
     int transfer_sequential(k_spi_device_driver &device, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer);
     int read_write(k_spi_device_driver &device, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer);
     void fill(k_spi_device_driver &device, uint32_t instruction, uint32_t address, uint32_t value, size_t count);
+    virtual void slave_config(uint32_t data_bit_length, const spi_slave_handler_t &handler) override
+    {
+        slave_context_.data_bit_length = data_bit_length;
+        slave_context_.handler = &handler;
+        uint8_t slv_oe = 10;
+        spi_.ssienr = 0x00;
+        spi_.ctrlr0 = (0x0 << mod_off_) | (0x1 << slv_oe) | ((data_bit_length - 1) << dfs_off_);
+        spi_.txftlr = 0x00000000;
+        spi_.rxftlr = 0x00000000;
+        spi_.imr = 0x00000010;
+        spi_.ssienr = 0x01;
+
+        pic_set_irq_priority(IRQN_SPI_SLAVE_INTERRUPT, 1);
+        pic_set_irq_handler(IRQN_SPI_SLAVE_INTERRUPT, on_spi_irq, this);
+        pic_set_irq_enable(IRQN_SPI_SLAVE_INTERRUPT, 1);
+    }
+
+    static void on_spi_irq(void *userdata)
+    {
+        auto &driver = *reinterpret_cast<k_spi_driver *>(userdata);
+        auto &spi_ = driver.spi_;
+        uint32_t data;
+        uint32_t transmit_data;
+        uint32_t status = spi_.isr;
+        uint8_t slv_oe = 10;
+        if (status & 0x10)
+        {
+            data = spi_.dr[0];
+            if (driver.slave_context_.handler->on_event(data) == SPI_EV_RECV)
+            {
+                driver.slave_context_.handler->on_receive(data);
+            }
+            if (driver.slave_context_.handler->on_event(data) == SPI_EV_TRANS)
+            {
+                transmit_data = driver.slave_context_.handler->on_transmit(data);
+                spi_.ssienr = 0x00;
+                spi_.ctrlr0 = (0x0 << driver.mod_off_) | (0x0 << slv_oe) | ((driver.slave_context_.data_bit_length - 1) << driver.dfs_off_);
+                set_bit_mask(&spi_.ctrlr0, 3 << driver.tmod_off_, 1 << driver.tmod_off_);
+                spi_.ssienr = 0x01;
+                spi_.dr[0] = transmit_data;
+                spi_.dr[0] = transmit_data;
+                spi_.imr = 0x00000001;
+            }
+        }
+        if (status & 0x01)
+        {
+            spi_.ssienr = 0x00;
+            spi_.ctrlr0 = (0x0 << driver.mod_off_) | (0x1 << slv_oe) | ((driver.slave_context_.data_bit_length - 1) << driver.dfs_off_);
+            set_bit_mask(&spi_.ctrlr0, 3 << driver.tmod_off_, 2 << driver.tmod_off_);
+            spi_.imr = 0x00000010;
+            spi_.ssienr = 0x01;
+        }
+    }
 
 private:
     void setup_device(k_spi_device_driver &device);
@@ -102,6 +155,7 @@ private:
     uint8_t frf_off_;
 
     SemaphoreHandle_t free_mutex_;
+    spi_slave_context_t slave_context_;
 };
 
 /* SPI Device */
@@ -248,12 +302,14 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
     spi_.ctrlr1 = rx_frames - 1;
     spi_.ssienr = 0x01;
     if (device.frame_format_ == SPI_FF_STANDARD)
+    {
         spi_.dr[0] = 0xFFFFFFFF;
+    }
 
     if (rx_frames < SPI_TRANSMISSION_THRESHOLD)
     {
         size_t index, fifo_len;
-        while (rx_buffer_len)
+        while (rx_frames)
         {
             const uint8_t *buffer_it = buffer.data();
             write_inst_addr(spi_.dr, &buffer_it, device.inst_width_);
@@ -261,17 +317,15 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
             spi_.ser = device.chip_select_mask_;
 
             fifo_len = spi_.rxflr;
-            fifo_len = fifo_len < rx_buffer_len ? fifo_len : rx_buffer_len;
+            fifo_len = fifo_len < rx_frames ? fifo_len : rx_frames;
             switch (device.buffer_width_)
             {
             case 4:
-                fifo_len = fifo_len / 4 * 4;
-                for (index = 0; index < fifo_len / 4; index++)
+                for (index = 0; index < fifo_len; index++)
                     ((uint32_t *)buffer_read)[i++] = spi_.dr[0];
                 break;
             case 2:
-                fifo_len = fifo_len / 2 * 2;
-                for (index = 0; index < fifo_len / 2; index++)
+                for (index = 0; index < fifo_len; index++)
                     ((uint16_t *)buffer_read)[i++] = (uint16_t)spi_.dr[0];
                 break;
             default:
@@ -279,7 +333,7 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
                     buffer_read[i++] = (uint8_t)spi_.dr[0];
                 break;
             }
-            rx_buffer_len -= fifo_len;
+            rx_frames -= fifo_len;
         }
     }
     else
@@ -574,8 +628,10 @@ void k_spi_driver::setup_device(k_spi_device_driver &device)
 
 static k_spi_driver dev0_driver(SPI0_BASE_ADDR, SYSCTL_CLOCK_SPI0, SYSCTL_DMA_SELECT_SSI0_RX_REQ, 6, 16, 8, 21);
 static k_spi_driver dev1_driver(SPI1_BASE_ADDR, SYSCTL_CLOCK_SPI1, SYSCTL_DMA_SELECT_SSI1_RX_REQ, 6, 16, 8, 21);
+static k_spi_driver dev_slave_driver(SPI_SLAVE_BASE_ADDR, SYSCTL_CLOCK_SPI2, SYSCTL_DMA_SELECT_SSI2_RX_REQ, 6, 16, 8, 21);
 static k_spi_driver dev3_driver(SPI3_BASE_ADDR, SYSCTL_CLOCK_SPI3, SYSCTL_DMA_SELECT_SSI3_RX_REQ, 8, 0, 10, 22);
 
 driver &g_spi_driver_spi0 = dev0_driver;
 driver &g_spi_driver_spi1 = dev1_driver;
+driver &g_spi_driver_spi_slave = dev_slave_driver;
 driver &g_spi_driver_spi3 = dev3_driver;

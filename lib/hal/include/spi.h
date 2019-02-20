@@ -98,6 +98,12 @@ typedef struct _spi
     volatile uint32_t xip_cnt_time_out;
     volatile uint32_t endian;
 } __attribute__((packed, aligned(4))) spi_t;
+
+typedef struct _spi_slave_context
+{
+    uint32_t data_bit_length;
+    const spi_slave_handler_t *handler;
+} spi_slave_context_t;
 /* clang-format on */
 
 #ifdef __cplusplus

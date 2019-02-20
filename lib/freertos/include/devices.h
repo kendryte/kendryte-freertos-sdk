@@ -260,6 +260,15 @@ void i2s_start(handle_t file);
 void i2s_stop(handle_t file);
 
 /**
+ * @brief       Configure SPI slave mode
+ *
+ * @param[in]   file                The SPI controller handle
+ * @param[in]   data_bit_length     The length of data bits
+ * @param[in]   handler             The SPI slave handler
+ */
+void spi_slave_config(handle_t file, uint32_t data_bit_length, spi_slave_handler_t *handler);
+
+/**
  * @brief       Register and open a SPI device
  *
  * @param[in]   file                    The SPI controller handle

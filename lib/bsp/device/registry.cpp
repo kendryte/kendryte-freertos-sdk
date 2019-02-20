@@ -35,6 +35,7 @@ extern driver &g_i2s_driver_i2s2;
 
 extern driver &g_spi_driver_spi0;
 extern driver &g_spi_driver_spi1;
+extern driver &g_spi_driver_spi_slave;
 extern driver &g_spi_driver_spi3;
 
 extern driver &g_sccb_driver_sccb0;
@@ -87,6 +88,7 @@ driver_registry_t sys::g_system_drivers[] = {
 
     { "/dev/spi0", { std::in_place, &g_spi_driver_spi0 } },
     { "/dev/spi1", { std::in_place, &g_spi_driver_spi1 } },
+    { "/dev/spi_slave", { std::in_place, &g_spi_driver_spi_slave } },
     { "/dev/spi3", { std::in_place, &g_spi_driver_spi3 } },
 
     { "/dev/sccb0", { std::in_place, &g_sccb_driver_sccb0 } },

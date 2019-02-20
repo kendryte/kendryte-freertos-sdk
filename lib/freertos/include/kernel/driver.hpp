@@ -236,6 +236,7 @@ class spi_driver : public driver
 {
 public:
     virtual object_ptr<spi_device_driver> get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length) = 0;
+    virtual void slave_config(uint32_t data_bit_length, const spi_slave_handler_t &handler) = 0;
 };
 
 class dvp_driver : public driver
