@@ -17,6 +17,7 @@
 #include <kernel/driver_impl.hpp>
 #include <network.h>
 #include <string.h>
+#include <sys/select.h>
 
 using namespace sys;
 
@@ -25,8 +26,12 @@ using namespace sys;
     configASSERT(obj.is<network_socket>());      \
     auto f = obj.as<network_socket>();
 
-#define CATCH_ALL \
-    catch (...) { return -1; }
+#define CATCH_ALL               \
+    catch (errno_exception & e) \
+    {                           \
+        errno = e.code();       \
+        return -1;              \
+    }
 
 #define CHECK_ARG(x) \
     if (!x)          \
@@ -275,6 +280,19 @@ int sendto(int socket, const void *data, size_t size, int flags, const struct so
         to_sys_sockaddr(remote_addr, *reinterpret_cast<const sockaddr_in *>(to));
 
         f->send_to({ (const uint8_t *)data, std::ptrdiff_t(size) }, send_flags, remote_addr);
+        return 0;
+    }
+    CATCH_ALL;
+}
+
+int select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout)
+{
+    try
+    {
+        int socket = maxfdp1 - 1;
+        SOCKET_ENTRY;
+
+        f->select(readset, writeset, exceptset, timeout);
         return 0;
     }
     CATCH_ALL;

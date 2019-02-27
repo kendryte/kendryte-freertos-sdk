@@ -407,27 +407,27 @@ typedef struct ipv6_mreq {
 #define IOC_INOUT       (IOC_IN|IOC_OUT)
                                         /* 0x20000000 distinguishes new &
                                            old ioctl's */
-#define _IO(x,y)        ((long)(IOC_VOID|((x)<<8)|(y)))
+#define _IO(x,y)        ((unsigned int)(IOC_VOID|((x)<<8)|(y)))
 
-#define _IOR(x,y,t)     ((long)(IOC_OUT|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
+#define _IOR(x,y,t)     ((unsigned int)(IOC_OUT|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
 
-#define _IOW(x,y,t)     ((long)(IOC_IN|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
+#define _IOW(x,y,t)     ((unsigned int)(IOC_IN|((sizeof(t)&IOCPARM_MASK)<<16)|((x)<<8)|(y)))
 #endif /* !defined(FIONREAD) || !defined(FIONBIO) */
 
 #ifndef FIONREAD
-#define FIONREAD    _IOR('f', 127, unsigned long) /* get # bytes to read */
+#define FIONREAD    _IOR('f', 127, unsigned int) /* get # bytes to read */
 #endif
 #ifndef FIONBIO
-#define FIONBIO     _IOW('f', 126, unsigned long) /* set/clear non-blocking i/o */
+#define FIONBIO     _IOW('f', 126, unsigned int) /* set/clear non-blocking i/o */
 #endif
 
 /* Socket I/O Controls: unimplemented */
 #ifndef SIOCSHIWAT
-#define SIOCSHIWAT  _IOW('s',  0, unsigned long)  /* set high watermark */
-#define SIOCGHIWAT  _IOR('s',  1, unsigned long)  /* get high watermark */
-#define SIOCSLOWAT  _IOW('s',  2, unsigned long)  /* set low watermark */
-#define SIOCGLOWAT  _IOR('s',  3, unsigned long)  /* get low watermark */
-#define SIOCATMARK  _IOR('s',  7, unsigned long)  /* at oob mark? */
+#define SIOCSHIWAT  _IOW('s',  0, unsigned int)  /* set high watermark */
+#define SIOCGHIWAT  _IOR('s',  1, unsigned int)  /* get high watermark */
+#define SIOCSLOWAT  _IOW('s',  2, unsigned int)  /* set low watermark */
+#define SIOCGLOWAT  _IOR('s',  3, unsigned int)  /* get low watermark */
+#define SIOCATMARK  _IOR('s',  7, unsigned int)  /* at oob mark? */
 #endif
 
 /* commands for fnctl */
@@ -603,7 +603,7 @@ int lwip_select(int maxfdp1, fd_set *readset, fd_set *writeset, fd_set *exceptse
 #if LWIP_SOCKET_POLL
 int lwip_poll(struct pollfd *fds, nfds_t nfds, int timeout);
 #endif
-int lwip_ioctl(int s, long cmd, void *argp);
+int lwip_ioctl(int s, unsigned int cmd, void *argp);
 int lwip_fcntl(int s, int cmd, int val);
 const char *lwip_inet_ntop(int af, const void *src, char *dst, socklen_t size);
 int lwip_inet_pton(int af, const char *src, void *dst);

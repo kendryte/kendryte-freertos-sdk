@@ -1290,7 +1290,7 @@
  * an upper limit on the MSS advertised by the remote host.
  */
 #if !defined TCP_MSS || defined __DOXYGEN__
-#define TCP_MSS                         536
+#define TCP_MSS                         1536
 #endif
 
 /**
@@ -1763,7 +1763,7 @@
  * sys_thread_new() when the thread is created.
  */
 #if !defined TCPIP_THREAD_PRIO || defined __DOXYGEN__
-#define TCPIP_THREAD_PRIO               1
+#define TCPIP_THREAD_PRIO               2
 #endif
 
 /**

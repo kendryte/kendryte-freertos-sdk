@@ -292,6 +292,7 @@ double k_spi_driver::set_clock_rate(k_spi_device_driver &device, double clock_ra
 int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
 {
     COMMON_ENTRY;
+
     setup_device(device);
 
     uint32_t i = 0;
@@ -308,6 +309,7 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
 
     if (rx_frames < SPI_TRANSMISSION_THRESHOLD)
     {
+        vTaskEnterCritical();
         size_t index, fifo_len;
         while (rx_frames)
         {
@@ -335,6 +337,7 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
             }
             rx_frames -= fifo_len;
         }
+        vTaskExitCritical();
     }
     else
     {
@@ -355,12 +358,14 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
     spi_.ser = 0x00;
     spi_.ssienr = 0x00;
     spi_.dmacr = 0x00;
+
     return buffer.size();
 }
 
 int k_spi_driver::write(k_spi_device_driver &device, gsl::span<const uint8_t> buffer)
 {
     COMMON_ENTRY;
+
     setup_device(device);
 
     uint32_t i = 0;
@@ -371,6 +376,7 @@ int k_spi_driver::write(k_spi_device_driver &device, gsl::span<const uint8_t> bu
 
     if (tx_frames < SPI_TRANSMISSION_THRESHOLD)
     {
+        vTaskEnterCritical();
         size_t index, fifo_len;
         spi_.ssienr = 0x01;
         write_inst_addr(spi_.dr, &buffer_write, device.inst_width_);
@@ -399,6 +405,7 @@ int k_spi_driver::write(k_spi_device_driver &device, gsl::span<const uint8_t> bu
             }
             tx_buffer_len -= fifo_len;
         }
+        vTaskExitCritical();
     }
     else
     {
@@ -420,6 +427,7 @@ int k_spi_driver::write(k_spi_device_driver &device, gsl::span<const uint8_t> bu
     spi_.ser = 0x00;
     spi_.ssienr = 0x00;
     spi_.dmacr = 0x00;
+
     return buffer.size();
 }
 
@@ -452,6 +460,7 @@ int k_spi_driver::read_write(k_spi_device_driver &device, gsl::span<const uint8_
 
     if (rx_frames < SPI_TRANSMISSION_THRESHOLD)
     {
+        vTaskEnterCritical();
         size_t index, fifo_len;
         spi_.ctrlr1 = rx_frames - 1;
         spi_.ssienr = 0x01;
@@ -504,6 +513,7 @@ int k_spi_driver::read_write(k_spi_device_driver &device, gsl::span<const uint8_
             spi_.ser = device.chip_select_mask_;
             rx_buffer_len -= fifo_len;
         }
+        vTaskExitCritical();
     }
     else
     {

@@ -17,6 +17,7 @@
 #include "kernel/driver_impl.hpp"
 #include "network.h"
 #include <lwip/sockets.h>
+#include <lwip/errno.h>
 #include <string.h>
 
 using namespace sys;
@@ -24,7 +25,9 @@ using namespace sys;
 static void check_lwip_error(int result)
 {
     if (result < 0)
-        throw std::runtime_error(strerror(errno));
+    {
+        throw errno_exception(strerror(errno), errno);
+    }
 }
 
 static void to_lwip_sockaddr(sockaddr_in &addr, const socket_address_t &socket_addr)
@@ -102,6 +105,10 @@ public:
     ~k_network_socket()
     {
         lwip_close(sock_);
+    }
+
+    virtual void install() override
+    {
     }
 
     virtual object_accessor<network_socket> accept(socket_address_t *remote_address) override
@@ -260,6 +267,25 @@ public:
         return ret;
     }
 
+    virtual int fcntl(int cmd, int val) override
+    {
+        auto ret = lwip_fcntl(sock_, cmd, val);
+        check_lwip_error(ret);
+        return ret;
+    }
+
+    virtual void select(fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout) override
+    {
+        check_lwip_error(lwip_select(sock_ + 1, readset, writeset, exceptset, timeout));
+    }
+
+    virtual int control(uint32_t control_code, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) override
+    {
+        int val = *reinterpret_cast<const int *>(write_buffer.data());
+        check_lwip_error(lwip_ioctl(sock_, (unsigned int)control_code, &val));
+        return 0;
+    }
+
 private:
     k_network_socket()
         : sock_(0)
@@ -276,7 +302,11 @@ private:
     auto f = obj.as<k_network_socket>();
 
 #define CATCH_ALL \
-    catch (...) { return -1; }
+    catch (errno_exception &e)      \
+    {                               \
+        errno = e.code();           \
+        return -1;                  \
+    }
 
 #define CHECK_ARG(x) \
     if (!x)          \
@@ -407,6 +437,29 @@ int network_socket_receive_from(handle_t socket_handle, uint8_t *data, size_t le
         SOCKET_ENTRY;
 
         return f->receive_from({ data, std::ptrdiff_t(len) }, flags, from);
+    }
+    CATCH_ALL;
+}
+
+int network_socket_fcntl(handle_t socket_handle, int cmd, int val)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        return f->fcntl(cmd, val);
+    }
+    CATCH_ALL;
+}
+
+int network_socket_select(int socket_handle, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout)
+{
+    try
+    {
+        SOCKET_ENTRY;
+
+        f->select(readset, writeset, exceptset, timeout);
+        return 0;
     }
     CATCH_ALL;
 }

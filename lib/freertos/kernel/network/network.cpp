@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include "network.h"
+#include "semphr.h"
 #include "FreeRTOS.h"
 #include "devices.h"
 #include "kernel/driver_impl.hpp"
@@ -26,9 +27,11 @@
 #include <lwip/netdb.h>
 #include <netif/ethernet.h>
 #include <string.h>
+
 using namespace sys;
 
 #define MAX_DHCP_TRIES 5
+#define NETIF_GUARD_BLOCK_TIME   (250 )
 
 int network_init()
 {
@@ -43,7 +46,7 @@ public:
         : adapter_(std::move(adapter))
     {
         ip4_addr_t ipaddr, netmask, gw;
-        completion_event_ = xSemaphoreCreateCounting(20, 0);
+        completion_event_ = xSemaphoreCreateBinary();
 
         IP4_ADDR(&ipaddr, ip_address.data[0], ip_address.data[1], ip_address.data[2], ip_address.data[3]);
         IP4_ADDR(&netmask, net_mask.data[0], net_mask.data[1], net_mask.data[2], net_mask.data[3]);
@@ -60,7 +63,7 @@ public:
             netif_set_up(&netif_);
 
             TaskHandle_t h;
-            auto ret = xTaskCreate(poll_thread, "poll", 10240, this, 3, &h);
+            auto ret = xTaskCreate(poll_thread, "poll", 4096*8, this, 3, &h);
             configASSERT(ret == pdTRUE);
         }
         else
@@ -206,7 +209,7 @@ private:
 
     static void ethernetif_input(struct netif *netif)
     {
-        struct pbuf *p;
+        struct pbuf *p = NULL;
 
         /* move received packet into a new pbuf */
         p = low_level_input(netif);
@@ -249,10 +252,10 @@ private:
 
 #if LWIP_IPV6 && LWIP_IPV6_MLD
         /*
-	* For hardware/netifs that implement MAC filtering.
-	* All-nodes link-local is handled by default, so we must let the hardware know
-	* to allow multicast packets in.
-	* Should set mld_mac_filter previously. */
+    * For hardware/netifs that implement MAC filtering.
+    * All-nodes link-local is handled by default, so we must let the hardware know
+    * to allow multicast packets in.
+    * Should set mld_mac_filter previously. */
         if (netif->mld_mac_filter != NULL)
         {
             ip6_addr_t ip6_allnodes_ll;
@@ -267,115 +270,135 @@ private:
 
     static struct pbuf *low_level_input(struct netif *netif)
     {
+        static xSemaphoreHandle xRxSemaphore = NULL;
         auto &ethnetif = *reinterpret_cast<k_ethernet_interface *>(netif->state);
         auto &adapter = ethnetif.adapter_;
-        struct pbuf *p, *q;
+        struct pbuf *p = NULL, *q = NULL;
         u16_t len;
-
-        /* Obtain the size of the packet and put it into the "len" variable. */
-        len = adapter->begin_receive();
-
-#if ETH_PAD_SIZE
-        len += ETH_PAD_SIZE; /* allow room for Ethernet padding */
-#endif
-
-        /* We allocate a pbuf chain of pbufs from the pool. */
-        p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
-
-        if (p != NULL)
+        if (xRxSemaphore == NULL)
         {
+            vSemaphoreCreateBinary (xRxSemaphore);
+        }
 
-#if ETH_PAD_SIZE
-            pbuf_remove_header(p, ETH_PAD_SIZE); /* drop the padding word */
-#endif
+        if (xSemaphoreTake(xRxSemaphore, NETIF_GUARD_BLOCK_TIME))
+        {
+            /* Obtain the size of the packet and put it into the "len" variable. */
+            len = adapter->begin_receive();
 
-            /* We iterate over the pbuf chain until we have read the entire
-											 * packet into the pbuf. */
-            for (q = p; q != NULL; q = q->next)
+    #if ETH_PAD_SIZE
+            len += ETH_PAD_SIZE; /* allow room for Ethernet padding */
+    #endif
+
+            /* We allocate a pbuf chain of pbufs from the pool. */
+            p = pbuf_alloc(PBUF_RAW, len, PBUF_POOL);
+
+            if (p != NULL)
             {
-                /* Read enough bytes to fill this pbuf in the chain. The
-			     * available data in the pbuf is given by the q->len
-			     * variable.
-			     * This does not necessarily have to be a memcpy, you can also preallocate
-			     * pbufs for a DMA-enabled MAC and after receiving truncate it to the
-			     * actually received size. In this case, ensure the tot_len member of the
-			     * pbuf is the sum of the chained pbuf len members.
-			     */
-                adapter->receive({ (uint8_t *)q->payload, q->len });
-            }
 
-            adapter->end_receive();
+    #if ETH_PAD_SIZE
+                pbuf_remove_header(p, ETH_PAD_SIZE); /* drop the padding word */
+    #endif
 
-            MIB2_STATS_NETIF_ADD(netif, ifinoctets, p->tot_len);
-            if (((u8_t *)p->payload)[0] & 1)
-            {
-                /* broadcast or multicast packet*/
-                MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
+                /* We iterate over the pbuf chain until we have read the entire
+                                                 * packet into the pbuf. */
+                for (q = p; q != NULL; q = q->next)
+                {
+                    /* Read enough bytes to fill this pbuf in the chain. The
+                     * available data in the pbuf is given by the q->len
+                     * variable.
+                     * This does not necessarily have to be a memcpy, you can also preallocate
+                     * pbufs for a DMA-enabled MAC and after receiving truncate it to the
+                     * actually received size. In this case, ensure the tot_len member of the
+                     * pbuf is the sum of the chained pbuf len members.
+                     */
+                    adapter->receive({ (uint8_t *)q->payload, q->len });
+                }
+
+                adapter->end_receive();
+
+                MIB2_STATS_NETIF_ADD(netif, ifinoctets, p->tot_len);
+                if (((u8_t *)p->payload)[0] & 1)
+                {
+                    /* broadcast or multicast packet*/
+                    MIB2_STATS_NETIF_INC(netif, ifinnucastpkts);
+                }
+                else
+                {
+                    /* unicast packet*/
+                    MIB2_STATS_NETIF_INC(netif, ifinucastpkts);
+                }
+    #if ETH_PAD_SIZE
+                pbuf_add_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
+    #endif
+
+                LINK_STATS_INC(link.recv);
             }
             else
             {
-                /* unicast packet*/
-                MIB2_STATS_NETIF_INC(netif, ifinucastpkts);
+                adapter->end_receive();
+
+                LINK_STATS_INC(link.memerr);
+                LINK_STATS_INC(link.drop);
+                MIB2_STATS_NETIF_INC(netif, ifindiscards);
             }
-#if ETH_PAD_SIZE
-            pbuf_add_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
-#endif
-
-            LINK_STATS_INC(link.recv);
+            xSemaphoreGive(xRxSemaphore);
         }
-        else
-        {
-            adapter->end_receive();
-
-            LINK_STATS_INC(link.memerr);
-            LINK_STATS_INC(link.drop);
-            MIB2_STATS_NETIF_INC(netif, ifindiscards);
-        }
-
         return p;
     }
 
     static err_t low_level_output(struct netif *netif, struct pbuf *p)
     {
+        static xSemaphoreHandle xTxSemaphore = NULL;
         auto &ethnetif = *reinterpret_cast<k_ethernet_interface *>(netif->state);
         auto &adapter = ethnetif.adapter_;
         struct pbuf *q;
 
-        adapter->begin_send(p->tot_len);
-
-#if ETH_PAD_SIZE
-        pbuf_remove_header(p, ETH_PAD_SIZE); /* drop the padding word */
-#endif
-
-        for (q = p; q != NULL; q = q->next)
+        if (xTxSemaphore == NULL)
         {
-            /* Send the data from the pbuf to the interface, one pbuf at a
-		       time. The size of the data in each pbuf is kept in the ->len
-		       variable. */
-            adapter->send({ (uint8_t *)q->payload, q->len });
+            xTxSemaphore = xSemaphoreCreateMutex();
         }
 
-        adapter->end_send();
-
-        MIB2_STATS_NETIF_ADD(netif, ifoutoctets, p->tot_len);
-        if (((u8_t *)p->payload)[0] & 1)
+        if (xTxSemaphore != NULL)
         {
-            /* broadcast or multicast packet*/
-            MIB2_STATS_NETIF_INC(netif, ifoutnucastpkts);
+            if (xSemaphoreTake(xTxSemaphore, NETIF_GUARD_BLOCK_TIME))
+            {
+                adapter->begin_send(p->tot_len);
+
+    #if ETH_PAD_SIZE
+                pbuf_remove_header(p, ETH_PAD_SIZE); /* drop the padding word */
+    #endif
+
+                for (q = p; q != NULL; q = q->next)
+                {
+                    /* Send the data from the pbuf to the interface, one pbuf at a
+                       time. The size of the data in each pbuf is kept in the ->len
+                       variable. */
+                    adapter->send({ (uint8_t *)q->payload, q->len });
+                }
+
+                adapter->end_send();
+
+                MIB2_STATS_NETIF_ADD(netif, ifoutoctets, p->tot_len);
+                if (((u8_t *)p->payload)[0] & 1)
+                {
+                    /* broadcast or multicast packet*/
+                    MIB2_STATS_NETIF_INC(netif, ifoutnucastpkts);
+                }
+                else
+                {
+                    /* unicast packet */
+                    MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
+                }
+                /* increase ifoutdiscards or ifouterrors on error */
+
+    #if ETH_PAD_SIZE
+                pbuf_add_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
+    #endif
+
+                LINK_STATS_INC(link.xmit);
+                xSemaphoreGive(xTxSemaphore);
+            }
         }
-        else
-        {
-            /* unicast packet */
-            MIB2_STATS_NETIF_INC(netif, ifoutucastpkts);
-        }
-        /* increase ifoutdiscards or ifouterrors on error */
-
-#if ETH_PAD_SIZE
-        pbuf_add_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
-#endif
-
-        LINK_STATS_INC(link.xmit);
-
         return ERR_OK;
     }
 

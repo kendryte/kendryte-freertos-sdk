@@ -54,12 +54,15 @@ void handle_irq_m_soft(uintptr_t *regs, uintptr_t cause)
 
 void core_sync_request(uint64_t core_id, int event)
 {
+    vTaskEnterCritical();
+
     corelock_lock(&s_core_sync_locks[core_id]);
     while (s_core_sync_events[core_id] != CORE_SYNC_NONE)
         ;
     s_core_sync_events[core_id] = event;
     clint_ipi_send(core_id);
     corelock_unlock(&s_core_sync_locks[core_id]);
+    vTaskExitCritical();
 }
 
 void core_sync_complete(uint64_t core_id)

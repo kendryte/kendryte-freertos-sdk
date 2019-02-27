@@ -45,6 +45,13 @@ using namespace sys;
         }                                    \
     }
 
+#define CATCH_ALL           \
+    catch (errno_exception & e) \
+    {                       \
+        errno = e.code();    \
+        return -1;          \
+    }
+
 typedef struct
 {
     object_accessor<object_access> object;
@@ -192,19 +199,23 @@ static void dma_add_free();
 
 int io_read(handle_t file, uint8_t *buffer, size_t len)
 {
-    configASSERT(file >= HANDLE_OFFSET);
-    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
-    /* clang-format off */
-    DEFINE_READ_PROXY(uart_driver)
-    else DEFINE_READ_PROXY(i2c_device_driver)
-    else DEFINE_READ_PROXY(spi_device_driver)
-    else DEFINE_READ_PROXY(filesystem_file)
-    else DEFINE_READ_PROXY(network_socket)
-    else
+    try
     {
-        return -1;
+        configASSERT(file >= HANDLE_OFFSET);
+        _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
+        /* clang-format off */
+        DEFINE_READ_PROXY(uart_driver)
+        else DEFINE_READ_PROXY(i2c_device_driver)
+        else DEFINE_READ_PROXY(spi_device_driver)
+        else DEFINE_READ_PROXY(filesystem_file)
+        else DEFINE_READ_PROXY(network_socket)
+        else
+        {
+            return -1;
+        }
+        /* clang-format on */
     }
-    /* clang-format on */
+    CATCH_ALL;
 }
 
 static void io_free(_file *file)
@@ -273,27 +284,39 @@ int io_close(handle_t file)
 
 int io_write(handle_t file, const uint8_t *buffer, size_t len)
 {
-    configASSERT(file >= HANDLE_OFFSET);
-    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
-    /* clang-format off */
-    DEFINE_WRITE_PROXY(uart_driver)
-    else DEFINE_WRITE_PROXY(i2c_device_driver)
-    else DEFINE_WRITE_PROXY(spi_device_driver)
-    else DEFINE_WRITE_PROXY(filesystem_file)
-    else DEFINE_WRITE_PROXY(network_socket)
-    else
+    try
     {
-        return -1;
+        configASSERT(file >= HANDLE_OFFSET);
+        _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
+        /* clang-format off */
+        DEFINE_WRITE_PROXY(uart_driver)
+        else DEFINE_WRITE_PROXY(i2c_device_driver)
+        else DEFINE_WRITE_PROXY(spi_device_driver)
+        else DEFINE_WRITE_PROXY(filesystem_file)
+        else DEFINE_WRITE_PROXY(network_socket)
+        else
+        {
+            return -1;
+        }
+        /* clang-format on */
     }
-    /* clang-format on */
+    CATCH_ALL;
 }
 
 int io_control(handle_t file, uint32_t control_code, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
 {
-    _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
-    DEFINE_CONTROL_PROXY(custom)
-
-    return -1;
+    try
+    {
+        configASSERT(file >= HANDLE_OFFSET);
+        _file *rfile = (_file *)handles_[file - HANDLE_OFFSET];
+        DEFINE_CONTROL_PROXY(custom)
+        else
+        {
+            return -1;
+        }
+    }
+    CATCH_ALL;
+    
 }
 
 /* Device IO Implementation Helper Macros */

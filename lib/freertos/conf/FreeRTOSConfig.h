@@ -68,7 +68,7 @@
 #define configUSE_PORT_OPTIMISED_TASK_SELECTION	0
 #define configMAX_PRIORITIES					( 5 )
 #define configMAX_TASK_NAME_LEN					( 16 )
-#define configUSE_TRACE_FACILITY				0
+#define configUSE_TRACE_FACILITY				1
 #define configUSE_16_BIT_TICKS					0
 #define configIDLE_SHOULD_YIELD					0
 #define configQUEUE_REGISTRY_SIZE				8

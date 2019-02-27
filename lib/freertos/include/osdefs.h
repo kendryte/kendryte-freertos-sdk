@@ -335,6 +335,19 @@ typedef enum _dhcp_state
     DHCP_FAIL
 } dhcp_state_t;
 
+#define SYS_IOCPARM_MASK    0x7fU           /* parameters must be < 128 bytes */
+#define SYS_IOC_VOID        0x20000000UL    /* no parameters */
+#define SYS_IOC_OUT         0x40000000UL    /* copy out parameters */
+#define SYS_IOC_IN          0x80000000UL    /* copy in parameters */
+#define SYS_IOC_INOUT       (SYS_IOC_IN | SYS_IOC_OUT) /* 0x20000000 distinguishes new & old ioctl's */
+#define SYS_IO(x, y)        (SYS_IOC_VOID | ((x) << 8) | (y))
+
+#define SYS_IOR(x, y, t)    (SYS_IOC_OUT | (((uint32_t)sizeof(t) & SYS_IOCPARM_MASK) << 16) | ((x) << 8) | (y))
+
+#define SYS_IOW(x, y, t)    (SYS_IOC_IN | (((uint32_t)sizeof(t) & SYS_IOCPARM_MASK) << 16) | ((x) << 8) | (y))
+
+#define SYS_FIONBIO         SYS_IOW('f', 126, uint32_t) /* set/clear non-blocking i/o */
+
 #ifdef __cplusplus
 }
 #endif

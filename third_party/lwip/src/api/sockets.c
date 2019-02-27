@@ -522,14 +522,14 @@ alloc_socket(struct netconn *newconn, int accepted)
          after having marked it as used. */
       SYS_ARCH_UNPROTECT(lev);
       sockets[i].lastdata.pbuf = NULL;
-#if LWIP_SOCKET_SELECT
+#if LWIP_SOCKET_SELECT || LWIP_SOCKET_POLL
       LWIP_ASSERT("sockets[i].select_waiting == 0", sockets[i].select_waiting == 0);
       sockets[i].rcvevent   = 0;
       /* TCP sendbuf is empty, but the socket is not yet writable until connected
        * (unless it has been created by accept()). */
       sockets[i].sendevent  = (NETCONNTYPE_GROUP(newconn->type) == NETCONN_TCP ? (accepted != 0) : 1);
       sockets[i].errevent   = 0;
-#endif /* LWIP_SOCKET_SELECT */
+#endif /* LWIP_SOCKET_SELECT || LWIP_SOCKET_POLL */
       return i + LWIP_SOCKET_OFFSET;
     }
     SYS_ARCH_UNPROTECT(lev);
@@ -1305,7 +1305,7 @@ lwip_recvmsg(int s, struct msghdr *message, int flags)
     if ((message->msg_iov[i].iov_base == NULL) || ((ssize_t)message->msg_iov[i].iov_len <= 0) ||
         ((size_t)(ssize_t)message->msg_iov[i].iov_len != message->msg_iov[i].iov_len) ||
         ((ssize_t)(buflen + (ssize_t)message->msg_iov[i].iov_len) <= 0)) {
-      sock_set_errno(sock, ERR_VAL);
+      sock_set_errno(sock, err_to_errno(ERR_VAL));
       done_socket(sock);
       return -1;
     }
@@ -2304,7 +2304,6 @@ lwip_poll_dec_sockets_used(struct pollfd *fds, nfds_t nfds)
     /* Go through each struct pollfd in the array. */
     for (fdi = 0; fdi < nfds; fdi++) {
       struct lwip_sock *sock = tryget_socket_unconn_nouse(fds[fdi].fd);
-      LWIP_ASSERT("socket gone at the end of select", sock != NULL);
       if (sock != NULL) {
         done_socket(sock);
       }
@@ -3741,7 +3740,7 @@ lwip_setsockopt_impl(int s, int level, int optname, const void *optval, socklen_
 }
 
 int
-lwip_ioctl(int s, long cmd, void *argp)
+lwip_ioctl(int s, unsigned int cmd, void *argp)
 {
   struct lwip_sock *sock = get_socket(s);
   u8_t val;
@@ -3808,7 +3807,7 @@ lwip_ioctl(int s, long cmd, void *argp)
 #endif /* LWIP_SO_RCVBUF */
 #endif /* LWIP_SO_RCVBUF || LWIP_FIONREAD_LINUXMODE */
 
-    case (long)FIONBIO:
+    case FIONBIO:
       val = 0;
       if (argp && *(int *)argp) {
         val = 1;

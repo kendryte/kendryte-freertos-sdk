@@ -202,9 +202,9 @@ configIDLE_TASK_NAME in FreeRTOSConfig.h. */
 	UBaseType_t uxTopPriority;																		\
 																									\
 		/* Find the highest priority list that contains ready tasks. */								\
-		portGET_HIGHEST_PRIORITY( uxTopPriority, uxTopReadyPriority );								\
-		configASSERT( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ uxTopPriority ] ) ) > 0 );		\
-		listGET_OWNER_OF_NEXT_ENTRY( pxCurrentTCB, &( pxReadyTasksLists[ uxTopPriority ] ) );		\
+		portGET_HIGHEST_PRIORITY( uxTopPriority, uxTopReadyPriority[uxPsrId] );								\
+		configASSERT( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[uxPsrId][ uxTopPriority ] ) ) > 0 );		\
+		listGET_OWNER_OF_NEXT_ENTRY( pxCurrentTCB[uxPsrId], &( pxReadyTasksLists[uxPsrId][ uxTopPriority ] ) );		\
 	} /* taskSELECT_HIGHEST_PRIORITY_TASK() */
 
 	/*-----------------------------------------------------------*/
@@ -214,9 +214,9 @@ configIDLE_TASK_NAME in FreeRTOSConfig.h. */
 	or suspended list then it won't be in a ready list. */
 	#define taskRESET_READY_PRIORITY( uxPriority )														\
 	{																									\
-		if( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[ ( uxPriority ) ] ) ) == ( UBaseType_t ) 0 )	\
+		if( listCURRENT_LIST_LENGTH( &( pxReadyTasksLists[uxPsrId][ ( uxPriority ) ] ) ) == ( UBaseType_t ) 0 )	\
 		{																								\
-			portRESET_READY_PRIORITY( ( uxPriority ), ( uxTopReadyPriority ) );							\
+			portRESET_READY_PRIORITY( ( uxPriority ), ( uxTopReadyPriority[uxPsrId] ) );							\
 		}																								\
 	}
 
@@ -1108,7 +1108,7 @@ void vAddNewTaskToCurrentReadyList(TaskHandle_t pxNewTaskHandle)
 		#if ( configUSE_TRACE_FACILITY == 1 )
 		{
 			/* Add a counter into the TCB for tracing only. */
-			pxNewTCB->uxTCBNumber = uxTaskNumber;
+			pxNewTCB->uxTCBNumber = uxTaskNumber[uxPsrId];
 		}
 		#endif /* configUSE_TRACE_FACILITY */
 		traceTASK_CREATE( pxNewTCB );
@@ -1979,7 +1979,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 												pxIdleTaskStackBuffer,
 												pxIdleTaskTCBBuffer ); /*lint !e961 MISRA exception, justified as it is not a redundant explicit cast to all supported compilers. */
 
-		if( xIdleTaskHandle != NULL )
+		if( xIdleTaskHandle[uxPsrId] != NULL )
 		{
 			xReturn = pdPASS;
 		}
@@ -2073,7 +2073,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 	/* Prevent compiler warnings if INCLUDE_xTaskGetIdleTaskHandle is set to 0,
 	meaning xIdleTaskHandle is not used anywhere else. */
-	( void ) xIdleTaskHandle;
+	( void ) xIdleTaskHandle[uxPsrId];
 }
 /*-----------------------------------------------------------*/
 
@@ -2412,7 +2412,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	{
 	UBaseType_t uxQueue = configMAX_PRIORITIES;
 	TCB_t* pxTCB;
-
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 		/* Task names will be truncated to configMAX_TASK_NAME_LEN - 1 bytes. */
 		configASSERT( strlen( pcNameToQuery ) < configMAX_TASK_NAME_LEN );
 
@@ -2422,7 +2422,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 			do
 			{
 				uxQueue--;
-				pxTCB = prvSearchForNameWithinSingleList( ( List_t * ) &( pxReadyTasksLists[ uxQueue ] ), pcNameToQuery );
+				pxTCB = prvSearchForNameWithinSingleList( ( List_t * ) &( pxReadyTasksLists[uxPsrId][ uxQueue ] ), pcNameToQuery );
 
 				if( pxTCB != NULL )
 				{
@@ -2435,12 +2435,12 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 			/* Search the delayed lists. */
 			if( pxTCB == NULL )
 			{
-				pxTCB = prvSearchForNameWithinSingleList( ( List_t * ) pxDelayedTaskList, pcNameToQuery );
+				pxTCB = prvSearchForNameWithinSingleList( ( List_t * ) pxDelayedTaskList[uxPsrId], pcNameToQuery );
 			}
 
 			if( pxTCB == NULL )
 			{
-				pxTCB = prvSearchForNameWithinSingleList( ( List_t * ) pxOverflowDelayedTaskList, pcNameToQuery );
+				pxTCB = prvSearchForNameWithinSingleList( ( List_t * ) pxOverflowDelayedTaskList[uxPsrId], pcNameToQuery );
 			}
 
 			#if ( INCLUDE_vTaskSuspend == 1 )
@@ -2448,7 +2448,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 				if( pxTCB == NULL )
 				{
 					/* Search the suspended list. */
-					pxTCB = prvSearchForNameWithinSingleList( &xSuspendedTaskList, pcNameToQuery );
+					pxTCB = prvSearchForNameWithinSingleList( &xSuspendedTaskList[uxPsrId], pcNameToQuery );
 				}
 			}
 			#endif
@@ -2458,7 +2458,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 				if( pxTCB == NULL )
 				{
 					/* Search the deleted list. */
-					pxTCB = prvSearchForNameWithinSingleList( &xTasksWaitingTermination, pcNameToQuery );
+					pxTCB = prvSearchForNameWithinSingleList( &xTasksWaitingTermination[uxPsrId], pcNameToQuery );
 				}
 			}
 			#endif
@@ -2476,31 +2476,31 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	UBaseType_t uxTaskGetSystemState( TaskStatus_t * const pxTaskStatusArray, const UBaseType_t uxArraySize, uint32_t * const pulTotalRunTime )
 	{
 	UBaseType_t uxTask = 0, uxQueue = configMAX_PRIORITIES;
-
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 		vTaskSuspendAll();
 		{
 			/* Is there a space in the array for each task in the system? */
-			if( uxArraySize >= uxCurrentNumberOfTasks )
+			if( uxArraySize >= uxCurrentNumberOfTasks[uxPsrId] )
 			{
 				/* Fill in an TaskStatus_t structure with information on each
 				task in the Ready state. */
 				do
 				{
 					uxQueue--;
-					uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), &( pxReadyTasksLists[ uxQueue ] ), eReady );
+					uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), &( pxReadyTasksLists[uxPsrId][ uxQueue ] ), eReady );
 
 				} while( uxQueue > ( UBaseType_t ) tskIDLE_PRIORITY ); /*lint !e961 MISRA exception as the casts are only redundant for some ports. */
 
 				/* Fill in an TaskStatus_t structure with information on each
 				task in the Blocked state. */
-				uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), ( List_t * ) pxDelayedTaskList, eBlocked );
-				uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), ( List_t * ) pxOverflowDelayedTaskList, eBlocked );
+				uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), ( List_t * ) pxDelayedTaskList[uxPsrId], eBlocked );
+				uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), ( List_t * ) pxOverflowDelayedTaskList[uxPsrId], eBlocked );
 
 				#if( INCLUDE_vTaskDelete == 1 )
 				{
 					/* Fill in an TaskStatus_t structure with information on
 					each task that has been deleted but not yet cleaned up. */
-					uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), &xTasksWaitingTermination, eDeleted );
+					uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), &xTasksWaitingTermination[uxPsrId], eDeleted );
 				}
 				#endif
 
@@ -2508,7 +2508,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 				{
 					/* Fill in an TaskStatus_t structure with information on
 					each task in the Suspended state. */
-					uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), &xSuspendedTaskList, eSuspended );
+					uxTask += prvListTasksWithinSingleList( &( pxTaskStatusArray[ uxTask ] ), &xSuspendedTaskList[uxPsrId], eSuspended );
 				}
 				#endif
 
@@ -2549,10 +2549,11 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 	TaskHandle_t xTaskGetIdleTaskHandle( void )
 	{
+	    UBaseType_t uxPsrId = uxPortGetProcessorId();
 		/* If xTaskGetIdleTaskHandle() is called before the scheduler has been
 		started, then xIdleTaskHandle will be NULL. */
-		configASSERT( ( xIdleTaskHandle != NULL ) );
-		return xIdleTaskHandle;
+		configASSERT( ( xIdleTaskHandle[uxPsrId] != NULL ) );
+		return xIdleTaskHandle[uxPsrId];
 	}
 
 #endif /* INCLUDE_xTaskGetIdleTaskHandle */
@@ -2942,9 +2943,9 @@ void vTaskSwitchContext( void )
 		#if ( configGENERATE_RUN_TIME_STATS == 1 )
 		{
 				#ifdef portALT_GET_RUN_TIME_COUNTER_VALUE
-					portALT_GET_RUN_TIME_COUNTER_VALUE( ulTotalRunTime );
+					portALT_GET_RUN_TIME_COUNTER_VALUE( ulTotalRunTime[uxPsrId] );
 				#else
-					ulTotalRunTime = portGET_RUN_TIME_COUNTER_VALUE();
+					ulTotalRunTime[uxPsrId]  = portGET_RUN_TIME_COUNTER_VALUE();
 				#endif
 
 				/* Add the amount of time the task has been running to the
@@ -2954,15 +2955,15 @@ void vTaskSwitchContext( void )
 				overflows.  The guard against negative values is to protect
 				against suspect run time stat counter implementations - which
 				are provided by the application, not the kernel. */
-				if( ulTotalRunTime > ulTaskSwitchedInTime )
+				if( ulTotalRunTime[uxPsrId] > ulTaskSwitchedInTime[uxPsrId] )
 				{
-					pxCurrentTCB->ulRunTimeCounter += ( ulTotalRunTime - ulTaskSwitchedInTime );
+					pxCurrentTCB[uxPsrId]->ulRunTimeCounter += ( ulTotalRunTime[uxPsrId] - ulTaskSwitchedInTime[uxPsrId] );
 				}
 				else
 				{
 					mtCOVERAGE_TEST_MARKER();
 				}
-				ulTaskSwitchedInTime = ulTotalRunTime;
+				ulTaskSwitchedInTime[uxPsrId] = ulTotalRunTime[uxPsrId];
 		}
 		#endif /* configGENERATE_RUN_TIME_STATS */
 
@@ -3055,7 +3056,7 @@ void vTaskPlaceOnUnorderedEventList( List_t * pxEventList, const TickType_t xIte
 			xTicksToWait = portMAX_DELAY;
 		}
 
-		traceTASK_DELAY_UNTIL( ( xTickCount + xTicksToWait ) );
+		traceTASK_DELAY_UNTIL( ( xTickCount[uxPsrId] + xTicksToWait ) );
 		prvAddCurrentTaskToDelayedList( xTicksToWait, xWaitIndefinitely );
 	}
 
@@ -3513,6 +3514,7 @@ static portTASK_FUNCTION( prvIdleTask, pvParameters )
 	void vTaskAllocateMPURegions( TaskHandle_t xTaskToModify, const MemoryRegion_t * const xRegions )
 	{
 	TCB_t *pxTCB;
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 
 		/* If null is passed in here then we are modifying the MPU settings of
 		the calling task. */
@@ -3592,7 +3594,7 @@ static void prvCheckTasksWaitingTermination( void )
 	void vTaskGetInfo( TaskHandle_t xTask, TaskStatus_t *pxTaskStatus, BaseType_t xGetFreeStackSpace, eTaskState eState )
 	{
 	TCB_t *pxTCB;
-
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 		/* xTask is NULL then get the state of the calling task. */
 		pxTCB = prvGetTCBFromHandle( xTask );
 
@@ -3627,7 +3629,7 @@ static void prvCheckTasksWaitingTermination( void )
 		state is just set to whatever is passed in. */
 		if( eState != eInvalid )
 		{
-			if( pxTCB == pxCurrentTCB )
+			if( pxTCB == pxCurrentTCB[uxPsrId] )
 			{
 				pxTaskStatus->eCurrentState = eRunning;
 			}
@@ -3869,7 +3871,7 @@ UBaseType_t uxPsrId = uxPortGetProcessorId();
 	{
 	BaseType_t xReturn;
 
-		if( xSchedulerRunning == pdFALSE )
+		if( xSchedulerRunning[uxPortGetProcessorId()] == pdFALSE )
 		{
 			xReturn = taskSCHEDULER_NOT_STARTED;
 		}
@@ -4270,7 +4272,7 @@ uint32_t mstatus_t = 0;
 	TaskStatus_t *pxTaskStatusArray;
 	volatile UBaseType_t uxArraySize, x;
 	char cStatus;
-
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 		/*
 		 * PLEASE NOTE:
 		 *
@@ -4301,12 +4303,12 @@ uint32_t mstatus_t = 0;
 
 		/* Take a snapshot of the number of tasks in case it changes while this
 		function is executing. */
-		uxArraySize = uxCurrentNumberOfTasks;
+		uxArraySize = uxCurrentNumberOfTasks[uxPsrId];
 
 		/* Allocate an array index for each task.  NOTE!  if
 		configSUPPORT_DYNAMIC_ALLOCATION is set to 0 then pvPortMalloc() will
 		equate to NULL. */
-		pxTaskStatusArray = pvPortMalloc( uxCurrentNumberOfTasks * sizeof( TaskStatus_t ) );
+		pxTaskStatusArray = pvPortMalloc( uxCurrentNumberOfTasks[uxPsrId] * sizeof( TaskStatus_t ) );
 
 		if( pxTaskStatusArray != NULL )
 		{
@@ -4368,7 +4370,7 @@ uint32_t mstatus_t = 0;
 	TaskStatus_t *pxTaskStatusArray;
 	volatile UBaseType_t uxArraySize, x;
 	uint32_t ulTotalTime, ulStatsAsPercentage;
-
+    UBaseType_t uxPsrId = uxPortGetProcessorId();
 		#if( configUSE_TRACE_FACILITY != 1 )
 		{
 			#error configUSE_TRACE_FACILITY must also be set to 1 in FreeRTOSConfig.h to use vTaskGetRunTimeStats().
@@ -4405,12 +4407,12 @@ uint32_t mstatus_t = 0;
 
 		/* Take a snapshot of the number of tasks in case it changes while this
 		function is executing. */
-		uxArraySize = uxCurrentNumberOfTasks;
+		uxArraySize = uxCurrentNumberOfTasks[uxPsrId];
 
 		/* Allocate an array index for each task.  NOTE!  If
 		configSUPPORT_DYNAMIC_ALLOCATION is set to 0 then pvPortMalloc() will
 		equate to NULL. */
-		pxTaskStatusArray = pvPortMalloc( uxCurrentNumberOfTasks * sizeof( TaskStatus_t ) );
+		pxTaskStatusArray = pvPortMalloc( uxCurrentNumberOfTasks[uxPsrId] * sizeof( TaskStatus_t ) );
 
 		if( pxTaskStatusArray != NULL )
 		{
@@ -5107,24 +5109,24 @@ const TickType_t xConstTickCount = xTickCount[uxPsrId];
 		xTimeToWake = xConstTickCount + xTicksToWait;
 
 		/* The list item will be inserted in wake time order. */
-		listSET_LIST_ITEM_VALUE( &( pxCurrentTCB->xStateListItem ), xTimeToWake );
+		listSET_LIST_ITEM_VALUE( &( pxCurrentTCB[uxPsrId]->xStateListItem ), xTimeToWake );
 
 		if( xTimeToWake < xConstTickCount )
 		{
 			/* Wake time has overflowed.  Place this item in the overflow list. */
-			vListInsert( pxOverflowDelayedTaskList, &( pxCurrentTCB->xStateListItem ) );
+			vListInsert( pxOverflowDelayedTaskList[uxPsrId], &( pxCurrentTCB[uxPsrId]->xStateListItem ) );
 		}
 		else
 		{
 			/* The wake time has not overflowed, so the current block list is used. */
-			vListInsert( pxDelayedTaskList, &( pxCurrentTCB->xStateListItem ) );
+			vListInsert( pxDelayedTaskList[uxPsrId], &( pxCurrentTCB[uxPsrId]->xStateListItem ) );
 
 			/* If the task entering the blocked state was placed at the head of the
 			list of blocked tasks then xNextTaskUnblockTime needs to be updated
 			too. */
-			if( xTimeToWake < xNextTaskUnblockTime )
+			if( xTimeToWake < xNextTaskUnblockTime[uxPsrId] )
 			{
-				xNextTaskUnblockTime = xTimeToWake;
+				xNextTaskUnblockTime[uxPsrId] = xTimeToWake;
 			}
 			else
 			{

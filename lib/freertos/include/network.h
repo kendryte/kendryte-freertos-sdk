@@ -257,6 +257,8 @@ int network_socket_send_to(handle_t socket_handle, const uint8_t *data, size_t l
  *     - other  Fail
  */
 int network_socket_receive_from(handle_t socket_handle, uint8_t *data, size_t len, socket_message_flag_t flags, socket_address_t *from);
+int network_socket_fcntl(handle_t socket_handle, int cmd, int val);
+int network_socket_select(handle_t socket_handle, fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout);
 
 /**
  * @brief       Get host address information by name

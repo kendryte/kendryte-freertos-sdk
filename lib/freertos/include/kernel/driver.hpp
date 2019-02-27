@@ -60,6 +60,23 @@ MAKE_ENUM_CLASS_BITMASK_TYPE(file_access_t);
 MAKE_ENUM_CLASS_BITMASK_TYPE(file_mode_t);
 MAKE_ENUM_CLASS_BITMASK_TYPE(socket_message_flag_t);
 
+class errno_exception : public std::runtime_error
+{
+public:
+    explicit errno_exception(const char *msg, int code) noexcept
+        : runtime_error(msg), code_(code)
+    {
+    }
+
+    int code() const noexcept
+    {
+        return code_;
+    }
+
+private:
+    int code_;
+};
+
 class object_access : public virtual object
 {
 public:
@@ -410,7 +427,7 @@ public:
     virtual void end_receive() = 0;
 };
 
-class network_socket : public virtual object_access
+class network_socket : public virtual custom_driver, public virtual object_access
 {
 public:
     virtual object_accessor<network_socket> accept(socket_address_t *remote_address) = 0;
@@ -424,6 +441,8 @@ public:
     virtual size_t receive_from(gsl::span<uint8_t> buffer, socket_message_flag_t flags, socket_address_t *from) = 0;
     virtual size_t read(gsl::span<uint8_t> buffer) = 0;
     virtual size_t write(gsl::span<const uint8_t> buffer) = 0;
+    virtual int fcntl(int cmd, int val) = 0;
+    virtual void select(fd_set *readset, fd_set *writeset, fd_set *exceptset, struct timeval *timeout) = 0;
 };
 
 extern driver_registry_t g_hal_drivers[];

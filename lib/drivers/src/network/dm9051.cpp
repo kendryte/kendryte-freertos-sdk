@@ -312,8 +312,8 @@ public:
         }
 
         /************************************************
-		*** Activate DM9051 and Setup DM9051 Registers **
-		*************************************************/
+        *** Activate DM9051 and Setup DM9051 Registers **
+        *************************************************/
         /* Clear DM9051 Set and Disable Wakeup function */
         write(DM9051_NCR, NCR_DEFAULT);
         /* Clear TCR Register set */
@@ -348,8 +348,9 @@ public:
     {
         configASSERT(length <= std::numeric_limits<uint16_t>::max());
         while (read(DM9051_TCR) & DM9051_TCR_SET)
-            ;
-
+        {
+            usleep(5000);
+        }
         write(DM9051_TXPLL, length & 0xff);
         write(DM9051_TXPLH, (length >> 8) & 0xff);
     }
@@ -370,12 +371,12 @@ public:
         uint16_t len = 0;
         uint16_t status;
 
-		read(DM9051_MRCMDX); // dummy read
+        read(DM9051_MRCMDX); // dummy read
 
-		uint8_t header[4];
-		read_memory({ header });
-		status = header[0] | (header[1] << 8);
-		len = header[2] | (header[3] << 8);
+        uint8_t header[4];
+        read_memory({ header });
+        status = header[0] | (header[1] << 8);
+        len = header[2] | (header[3] << 8);
         if (len > DM9051_PKT_MAX)
         { // read-error
             len = 0; // read-error (keep no change to rx fifo)
@@ -455,14 +456,14 @@ private:
         xSemaphoreGiveFromISR(driver.interrupt_event_, &xHigherPriorityTaskWoken);
         if (xHigherPriorityTaskWoken)
         {
-            portYIELD();
+            portYIELD_FROM_ISR();
         }
     }
 
     uint8_t read(uint8_t addr)
     {
         const uint8_t to_write[1] = { addr };
-        uint8_t to_read[1];
+        uint8_t to_read[1] = { 0 };
         spi_dev_->transfer_sequential({ to_write }, { to_read });
         return to_read[0];
     }
