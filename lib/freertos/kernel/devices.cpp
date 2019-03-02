@@ -64,6 +64,7 @@ static const char dummy_driver_name[] = "";
 uintptr_t fft_file_;
 uintptr_t aes_file_;
 uintptr_t sha256_file_;
+uintptr_t kpu_file_;
 
 extern UBaseType_t uxCPUClockRate;
 
@@ -125,6 +126,7 @@ void install_drivers()
     fft_file_ = io_open("/dev/fft0");
     aes_file_ = io_open("/dev/aes0");
     sha256_file_ = io_open("/dev/sha256");
+    kpu_file_ = io_open("/dev/kpu0");
 }
 
 static _file *io_alloc_file(object_accessor<object_access> object)
@@ -788,6 +790,19 @@ void rtc_set_datetime(handle_t file, const struct tm *datetime)
 {
     COMMON_ENTRY(rtc);
     rtc->set_datetime(*datetime);
+}
+
+/* KPU */
+handle_t kpu_model_load_from_buffer(uint8_t *buffer)
+{
+    COMMON_ENTRY_FILE(kpu_file_, kpu);
+    return kpu->model_load_from_buffer(buffer);
+}
+
+int kpu_run(handle_t context, const uint8_t *src, uint8_t **output, size_t *output_size)
+{
+    COMMON_ENTRY_FILE(kpu_file_, kpu);
+    return kpu->run(context, src, output, output_size);
 }
 
 /* HAL */

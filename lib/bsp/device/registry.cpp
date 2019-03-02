@@ -70,6 +70,8 @@ extern driver &g_wdt_driver_wdt1;
 
 extern driver &g_rtc_driver_rtc0;
 
+extern driver &g_kpu_driver_kpu0;
+
 driver_registry_t sys::g_system_drivers[] = {
     { "/dev/uart1", { std::in_place, &g_uart_driver_uart0 } },
     { "/dev/uart2", { std::in_place, &g_uart_driver_uart1 } },
@@ -122,6 +124,7 @@ driver_registry_t sys::g_system_drivers[] = {
     { "/dev/wdt1", { std::in_place, &g_wdt_driver_wdt1 } },
 
     { "/dev/rtc0", { std::in_place, &g_rtc_driver_rtc0 } },
+    { "/dev/kpu0", { std::in_place, &g_kpu_driver_kpu0 } },
     {}
 };
 

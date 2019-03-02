@@ -832,6 +832,31 @@ void rtc_get_datetime(handle_t file, struct tm *datetime);
  */
 void rtc_set_datetime(handle_t file, const struct tm *datetime);
 
+/**
+ * @brief       Load model from buffer
+ *
+ * @param[in]   buffer      model data
+ *
+ * @return      result
+ *     - 0      Fail
+ *     - other  The kpu context handle
+ */
+handle_t kpu_model_load_from_buffer(uint8_t *buffer);
+
+/**
+ * @brief       KPU run and get output data.
+ *
+ * @param[in]   context         The kpu context handle
+ * @param[in]   src             The src data
+ * @param[in]   output          The address of the kpu output data address.
+ * @param[in]   output_size     The address of output data size
+ *
+ * @return      result
+ *     - 0      Success
+ *     - other  Fail
+ */
+int kpu_run(handle_t context, const uint8_t *src, uint8_t **output, size_t *output_size);
+
 #ifdef __cplusplus
 }
 #endif
