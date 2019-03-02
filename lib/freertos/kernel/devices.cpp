@@ -343,6 +343,12 @@ void uart_config(handle_t file, uint32_t baud_rate, uint32_t databits, uart_stop
     uart->config(baud_rate, databits, stopbits, parity);
 }
 
+void uart_set_read_timeout(handle_t file, size_t millisecond)
+{
+    COMMON_ENTRY(uart);
+    uart->set_read_timeout(millisecond);
+}
+
 /* GPIO */
 
 uint32_t gpio_get_pin_count(handle_t file)

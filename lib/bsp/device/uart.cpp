@@ -45,6 +45,7 @@ public:
 
     virtual void install() override
     {
+        receive_event_ = xSemaphoreCreateBinary();
         sysctl_clock_disable(clock_);
     }
 
@@ -137,6 +138,11 @@ public:
         return write;
     }
 
+    virtual void set_read_timeout(size_t millisecond) override
+    {
+        read_timeout_ = millisecond / portTICK_PERIOD_MS;
+    }
+
 private:
     int uart_putc(char c)
     {
@@ -163,12 +169,27 @@ private:
     {
         ringbuffer_t *ring_buff = recv_buf_;
         size_t cnt = 0;
-        while ((len--) && ring_buff->length)
+        while (len)
         {
-            *(rData++) = ring_buff->ring_buffer[ring_buff->head];
-            ring_buff->head = (ring_buff->head + 1) % RINGBUFF_LEN;
-            ring_buff->length--;
-            cnt++;
+            if(ring_buff->length)
+            {
+                *(rData++) = ring_buff->ring_buffer[ring_buff->head];
+                ring_buff->head = (ring_buff->head + 1) % RINGBUFF_LEN;
+                ring_buff->length--;
+                cnt++;
+                len--;
+            }
+            else
+            {
+                if(xSemaphoreTake(receive_event_, read_timeout_) == pdTRUE)
+                {
+                    continue;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
         }
 
         return cnt;
@@ -180,15 +201,25 @@ private:
         auto &uart = driver.uart_;
 
         while (uart.LSR & 1)
+        {
             driver.write_ringbuff(((uint8_t)(uart.RBR & 0xff)));
+        }
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreGiveFromISR(driver.receive_event_, &xHigherPriorityTaskWoken);
+        if (xHigherPriorityTaskWoken)
+        {
+            portYIELD_FROM_ISR();
+        }
     }
 
 private:
     volatile uart_t &uart_;
     sysctl_clock_t clock_;
     plic_irq_t irq_;
+    SemaphoreHandle_t receive_event_;
 
     ringbuffer_t *recv_buf_;
+    size_t read_timeout_ = portMAX_DELAY;
 };
 
 static k_uart_driver dev0_driver(UART1_BASE_ADDR, SYSCTL_CLOCK_UART1, IRQN_UART1_INTERRUPT);
