@@ -805,10 +805,16 @@ handle_t kpu_model_load_from_buffer(uint8_t *buffer)
     return kpu->model_load_from_buffer(buffer);
 }
 
-int kpu_run(handle_t context, const uint8_t *src, uint8_t **output, size_t *output_size)
+int kpu_run(handle_t context, const uint8_t *src)
 {
     COMMON_ENTRY_FILE(kpu_file_, kpu);
-    return kpu->run(context, src, output, output_size);
+    return kpu->run(context, src);
+}
+
+int kpu_get_output(handle_t context, uint32_t index, uint8_t **data, size_t *size)
+{
+    COMMON_ENTRY_FILE(kpu_file_, kpu);
+    return kpu->get_output(context, index, data, size);
 }
 
 /* HAL */

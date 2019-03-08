@@ -357,7 +357,8 @@ class kpu_driver : public driver
 {
 public:
     virtual handle_t model_load_from_buffer(uint8_t *buffer) = 0;
-    virtual int run(handle_t context, const uint8_t *src, uint8_t **output, size_t *output_size) = 0;
+    virtual int run(handle_t context, const uint8_t *src) = 0;
+    virtual int get_output(handle_t context, uint32_t index, uint8_t **data, size_t *size) = 0;
 };
 
 class custom_driver : public driver
