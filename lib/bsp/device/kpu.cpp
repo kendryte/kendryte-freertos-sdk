@@ -181,6 +181,7 @@ public:
 
     virtual int get_output(handle_t context, uint32_t index, uint8_t **data, size_t *size) override
     {
+        COMMON_ENTRY;
         auto model_context = system_handle_to_object(context).as<k_model_context>();
         model_context->get(&ctx_);
         if (index >= ctx_.output_count)
