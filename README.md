@@ -1,16 +1,17 @@
-Kendryte K210 SDK
-======
+# Kendryte K210 FreeRTOS SDK
 
-This SDK is for Kendryte K210 which contains FreeRTOS support.  
+[![Build Status](https://travis-ci.org/kendryte/kendryte-freertos-sdk.svg)](https://travis-ci.org/kendryte/kendryte-freertos-sdk)
+
+This SDK is for Kendryte K210 which contains FreeRTOS support.
 If you have any questions, please be free to contact us.
 
-# Usage
+## Usage
 
 If you want to start a new project, for instance, `hello_world`, you only need to:
 
 `mkdir` your project in `src/`, `cd src && mkdir hello_world`, then put your codes in it, and build it.
 
-```shell
+```bash
 mkdir build && cd build
 cmake .. -DPROJ=<ProjectName> -DTOOLCHAIN=/opt/riscv-toolchain/bin && make
 ```
