@@ -269,13 +269,20 @@ void i2s_start(handle_t file);
 void i2s_stop(handle_t file);
 
 /**
- * @brief       Configure SPI slave mode
+ * @brief       Set spi slave configuration
  *
  * @param[in]   file                The SPI controller handle
- * @param[in]   data_bit_length     The length of data bits
- * @param[in]   handler             The SPI slave handler
+ * @param[in]   gpio_handle         The GPIO handle
+ * @param[in]   int_pin             SPI master starts sending data interrupt.
+ * @param[in]   ready_pin           SPI slave ready.
+ * @param[in]   data_bit_length     Spi data bit length,suport 8/16/32 bit.
+ * @param[in]   data                SPI slave device data buffer.
+ * @param[in]   len                 The length of SPI slave device data buffer.
+ * @param[in]   callback            Callback of spi slave.
+ *
+ * @return      Void
  */
-void spi_slave_config(handle_t file, uint32_t data_bit_length, spi_slave_handler_t *handler);
+void spi_slave_config(handle_t file, handle_t gpio_handle, uint8_t int_pin, uint8_t ready_pin, size_t data_bit_length, uint8_t *data, uint32_t len, spi_slave_receive_callback_t callback);
 
 /**
  * @brief       Register and open a SPI device

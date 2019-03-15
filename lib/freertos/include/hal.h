@@ -120,6 +120,11 @@ void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, 
  */
 void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal);
 
+void gpio_set_drive_mode(handle_t file, uint32_t pin, gpio_drive_mode_t mode);
+void gpio_set_pin_edge(handle_t file, uint32_t pin, gpio_pin_edge_t edge);
+void gpio_set_on_changed(handle_t file, uint32_t pin, gpio_on_changed_t callback, void *userdata);
+void gpio_set_pin_value(handle_t file, uint32_t pin, gpio_pin_value_t value);
+
 #ifdef __cplusplus
 }
 #endif

@@ -99,11 +99,32 @@ typedef struct _spi
     volatile uint32_t endian;
 } __attribute__((packed, aligned(4))) spi_t;
 
-typedef struct _spi_slave_context
+typedef enum
 {
-    uint32_t data_bit_length;
-    const spi_slave_handler_t *handler;
-} spi_slave_context_t;
+    IDLE,
+    COMMAND,
+    TRANSFER,
+} spi_slave_status_e;
+
+typedef struct _spi_slave_instance
+{
+    uint8_t int_pin;
+    uint8_t ready_pin;
+    handle_t gpio_handle;
+
+    size_t data_bit_length;
+    volatile spi_slave_status_e status;
+    volatile spi_slave_command_t command;
+    volatile uint8_t *config_ptr;
+    uint32_t config_len;
+
+    uintptr_t dma;
+    SemaphoreHandle_t dma_event;
+    SemaphoreHandle_t cs_event;
+    SemaphoreHandle_t slave_event;
+    spi_slave_receive_callback_t callback;
+} spi_slave_instance_t;
+
 /* clang-format on */
 
 #ifdef __cplusplus

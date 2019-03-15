@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 #include <FreeRTOS.h>
+#include <task.h>
 #include <fpioa.h>
 #include <hal.h>
 #include <kernel/driver_impl.hpp>
@@ -70,62 +71,382 @@ public:
     int transfer_sequential(k_spi_device_driver &device, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer);
     int read_write(k_spi_device_driver &device, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer);
     void fill(k_spi_device_driver &device, uint32_t instruction, uint32_t address, uint32_t value, size_t count);
-    virtual void slave_config(uint32_t data_bit_length, const spi_slave_handler_t &handler) override
+    void slave_config(handle_t gpio_handle, uint8_t int_pin, uint8_t ready_pin, size_t data_bit_length, uint8_t *data, uint32_t len, spi_slave_receive_callback_t callback)
     {
-        slave_context_.data_bit_length = data_bit_length;
-        slave_context_.handler = &handler;
+        slave_instance_.gpio_handle = gpio_handle;
+        slave_instance_.status = IDLE;
+        slave_instance_.config_ptr = data;
+        slave_instance_.config_len = len;
+        slave_instance_.data_bit_length = data_bit_length;
+        slave_instance_.ready_pin = ready_pin;
+        slave_instance_.int_pin = int_pin;
+        slave_instance_.dma = dma_open_free();
+        slave_instance_.dma_event = xSemaphoreCreateBinary();
+        slave_instance_.cs_event = xSemaphoreCreateBinary();
+        slave_instance_.slave_event = xSemaphoreCreateBinary();
+        slave_instance_.callback = callback;
         uint8_t slv_oe = 10;
+        sysctl_reset(SYSCTL_RESET_SPI2);
+        sysctl_clock_enable(SYSCTL_CLOCK_SPI2);
+        sysctl_clock_set_threshold(SYSCTL_THRESHOLD_SPI2, 9);
+
+        uint32_t data_width = data_bit_length / 8;
+
         spi_.ssienr = 0x00;
         spi_.ctrlr0 = (0x0 << mod_off_) | (0x1 << slv_oe) | ((data_bit_length - 1) << dfs_off_);
-        spi_.txftlr = 0x00000000;
-        spi_.rxftlr = 0x00000000;
-        spi_.imr = 0x00000010;
+        spi_.dmatdlr = 0x04;
+        spi_.dmardlr = 0x03;
+        spi_.dmacr = 0x00;
+        spi_.txftlr = 0x00;
+        spi_.rxftlr = 0x08 / data_width - 1;
+        spi_.imr = 0x10;
         spi_.ssienr = 0x01;
 
-        pic_set_irq_priority(IRQN_SPI_SLAVE_INTERRUPT, 1);
-        pic_set_irq_handler(IRQN_SPI_SLAVE_INTERRUPT, on_spi_irq, this);
-        pic_set_irq_enable(IRQN_SPI_SLAVE_INTERRUPT, 1);
-    }
+        gpio_set_drive_mode(gpio_handle, ready_pin, GPIO_DM_OUTPUT);
+        gpio_set_pin_value(gpio_handle, ready_pin, GPIO_PV_HIGH);
 
-    static void on_spi_irq(void *userdata)
-    {
-        auto &driver = *reinterpret_cast<k_spi_driver *>(userdata);
-        auto &spi_ = driver.spi_;
-        uint32_t data;
-        uint32_t transmit_data;
-        uint32_t status = spi_.isr;
-        uint8_t slv_oe = 10;
-        if (status & 0x10)
-        {
-            data = spi_.dr[0];
-            if (driver.slave_context_.handler->on_event(data) == SPI_EV_RECV)
-            {
-                driver.slave_context_.handler->on_receive(data);
-            }
-            if (driver.slave_context_.handler->on_event(data) == SPI_EV_TRANS)
-            {
-                transmit_data = driver.slave_context_.handler->on_transmit(data);
-                spi_.ssienr = 0x00;
-                spi_.ctrlr0 = (0x0 << driver.mod_off_) | (0x0 << slv_oe) | ((driver.slave_context_.data_bit_length - 1) << driver.dfs_off_);
-                set_bit_mask(&spi_.ctrlr0, 3 << driver.tmod_off_, 1 << driver.tmod_off_);
-                spi_.ssienr = 0x01;
-                spi_.dr[0] = transmit_data;
-                spi_.dr[0] = transmit_data;
-                spi_.imr = 0x00000001;
-            }
-        }
-        if (status & 0x01)
-        {
-            spi_.ssienr = 0x00;
-            spi_.ctrlr0 = (0x0 << driver.mod_off_) | (0x1 << slv_oe) | ((driver.slave_context_.data_bit_length - 1) << driver.dfs_off_);
-            set_bit_mask(&spi_.ctrlr0, 3 << driver.tmod_off_, 2 << driver.tmod_off_);
-            spi_.imr = 0x00000010;
-            spi_.ssienr = 0x01;
-        }
+        gpio_set_drive_mode(gpio_handle, int_pin, GPIO_DM_INPUT_PULL_UP);
+        gpio_set_pin_edge(gpio_handle, int_pin, GPIO_PE_RISING);
+        gpio_set_on_changed(gpio_handle, int_pin, (gpio_on_changed_t)spi_slave_cs_irq, this);
+
+        pic_set_irq_priority(IRQN_SPI_SLAVE_INTERRUPT, 4);
+        pic_set_irq_enable(IRQN_SPI_SLAVE_INTERRUPT, 1);
+        pic_set_irq_handler(IRQN_SPI_SLAVE_INTERRUPT, spi_slave_irq, this);
+        TaskHandle_t h1, h2;
+        auto ret = xTaskCreate(spi_slave_cs_thread, "spi_slave_cs", 4096*8, this, 2, &h1);
+        configASSERT(ret == pdTRUE);
+        ret = xTaskCreate(spi_slave_irq_thread, "spi_slave_irq", 4096*8, this, 3, &h2);
+        configASSERT(ret == pdTRUE);
     }
 
 private:
     void setup_device(k_spi_device_driver &device);
+
+    static void spi_slave_irq_thread(void *userdata)
+    {
+        auto &driver = *reinterpret_cast<k_spi_driver *>(userdata);
+        while (1)
+        {
+            if (xSemaphoreTake(driver.slave_instance_.slave_event, portMAX_DELAY) == pdTRUE)
+            {
+                if (driver.slave_instance_.status == IDLE)
+                    driver.slave_instance_.status = COMMAND;
+            }
+        }
+    }
+
+    static void spi_slave_cs_thread(void *userdata)
+    {
+        auto &driver = *reinterpret_cast<k_spi_driver *>(userdata);
+        while (1)
+        {
+            if (xSemaphoreTake(driver.slave_instance_.cs_event, portMAX_DELAY) == pdTRUE)
+            {
+                if (driver.slave_instance_.status == IDLE)
+                    spi_slave_idle_mode(userdata);
+                else if (driver.slave_instance_.status == COMMAND)
+                    spi_slave_command_mode(userdata);
+                else if (driver.slave_instance_.status == TRANSFER)
+                    spi_slave_transfer_mode(userdata);
+            }
+        }
+    }
+
+    static void spi_slave_cs_irq(uint32_t pin, void *userdata)
+    {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        auto &driver = *reinterpret_cast<k_spi_driver *>(userdata);
+        xSemaphoreGiveFromISR(driver.slave_instance_.cs_event, &xHigherPriorityTaskWoken);
+
+        if (xHigherPriorityTaskWoken)
+            portYIELD_FROM_ISR();
+    }
+
+    static void spi_slave_irq(void *ctx)
+    {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        auto &driver = *reinterpret_cast<k_spi_driver *>(ctx);
+        auto &spi_handle = driver.spi();
+        spi_handle.imr = 0x00;
+        *reinterpret_cast<volatile uint32_t *>(spi_handle.icr);
+        xSemaphoreGiveFromISR(driver.slave_instance_.slave_event, &xHigherPriorityTaskWoken);
+
+        if (xHigherPriorityTaskWoken)
+            portYIELD_FROM_ISR();
+    }
+
+    static void spi_slave_idle_mode(void *userdata)
+    {
+        uint8_t slv_oe = 10;
+        auto &driver = *reinterpret_cast<k_spi_driver *>(userdata);
+        auto &spi_handle = driver.spi();
+        uint32_t data_width = driver.slave_instance_.data_bit_length / 8;
+        driver.slave_instance_.status = IDLE;
+        spi_handle.ssienr = 0x00;
+        spi_handle.ctrlr0 = (0x0 << driver.mod_off_) | (0x1 << slv_oe) | ((driver.slave_instance_.data_bit_length - 1) << driver.dfs_off_);
+        spi_handle.rxftlr = 0x08 / data_width - 1;
+
+        spi_handle.dmacr = 0x00;
+        spi_handle.imr = 0x10;
+        spi_handle.ssienr = 0x01;
+
+        gpio_set_pin_value(driver.slave_instance_.gpio_handle, driver.slave_instance_.ready_pin, GPIO_PV_HIGH);
+    }
+
+    static void spi_slave_command_mode(void *userdata)
+    {
+        auto &driver = *reinterpret_cast<k_spi_driver *>(userdata);
+        auto &spi_handle = driver.spi();
+        uint8_t cmd_data[8], sum = 0;
+        uint8_t slv_oe = 10;
+
+        uint32_t data_width = (driver.slave_instance_.data_bit_length + 7) / 8;
+
+        switch (data_width)
+        {
+        case 4:
+            for (uint32_t i = 0; i < 8 / 4; i++)
+                ((uint32_t *)cmd_data)[i] = spi_handle.dr[0];
+            break;
+        case 2:
+            for (uint32_t i = 0; i < 8 / 2; i++)
+                ((uint16_t *)cmd_data)[i] = spi_handle.dr[0];
+            break;
+        default:
+            for (uint32_t i = 0; i < 8; i++)
+                cmd_data[i] = spi_handle.dr[0];
+            break;
+        }
+
+        for (uint32_t i = 0; i < 7; i++)
+        {
+            sum += cmd_data[i];
+        }
+        if (cmd_data[7] != sum)
+        {
+            spi_slave_idle_mode(userdata);
+            return;
+        }
+        driver.slave_instance_.command.cmd = cmd_data[0];
+        driver.slave_instance_.command.addr = cmd_data[1] | (cmd_data[2] << 8) | (cmd_data[3] << 16) | (cmd_data[4] << 24);
+        driver.slave_instance_.command.len = cmd_data[5] | (cmd_data[6] << 8);
+        if (driver.slave_instance_.command.len == 0)
+            driver.slave_instance_.command.len = 65536;
+        if ((driver.slave_instance_.command.cmd < WRITE_DATA_BLOCK) && (driver.slave_instance_.command.len > 8))
+        {
+            spi_slave_idle_mode(userdata);
+            return;
+        }
+        driver.slave_instance_.status = TRANSFER;
+        spi_handle.ssienr = 0x00;
+        if (driver.slave_instance_.command.cmd == WRITE_CONFIG)
+        {
+            spi_handle.ctrlr0 = (0x0 << driver.mod_off_) | (0x1 << slv_oe) | ((driver.slave_instance_.data_bit_length - 1) << driver.dfs_off_);
+            spi_handle.rxftlr = driver.slave_instance_.command.len / data_width - 1;
+            spi_handle.imr = 0x00;
+            spi_handle.ssienr = 0x01;
+        }
+        else if (driver.slave_instance_.command.cmd == READ_CONFIG)
+        {
+            spi_handle.ctrlr0 = (0x0 << driver.mod_off_) | (0x0 << slv_oe) | ((driver.slave_instance_.data_bit_length - 1) << driver.dfs_off_);
+            set_bit_mask(&spi_handle.ctrlr0, 3 << driver.tmod_off_, 1 << driver.tmod_off_ );
+            spi_handle.txftlr = 0x00;
+            spi_handle.imr = 0x00;
+            spi_handle.ssienr = 0x01;
+            switch (data_width)
+            {
+            case 4:
+                for (uint32_t i = 0; i < driver.slave_instance_.command.len / 4; i++)
+                {
+                    spi_handle.dr[0] = ((uint32_t *)&driver.slave_instance_.config_ptr[driver.slave_instance_.command.addr])[i];
+                }
+                break;
+            case 2:
+                for (uint32_t i = 0; i < driver.slave_instance_.command.len / 2; i++)
+                {
+                    spi_handle.dr[0] = ((uint16_t *)&driver.slave_instance_.config_ptr[driver.slave_instance_.command.addr])[i];
+                }
+                break;
+            default:
+                for (uint32_t i = 0; i < driver.slave_instance_.command.len; i++)
+                {
+                    spi_handle.dr[0] = ((uint8_t *)&driver.slave_instance_.config_ptr[driver.slave_instance_.command.addr])[i];
+                }
+                break;
+            }
+        }
+        else if (driver.slave_instance_.command.cmd == WRITE_DATA_BYTE)
+        {
+            spi_handle.ctrlr0 = (0x0 << driver.mod_off_) | (0x1 << slv_oe) | ((driver.slave_instance_.data_bit_length - 1) << driver.dfs_off_);
+            spi_handle.rxftlr = driver.slave_instance_.command.len / data_width - 1;
+            spi_handle.imr = 0x00;
+            spi_handle.ssienr = 0x01;
+        }
+        else if (driver.slave_instance_.command.cmd == READ_DATA_BYTE)
+        {
+            spi_handle.ctrlr0 = (0x0 << driver.mod_off_) | (0x0 << slv_oe) | ((driver.slave_instance_.data_bit_length - 1) << driver.dfs_off_);
+            set_bit_mask(&spi_handle.ctrlr0, 3 << driver.tmod_off_, 1 << driver.tmod_off_);
+            spi_handle.txftlr = 0x00;
+            spi_handle.imr = 0x00;
+            spi_handle.ssienr = 0x01;
+            switch (data_width)
+            {
+            case 4:
+                for (uint32_t i = 0; i < driver.slave_instance_.command.len / 4; i++)
+                {
+                    spi_handle.dr[0] = (reinterpret_cast<uint32_t *>(driver.slave_instance_.command.addr))[i];
+                }
+                break;
+            case 2:
+                for (uint32_t i = 0; i < driver.slave_instance_.command.len / 2; i++)
+                {
+                    spi_handle.dr[0] =(reinterpret_cast<uint16_t *>(driver.slave_instance_.command.addr))[i];
+                }
+                break;
+            default:
+                for (uint32_t i = 0; i < driver.slave_instance_.command.len; i++)
+                {
+                    spi_handle.dr[0] = (reinterpret_cast<uint8_t *>(driver.slave_instance_.command.addr))[i];
+                }
+                break;
+            }
+        } 
+        
+        else if (driver.slave_instance_.command.cmd == WRITE_DATA_BLOCK)
+        {
+            spi_handle.ctrlr0 = (0x0 << driver.mod_off_) | (0x1 << slv_oe) | ((32 - 1) << driver.dfs_off_);
+
+            spi_handle.dmacr = 0x01;
+            spi_handle.imr = 0x00;
+            spi_handle.ssienr = 0x01;
+
+            dma_set_request_source(driver.slave_instance_.dma, driver.dma_req_);
+            spi_handle.dmacr = 0x1;
+            dma_transmit_async(driver.slave_instance_.dma, &spi_handle.dr[0], reinterpret_cast<volatile void *>(driver.slave_instance_.command.addr & 0xFFFFFFF0), 0, 1, 4, driver.slave_instance_.command.len * 4, 4, driver.slave_instance_.dma_event);
+        }
+        else if (driver.slave_instance_.command.cmd == READ_DATA_BLOCK) 
+        {
+            spi_handle.ctrlr0 = (0x0 << driver.mod_off_) | (0x0 << slv_oe) | ((32 - 1) << driver.dfs_off_);
+            set_bit_mask(&spi_handle.ctrlr0, 3 << driver.tmod_off_, 1 << driver.tmod_off_);
+            spi_handle.dmacr = 0x02;
+            spi_handle.imr = 0x00;
+            spi_handle.ssienr = 0x01;
+
+            dma_set_request_source(driver.slave_instance_.dma, driver.dma_req_ + 1);
+            dma_transmit_async(driver.slave_instance_.dma, reinterpret_cast<volatile void *>(driver.slave_instance_.command.addr & 0xFFFFFFF0), &spi_handle.dr[0], 1, 0, 4, driver.slave_instance_.command.len * 4, 4, driver.slave_instance_.dma_event);
+        }
+        else
+        {
+            spi_slave_idle_mode(userdata);
+            return;
+        }
+        gpio_set_pin_value(driver.slave_instance_.gpio_handle, driver.slave_instance_.ready_pin, GPIO_PV_LOW);
+    }
+
+    static void spi_slave_transfer_mode(void *userdata)
+    {
+        
+        auto &driver = *reinterpret_cast<k_spi_driver *>(userdata);
+        auto &spi_handle = driver.spi();
+        uint32_t command_len = 0;
+        uint32_t data_width = (driver.slave_instance_.data_bit_length + 7) / 8;
+
+        switch (data_width)
+        {
+        case 4:
+            command_len = driver.slave_instance_.command.len / 4;
+            break;
+        case 2:
+            command_len = driver.slave_instance_.command.len / 2;
+            break;
+        default:
+            command_len = driver.slave_instance_.command.len;
+            break;
+        }
+        driver.slave_instance_.command.err = 0;
+        if (driver.slave_instance_.command.cmd == WRITE_CONFIG || driver.slave_instance_.command.cmd == WRITE_DATA_BYTE)
+        {
+            if (spi_handle.rxflr < command_len - 1)
+                driver.slave_instance_.command.err = 1;
+        }
+        else if (driver.slave_instance_.command.cmd == READ_CONFIG || driver.slave_instance_.command.cmd == READ_DATA_BYTE)
+        {
+            if (spi_handle.txflr != 0)
+                driver.slave_instance_.command.err = 2;
+        } else if (driver.slave_instance_.command.cmd == WRITE_DATA_BLOCK || driver.slave_instance_.command.cmd == READ_DATA_BLOCK)
+        {
+            if(xSemaphoreTake(driver.slave_instance_.dma_event, portMAX_DELAY) == pdFALSE)
+                driver.slave_instance_.command.err = 3;
+        }
+        else
+        {
+            spi_slave_idle_mode(userdata);
+            return;
+        }
+
+        if (driver.slave_instance_.command.err == 0)
+        {
+            if (driver.slave_instance_.command.cmd == WRITE_CONFIG)
+            {
+                switch (data_width)
+                {
+                case 4:
+                    for (uint32_t i = 0; i < command_len; i++)
+                    {
+                        ((uint32_t *)&driver.slave_instance_.config_ptr[driver.slave_instance_.command.addr])[i] = spi_handle.dr[0];
+                    }
+                    break;
+                case 2:
+                    for (uint32_t i = 0; i < command_len; i++)
+                    {
+                        ((uint16_t *)&driver.slave_instance_.config_ptr[driver.slave_instance_.command.addr])[i] = spi_handle.dr[0];
+                    }
+                    break;
+                default:
+                    for (uint32_t i = 0; i < command_len; i++)
+                    {
+                        ((uint8_t *)&driver.slave_instance_.config_ptr[driver.slave_instance_.command.addr])[i] = spi_handle.dr[0];
+                    }
+                    break;
+                }
+            }
+            else if (driver.slave_instance_.command.cmd == WRITE_DATA_BYTE)
+            {
+                switch(data_width)
+                {
+                case 4:
+                    for (uint32_t i = 0; i < command_len; i++)
+                    {
+                        (reinterpret_cast<uint32_t *>(driver.slave_instance_.command.addr))[i] = spi_handle.dr[0];
+                    }
+                    break;
+                case 2:
+                    for (uint32_t i = 0; i < command_len; i++)
+                    {
+                        (reinterpret_cast<uint16_t *>(driver.slave_instance_.command.addr))[i] = spi_handle.dr[0];
+                    }
+                    break;
+                default:
+                    for (uint32_t i = 0; i < command_len; i++)
+                    {
+                        (reinterpret_cast<uint8_t *>(driver.slave_instance_.command.addr))[i] = spi_handle.dr[0];
+                    }
+                    break;
+                }
+            }
+        }
+        
+        if(driver.slave_instance_.callback != NULL)
+        {
+            driver.slave_instance_.callback((void *)&driver.slave_instance_.command);
+        }
+        spi_slave_idle_mode(userdata);
+    }
+
+    volatile spi_t &spi()
+    {
+        return spi_;
+    }
 
     static void write_inst_addr(volatile uint32_t *dr, const uint8_t **buffer, size_t width)
     {
@@ -155,7 +476,7 @@ private:
     uint8_t frf_off_;
 
     SemaphoreHandle_t free_mutex_;
-    spi_slave_context_t slave_context_;
+    spi_slave_instance_t slave_instance_;
 };
 
 /* SPI Device */

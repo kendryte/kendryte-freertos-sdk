@@ -129,18 +129,24 @@ typedef enum _spi_inst_addr_trans_mode
     SPI_AITM_AS_FRAME_FORMAT
 } spi_inst_addr_trans_mode_t;
 
-typedef enum _spi_slave_event
-{
-    SPI_EV_TRANS,
-    SPI_EV_RECV,
-} spi_slave_event_t;
+typedef enum {
+    WRITE_CONFIG,
+    READ_CONFIG,
+    WRITE_DATA_BYTE,
+    READ_DATA_BYTE,
+    WRITE_DATA_BLOCK,
+    READ_DATA_BLOCK,
+} spi_slave_command_e;
 
-typedef struct _spi_slave_handler
+typedef struct
 {
-    void (*on_receive)(uint32_t data);
-    uint32_t (*on_transmit)(uint32_t data);
-    spi_slave_event_t (*on_event)(uint32_t data);
-} spi_slave_handler_t;
+    uint8_t cmd;
+    uint8_t err;
+    uint32_t addr;
+    uint32_t len;
+} spi_slave_command_t;
+
+typedef int (*spi_slave_receive_callback_t)(void *ctx);
 
 typedef enum _video_format
 {
