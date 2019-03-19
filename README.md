@@ -1,6 +1,7 @@
 # Kendryte K210 FreeRTOS SDK
 
 [![Build Status](https://travis-ci.org/kendryte/kendryte-freertos-sdk.svg)](https://travis-ci.org/kendryte/kendryte-freertos-sdk)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 This SDK is for Kendryte K210 which contains FreeRTOS support.
 If you have any questions, please be free to contact us.
