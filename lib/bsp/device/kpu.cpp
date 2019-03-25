@@ -28,12 +28,13 @@
 
 using namespace sys;
 
-#define KPU_DEBUG 1
+#define KPU_DEBUG 0
 #define NNCASE_DEBUG 0
 #define USE_CACHED_AI_RAM 0
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
+#define ALIGN_UP(x, align) ((x + (align - 1)) & (~(align - 1)))
 
 #define COMMON_ENTRY \
     semaphore_lock locker(free_mutex_);
@@ -176,6 +177,7 @@ public:
             }
         }
         done_flag_ = 0;
+        dma_close(dma_ch_);
         return 0;
     }
 
@@ -273,22 +275,51 @@ private:
 
         if ((uintptr_t)src % 8 == 0 && width % 8 == 0)
         {
+#define UPLOAD_BEGIN()                                                                                               \
+            for (oc = 0; oc < channels; oc++)                                                                                \
+            {                                                                                                                \
+                uint8_t* channel_origin = dest + oc / row_group * row_length * height * 64 + oc % row_group * row_padding;   \
+                for (y = 0; y < height; y++)                                                                                 \
+                {                                                                                                            \
+                    uint64_t *y_origin = (uint64_t *)channel_origin + y * row_length * 64;                                               \
+
+#define UPLOAD_END() \
+                }            \
+            }
             width /= 8;
             const uint64_t *u64_src = (const uint64_t *)src;
-            for (oc = 0; oc < channels; oc++)
+            if (width == 1)
             {
-            	uint8_t *channel_origin = dest + oc / row_group * row_length * height * 64 + oc % row_group * row_padding;
-            	for (y = 0; y < height; y++)
-            	{
-            		uint64_t *y_origin = (uint64_t *)channel_origin + y * row_length * 64L;
-            		for (x = 0; x < width; x++)
-                    {
+                UPLOAD_BEGIN()
+                    y_origin[0] = *u64_src++;
+                UPLOAD_END()
+            }
+            else if (width == 2)
+            {
+                UPLOAD_BEGIN()
+                {
+                    y_origin[0] = *u64_src++;
+                    y_origin[1] = *u64_src++;
+                }
+                UPLOAD_END()
+            }
+            else if (width == 4)
+            {
+                UPLOAD_BEGIN()
+                {
+                    y_origin[0] = *u64_src++;
+                    y_origin[1] = *u64_src++;
+                    y_origin[2] = *u64_src++;
+                    y_origin[3] = *u64_src++;
+                }
+                UPLOAD_END()
+            }
+            else
+            {
+                UPLOAD_BEGIN()
+                for (x = 0; x < width; x++)
                     y_origin[x] = *u64_src++;
-#if NNCASE_DEBUG
-                    assert(y_origin > AI_IO_BASE_ADDR && y_origin < (AI_IO_BASE_ADDR + 2 * 1024 * 1024));
-#endif
-                }
-                }
+                UPLOAD_END()
             }
         }
         else
@@ -322,20 +353,6 @@ private:
         kpu_upload_core(width, height, channels, src, layer->image_addr.data.image_src_addr);
     }
 
-    void kpu_fully_connected(const float *src, const float *weights, const float *biases, float *dest, int input_channels, int output_channels)
-    {
-        int ic, oc;
-        for (oc = 0; oc < output_channels; oc++)
-        {
-            const float *c_weights = weights + oc * input_channels;
-    
-            float sum = 0.0f;
-            for (ic = 0; ic < input_channels; ic++)
-                sum += src[ic] * c_weights[ic];
-            dest[oc] = sum + biases[oc];
-        }
-    }
-
     void kpu_add(const kpu_model_add_layer_argument_t *arg)
     {
         const float *src_a = (const float *)(ctx_.main_buffer + arg->main_mem_in_a_address);
@@ -351,7 +368,7 @@ private:
     {
         const uint8_t *src_a = (const uint8_t *)(ctx_.main_buffer + arg->main_mem_in_a_address);
         const uint8_t *src_b = (const uint8_t *)(ctx_.main_buffer + arg->main_mem_in_b_address);
-        size_t count = arg->count;
+        size_t count = ALIGN_UP(arg->count, 8) / 8;
         int64_t off_a = arg->in_a_offset, mul_a = arg->in_a_mul, sh_a = arg->in_a_shift;
         int64_t off_b = arg->in_b_offset, mul_b = arg->in_b_mul, sh_b = arg->in_b_shift;
         int64_t off_o = arg->out_offset, mul_o = arg->out_mul, sh_o = arg->out_shift;
@@ -361,26 +378,132 @@ private:
 
         if (sh_a == sh_b)
         {
+#define QADD_UNROLL_1(x)     \
+            int64_t a##x = *src_a++; \
+            int64_t b##x = *src_b++;
+        
+#define QADD_UNROLL_2(x) \
+            a##x += off_a; \
+            b##x += off_b;
+        
+#define QADD_UNROLL_3(x) \
+            a##x *= mul_a; \
+            b##x *= mul_b;
+        
+#define QADD_UNROLL_4(x) \
+            int64_t v##x = a##x + b##x;
+        
+#define QADD_UNROLL_5(x) \
+            v##x >>= sh_a;
+        
+#define QADD_UNROLL_6(x) \
+            v##x *= mul_o;
+        
+#define QADD_UNROLL_7(x) \
+            v##x >>= sh_o;
+        
+#define QADD_UNROLL_8(x) \
+            v##x += off_o;
+        
+#define QADD_UNROLL_9(x) \
+            v##x = min(0xFF, max(0, v##x));
+        
+#define QADD_UNROLL_10(x) \
+            *dest++ = v##x;
+        
+#define QADD_UNROLL_S(x) \
+            QADD_UNROLL_##x(0) \
+            QADD_UNROLL_##x(1) \
+            QADD_UNROLL_##x(2) \
+            QADD_UNROLL_##x(3) \
+            QADD_UNROLL_##x(4) \
+            QADD_UNROLL_##x(5) \
+            QADD_UNROLL_##x(6) \
+            QADD_UNROLL_##x(7)
+
             for (i = 0; i < count; i++)
             {
-                int64_t a = (*src_a++ + off_a) * mul_a;
-                int64_t b = (*src_b++ + off_b) * mul_b;
-                int64_t value = (((a + b) >> sh_a) * mul_o >> sh_o) + off_o;
-                if (value < 0) value = 0;
-                if (value > 0xFF) value = 0xFF;
-                *dest++ = (uint8_t)value;
+                QADD_UNROLL_S(1);
+                QADD_UNROLL_S(2);
+                QADD_UNROLL_S(3);
+                QADD_UNROLL_S(4);
+                QADD_UNROLL_S(5);
+                QADD_UNROLL_S(6);
+                QADD_UNROLL_S(7);
+                QADD_UNROLL_S(8);
+                QADD_UNROLL_S(9);
+                QADD_UNROLL_S(10);
             }
         }
         else
         {
+#undef QADD_UNROLL_1
+#define QADD_UNROLL_1(x)     \
+            int64_t a##x = *src_a++; \
+            int64_t b##x = *src_b++;
+
+#undef QADD_UNROLL_2
+#define QADD_UNROLL_2(x) \
+            a##x += off_a; \
+            b##x += off_b;
+
+#undef QADD_UNROLL_3
+#define QADD_UNROLL_3(x) \
+            a##x *= mul_a; \
+            b##x *= mul_b;
+
+#undef QADD_UNROLL_4
+#define QADD_UNROLL_4(x) \
+            a##x >>= sh_a; \
+            b##x >>= sh_b;
+
+#undef QADD_UNROLL_5
+#define QADD_UNROLL_5(x) \
+            int64_t v##x = a##x + b##x;
+
+#undef QADD_UNROLL_6
+#define QADD_UNROLL_6(x) \
+            v##x *= mul_o;
+
+#undef QADD_UNROLL_7
+#define QADD_UNROLL_7(x) \
+            v##x >>= sh_o;
+
+#undef QADD_UNROLL_8
+#define QADD_UNROLL_8(x) \
+            v##x += off_o;
+
+#undef QADD_UNROLL_9
+#define QADD_UNROLL_9(x) \
+            v##x = min(0xFF, max(0, v##x));
+
+#undef QADD_UNROLL_10
+#define QADD_UNROLL_10(x) \
+            *dest++ = v##x;
+
+#undef QADD_UNROLL_S
+#define QADD_UNROLL_S(x) \
+            QADD_UNROLL_##x(0) \
+            QADD_UNROLL_##x(1) \
+            QADD_UNROLL_##x(2) \
+            QADD_UNROLL_##x(3) \
+            QADD_UNROLL_##x(4) \
+            QADD_UNROLL_##x(5) \
+            QADD_UNROLL_##x(6) \
+            QADD_UNROLL_##x(7)
+
             for (i = 0; i < count; i++)
             {
-                int64_t a = (*src_a++ + off_a) * mul_a >> sh_a;
-                int64_t b = (*src_b++ + off_b) * mul_b >> sh_b;
-                int64_t value = ((a + b) * mul_o >> sh_o) + off_o;
-                if (value < 0) value = 0;
-                if (value > 0xFF) value = 0xFF;
-                *dest++ = (uint8_t)value;
+                QADD_UNROLL_S(1);
+                QADD_UNROLL_S(2);
+                QADD_UNROLL_S(3);
+                QADD_UNROLL_S(4);
+                QADD_UNROLL_S(5);
+                QADD_UNROLL_S(6);
+                QADD_UNROLL_S(7);
+                QADD_UNROLL_S(8);
+                QADD_UNROLL_S(9);
+                QADD_UNROLL_S(10);
             }
         }
     }
@@ -445,6 +568,51 @@ private:
         }
     }
 
+    void kpu_average_pool2d(const kpu_model_ave_pool2d_layer_argument_t *arg)
+    {
+        const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
+        float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
+        kpu_model_shape_t in_shape = arg->in_shape, out_shape = arg->out_shape;
+        uint32_t kernel_width = arg->kernel_width, kernel_height = arg->kernel_height;
+        uint32_t stride_width = arg->stride_width, stride_height = arg->stride_height;
+        uint32_t padding_width = arg->padding_width, padding_height = arg->padding_height;
+    
+        uint32_t out_y, out_x, oc;
+    
+        for (oc = 0; oc < out_shape.channels; oc++)
+        {
+            const float *channel_src = src + in_shape.width * in_shape.height * oc;
+            for (out_y = 0; out_y < out_shape.height; out_y++)
+            {
+                for (out_x = 0; out_x < out_shape.width; out_x++)
+                {
+                    int32_t in_x_origin = (int32_t)(out_x * stride_width) - padding_width;
+                    int32_t in_y_origin = (int32_t)(out_y * stride_height) - padding_height;
+                    int32_t kernel_x_start = max(0, -in_x_origin);
+                    int32_t kernel_x_end = min(kernel_width, in_shape.width - in_x_origin);
+                    int32_t kernel_y_start = max(0, -in_y_origin);
+                    int32_t kernel_y_end = min(kernel_height, in_shape.height - in_y_origin);
+                    float value = 0;
+                    float kernel_count = 0;
+    
+                    int32_t kernel_y, kernel_x;
+                    for (kernel_y = kernel_y_start; kernel_y < kernel_y_end; kernel_y++)
+                    {
+                        for (kernel_x = kernel_x_start; kernel_x < kernel_x_end; kernel_x++)
+                        {
+                            int32_t in_x = in_x_origin + kernel_x;
+                            int32_t in_y = in_y_origin + kernel_y;
+                            value += channel_src[in_y * in_shape.width + in_x];
+                            kernel_count++;
+                        }
+                    }
+    
+                    *dest++ = value / kernel_count;
+                }
+            }
+        }
+    }
+
     void kpu_quantize(const kpu_model_quantize_layer_argument_t *arg)
     {
         size_t count = arg->count;
@@ -478,12 +646,21 @@ private:
     {
         const uint8_t *src = (const uint8_t *)(ctx_.main_buffer + arg->main_mem_in_address);
         uint8_t *dest = (uint8_t *)(ctx_.main_buffer + arg->main_mem_out_address);
-        size_t oc, count = arg->count;
+        size_t oc, count = ALIGN_UP(arg->count, 8) / 8;
         const uint8_t *table = arg->table;
         
-        for (oc = 0; oc < count; oc++)
-            dest[oc] = table[*src++];
-    }
+		for (oc = 0; oc < count;)
+	    {
+			dest[oc++] = table[*src++];
+			dest[oc++] = table[*src++];
+			dest[oc++] = table[*src++];
+			dest[oc++] = table[*src++];
+			dest[oc++] = table[*src++];
+			dest[oc++] = table[*src++];
+			dest[oc++] = table[*src++];
+			dest[oc++] = table[*src++];
+	    }
+	}
 
     void kpu_l2_normalization(const kpu_model_l2_norm_layer_argument_t *arg)
     {
@@ -538,6 +715,64 @@ private:
         }
     }
 
+    void kpu_fully_connected(const kpu_model_fully_connected_layer_argument_t *arg)
+    {
+        const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
+        float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
+        uint32_t in_channels = arg->in_channels, out_channels = arg->out_channels, ic, oc;
+        const float *weights = arg->weights, *bias = arg->weights + in_channels * out_channels;
+
+        for (oc = 0; oc < out_channels; oc++)
+        {
+            const float *c_weights = weights + oc * in_channels;
+
+            float sum = 0.0f;
+            for (ic = 0; ic < in_channels; ic++)
+                sum += src[ic] * c_weights[ic];
+            dest[oc] = sum + bias[oc];
+        }
+    }
+
+    void kpu_tf_flatten(const kpu_model_tf_flatten_layer_argument_t *arg)
+    {
+        const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
+        float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
+        kpu_model_shape_t in_shape = arg->shape;
+        uint32_t oc, oy, ox;
+    
+        for (oy = 0; oy < in_shape.height; oy++)
+            for (ox = 0; ox < in_shape.width; ox++)
+                for (oc = 0; oc < in_shape.channels; oc++)
+                    *dest++ = src[(oc * in_shape.height + oy) * in_shape.width + ox];
+    }
+
+    void kpu_resize_nearest_neighbor(const kpu_model_resize_nearest_neighbor_layer_argument_t *arg)
+    {
+        const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
+        float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
+        kpu_model_shape_t in_shape = arg->in_shape;
+        uint32_t out_width = arg->out_width, out_height = arg->out_height;
+        uint32_t oc, oy, ox;
+    
+        float height_scale = (float)in_shape.height / out_height;
+        float width_scale = (float)in_shape.width / out_width;
+    
+        for (oc = 0; oc < in_shape.channels; oc++)
+        {
+            const float *channel_src = src + in_shape.width * in_shape.height * oc;
+            for (oy = 0; oy <out_height; oy++)
+            {
+                uint32_t in_y = (uint32_t)min(floorf(oy * height_scale), in_shape.height - 1);
+                const float *y_origin = channel_src + in_y * in_shape.width;
+                for (ox = 0; ox < out_width; ox++)
+                {
+                    uint32_t in_x = (uint32_t)min(floorf(ox * width_scale), in_shape.width - 1);
+                    *dest++ = y_origin[in_x];
+                }
+            }
+        }
+    }
+
     void kpu_conv(const kpu_model_conv_layer_argument_t *arg)
     {
         volatile kpu_layer_argument_t layer = *(kpu_layer_argument_t *)(ctx_.model_buffer + arg->layer_offset);
@@ -550,7 +785,7 @@ private:
             uint8_t *dest = ctx_.main_buffer + arg->main_mem_out_address;
 
             layer.dma_parameter.data.send_data_out = 1;
-
+            kpu_send_layer((const kpu_layer_argument_t *)&layer);
             dma_set_request_source(dma_ch_, dma_req_);
             dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), dest, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
         }
@@ -568,8 +803,9 @@ private:
             kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
             kpu_.interrupt_mask.data.reserved = 0;
 #endif
+            kpu_send_layer((const kpu_layer_argument_t *)&layer);
         }
-        kpu_send_layer((const kpu_layer_argument_t *)&layer);
+        
     }
 
     void kpu_add_padding(const kpu_model_add_padding_layer_argument_t *arg)
@@ -636,6 +872,8 @@ private:
                 return "GAP";
             case KL_QUANTIZED_MAX_POOL2D:
                 return "QuantMaxPool2d";
+            case KL_AVERAGE_POOL2D:
+                return "AveragePool2d";
             case KL_QUANTIZE:
                 return "Quantize";
             case KL_DEQUANTIZE:
@@ -650,6 +888,12 @@ private:
                 return "Concat";
             case KL_QUANTIZED_CONCAT:
                 return "QuantConcat";
+            case KL_FULLY_CONNECTED:
+                return "FullyConnected";
+            case KL_TENSORFLOW_FLATTEN:
+                return "TFFlatten";
+            case KL_RESIZE_NEAREST_NEIGHBOR:
+                return "ResizeNearestNeighbor";
             case KL_K210_CONV:
                 return "K210Conv";
             case KL_K210_ADD_PADDING:
@@ -726,6 +970,9 @@ private:
             case KL_QUANTIZED_MAX_POOL2D:
                 kpu_quantized_max_pool2d((const kpu_model_quant_max_pool2d_layer_argument_t *)layer_body);
                 break;
+            case KL_AVERAGE_POOL2D:
+                kpu_average_pool2d((const kpu_model_ave_pool2d_layer_argument_t *)layer_body);
+                break;
             case KL_QUANTIZE:
                 kpu_quantize((const kpu_model_quantize_layer_argument_t *)layer_body);
                 break;
@@ -744,6 +991,15 @@ private:
             case KL_CONCAT:
             case KL_QUANTIZED_CONCAT:
                 kpu_concat((const kpu_model_concat_layer_argument_t *)layer_body);
+                break;
+            case KL_FULLY_CONNECTED:
+                kpu_fully_connected((const kpu_model_fully_connected_layer_argument_t *)layer_body);
+                break;
+            case KL_TENSORFLOW_FLATTEN:
+                kpu_tf_flatten((const kpu_model_tf_flatten_layer_argument_t *)layer_body);
+                break;
+            case KL_RESIZE_NEAREST_NEIGHBOR:
+                kpu_resize_nearest_neighbor((const kpu_model_resize_nearest_neighbor_layer_argument_t *)layer_body);
                 break;
             case KL_K210_CONV:
                 kpu_conv((const kpu_model_conv_layer_argument_t *)layer_body);

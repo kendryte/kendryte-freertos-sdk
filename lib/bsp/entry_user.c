@@ -24,7 +24,7 @@
 #include <sysctl.h>
 #include <uarths.h>
 
-#define PLL1_OUTPUT_FREQ 160000000UL
+#define PLL1_OUTPUT_FREQ 400000000UL
 #define PLL2_OUTPUT_FREQ 45158400UL
 
 extern uint8_t _tls_data[];

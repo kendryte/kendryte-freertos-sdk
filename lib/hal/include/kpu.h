@@ -359,6 +359,12 @@ typedef enum
     KL_SOFTMAX,
     KL_CONCAT,
     KL_QUANTIZED_CONCAT,
+    KL_FULLY_CONNECTED,
+    KL_QUANTIZED_FULLY_CONNECTED,
+    KL_TENSORFLOW_FLATTEN,
+    KL_QUANTIZED_TENSORFLOW_FLATTEN,
+    KL_RESIZE_NEAREST_NEIGHBOR,
+    KL_QUANTIZED_RESIZE_NEAREST_NEIGHBOR,
     KL_K210_CONV = 10240,
     KL_K210_ADD_PADDING,
     KL_K210_REMOVE_PADDING,
@@ -474,6 +480,22 @@ typedef struct
 {
     uint32_t flags;
     uint32_t main_mem_in_address;
+    uint32_t main_mem_out_address;
+    kpu_model_shape_t in_shape;
+    kpu_model_shape_t out_shape;
+    uint32_t kernel_width;
+    uint32_t kernel_height;
+    uint32_t stride_width;
+    uint32_t stride_height;
+    uint32_t padding_width;
+    uint32_t padding_height;
+    kpu_model_activation_t act;
+} kpu_model_ave_pool2d_layer_argument_t;
+
+typedef struct
+{
+    uint32_t flags;
+    uint32_t main_mem_in_address;
     uint32_t mem_out_address;
     uint32_t count;
     kpu_model_quant_param_t quant_param;
@@ -546,6 +568,36 @@ typedef struct
     uint32_t input_count;
     kpu_model_memory_range_t inputs_mem[0];
 } kpu_model_concat_layer_argument_t;
+
+typedef struct
+{
+    uint32_t flags;
+    uint32_t main_mem_in_address;
+    uint32_t main_mem_out_address;
+    uint32_t in_channels;
+    uint32_t out_channels;
+    kpu_model_activation_t act;
+    float weights[0];
+} kpu_model_fully_connected_layer_argument_t;
+
+typedef struct
+{
+    uint32_t flags;
+    uint32_t main_mem_in_address;
+    uint32_t main_mem_out_address;
+    kpu_model_shape_t shape;
+} kpu_model_tf_flatten_layer_argument_t;
+
+typedef struct
+{
+    uint32_t flags;
+    uint32_t main_mem_in_address;
+    uint32_t main_mem_out_address;
+    kpu_model_shape_t in_shape;
+    uint32_t out_width;
+    uint32_t out_height;
+    uint32_t align_corners;
+} kpu_model_resize_nearest_neighbor_layer_argument_t;
 
 typedef struct
 {
