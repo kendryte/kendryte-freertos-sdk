@@ -17,6 +17,7 @@
 #include <fpioa.h>
 #include <hal.h>
 #include <kernel/driver_impl.hpp>
+#include <atomic.h>
 #include <math.h>
 #include <semphr.h>
 #include <spi.h>
@@ -35,6 +36,27 @@ using namespace sys;
 #define TMOD_VALUE(value) (value << tmod_off_)
 #define COMMON_ENTRY \
     semaphore_lock locker(free_mutex_);
+
+typedef struct _spi_slave_instance
+{
+    uint8_t int_pin;
+    uint8_t ready_pin;
+
+    object_ptr<gpio_driver> s_gpio_driver;
+    object_accessor<gpio_driver> s_gpio;
+
+    size_t data_bit_length;
+    volatile spi_slave_status_e status;
+    volatile spi_slave_command_t command;
+    volatile uint8_t *config_ptr;
+    uint32_t config_len;
+
+    uintptr_t dma;
+    SemaphoreHandle_t dma_event;
+    SemaphoreHandle_t cs_event;
+    SemaphoreHandle_t slave_event;
+    spi_slave_receive_callback_t callback;
+} spi_slave_instance_t;
 
 class k_spi_device_driver;
 
@@ -73,7 +95,9 @@ public:
     void fill(k_spi_device_driver &device, uint32_t instruction, uint32_t address, uint32_t value, size_t count);
     void slave_config(handle_t gpio_handle, uint8_t int_pin, uint8_t ready_pin, size_t data_bit_length, uint8_t *data, uint32_t len, spi_slave_receive_callback_t callback)
     {
-        slave_instance_.gpio_handle = gpio_handle;
+        slave_instance_.s_gpio_driver = system_handle_to_object(gpio_handle).get_object().as<gpio_driver>();
+        slave_instance_.s_gpio = make_accessor(slave_instance_.s_gpio_driver);
+
         slave_instance_.status = IDLE;
         slave_instance_.config_ptr = data;
         slave_instance_.config_len = len;
@@ -102,12 +126,12 @@ public:
         spi_.imr = 0x10;
         spi_.ssienr = 0x01;
 
-        gpio_set_drive_mode(gpio_handle, ready_pin, GPIO_DM_OUTPUT);
-        gpio_set_pin_value(gpio_handle, ready_pin, GPIO_PV_HIGH);
+        slave_instance_.s_gpio->set_drive_mode(ready_pin, GPIO_DM_OUTPUT);
+        slave_instance_.s_gpio->set_pin_value(ready_pin, GPIO_PV_HIGH);
 
-        gpio_set_drive_mode(gpio_handle, int_pin, GPIO_DM_INPUT_PULL_UP);
-        gpio_set_pin_edge(gpio_handle, int_pin, GPIO_PE_RISING);
-        gpio_set_on_changed(gpio_handle, int_pin, (gpio_on_changed_t)spi_slave_cs_irq, this);
+        slave_instance_.s_gpio->set_drive_mode(int_pin, GPIO_DM_INPUT_PULL_UP);
+        slave_instance_.s_gpio->set_pin_edge(int_pin, GPIO_PE_RISING);
+        slave_instance_.s_gpio->set_on_changed(int_pin, (gpio_on_changed_t)spi_slave_cs_irq, this);
 
         pic_set_irq_priority(IRQN_SPI_SLAVE_INTERRUPT, 4);
         pic_set_irq_enable(IRQN_SPI_SLAVE_INTERRUPT, 1);
@@ -129,8 +153,7 @@ private:
         {
             if (xSemaphoreTake(driver.slave_instance_.slave_event, portMAX_DELAY) == pdTRUE)
             {
-                if (driver.slave_instance_.status == IDLE)
-                    driver.slave_instance_.status = COMMAND;
+                atomic_cas(&driver.slave_instance_.status, IDLE, COMMAND);
             }
         }
     }
@@ -142,11 +165,12 @@ private:
         {
             if (xSemaphoreTake(driver.slave_instance_.cs_event, portMAX_DELAY) == pdTRUE)
             {
-                if (driver.slave_instance_.status == IDLE)
+                spi_slave_status_e status = atomic_read(&driver.slave_instance_.status);
+                if (status == IDLE)
                     spi_slave_idle_mode(userdata);
-                else if (driver.slave_instance_.status == COMMAND)
+                else if (status == COMMAND)
                     spi_slave_command_mode(userdata);
-                else if (driver.slave_instance_.status == TRANSFER)
+                else if (status == TRANSFER)
                     spi_slave_transfer_mode(userdata);
             }
         }
@@ -190,7 +214,7 @@ private:
         spi_handle.imr = 0x10;
         spi_handle.ssienr = 0x01;
 
-        gpio_set_pin_value(driver.slave_instance_.gpio_handle, driver.slave_instance_.ready_pin, GPIO_PV_HIGH);
+        driver.slave_instance_.s_gpio->set_pin_value(driver.slave_instance_.ready_pin, GPIO_PV_HIGH);
     }
 
     static void spi_slave_command_mode(void *userdata)
@@ -201,7 +225,7 @@ private:
         uint8_t slv_oe = 10;
 
         uint32_t data_width = (driver.slave_instance_.data_bit_length + 7) / 8;
-
+        vTaskEnterCritical();
         switch (data_width)
         {
         case 4:
@@ -217,7 +241,7 @@ private:
                 cmd_data[i] = spi_handle.dr[0];
             break;
         }
-
+        vTaskExitCritical();
         for (uint32_t i = 0; i < 7; i++)
         {
             sum += cmd_data[i];
@@ -253,6 +277,8 @@ private:
             spi_handle.txftlr = 0x00;
             spi_handle.imr = 0x00;
             spi_handle.ssienr = 0x01;
+
+            vTaskEnterCritical();
             switch (data_width)
             {
             case 4:
@@ -274,6 +300,7 @@ private:
                 }
                 break;
             }
+            vTaskExitCritical();
         }
         else if (driver.slave_instance_.command.cmd == WRITE_DATA_BYTE)
         {
@@ -289,6 +316,8 @@ private:
             spi_handle.txftlr = 0x00;
             spi_handle.imr = 0x00;
             spi_handle.ssienr = 0x01;
+
+            vTaskEnterCritical();
             switch (data_width)
             {
             case 4:
@@ -310,6 +339,7 @@ private:
                 }
                 break;
             }
+            vTaskExitCritical();
         } 
         
         else if (driver.slave_instance_.command.cmd == WRITE_DATA_BLOCK)
@@ -340,7 +370,7 @@ private:
             spi_slave_idle_mode(userdata);
             return;
         }
-        gpio_set_pin_value(driver.slave_instance_.gpio_handle, driver.slave_instance_.ready_pin, GPIO_PV_LOW);
+        driver.slave_instance_.s_gpio->set_pin_value(driver.slave_instance_.ready_pin, GPIO_PV_LOW);
     }
 
     static void spi_slave_transfer_mode(void *userdata)
@@ -386,6 +416,7 @@ private:
 
         if (driver.slave_instance_.command.err == 0)
         {
+            vTaskEnterCritical();
             if (driver.slave_instance_.command.cmd == WRITE_CONFIG)
             {
                 switch (data_width)
@@ -434,6 +465,7 @@ private:
                     break;
                 }
             }
+            vTaskExitCritical();
         }
         
         if(driver.slave_instance_.callback != NULL)
