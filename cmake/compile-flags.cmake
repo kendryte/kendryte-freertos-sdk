@@ -14,7 +14,7 @@ add_compile_flags(LD
 # C Flags Settings
 add_compile_flags(BOTH
         -mcmodel=medany
-        -mabi=lp64f
+        -mabi=lp64d
         -march=rv64imafdc
         -fno-common
         -ffunction-sections
@@ -22,7 +22,6 @@ add_compile_flags(BOTH
         -fstrict-volatile-bitfields
         -ffast-math
         -fno-math-errno
-        -fsingle-precision-constant
         -O2
         -ggdb
         )

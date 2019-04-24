@@ -1,11 +1,11 @@
 ﻿# Copyright 2018 Canaan Inc.
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -38,7 +38,7 @@ _start:
 
   li t0, 1
   sd t0, _irq_enabled, t1
-  
+
   li x1, 0
   li x2, 0
   li x3, 0
@@ -73,7 +73,7 @@ _start:
 
   li t0, MSTATUS_FS
   csrs mstatus, t0
-  
+
   fssr    x0
   fmv.d.x f0, x0
   fmv.d.x f1, x0
@@ -123,7 +123,7 @@ _start:
   jr t1
 2:
   la sp, _idle_stack0_top
-  
+
   # clear the bss segment
   la t0, __bss_start
   la t1, __bss_end
@@ -134,7 +134,7 @@ _start:
 
   la t0, _init_bsp
   jr t0
-  
+
   # t0 = mhartid
   # t1 = mhartid * 8
   # t2 = _irq_count + t1
@@ -163,7 +163,7 @@ trap_entry:
   csrr t0, mscratch
   # Save context
   addi sp, sp, -NUM_XCEPT_REGS * REGBYTES
-  
+
   sd x1,   1 * REGBYTES(sp)
   sd x2,   2 * REGBYTES(sp)
   sd x4,   4 * REGBYTES(sp)
@@ -205,7 +205,7 @@ trap_entry:
   li t2, 0xfff0007f
   mv t3, t1
   and t3, t3, t2
-  li t2, 0x‭42000053‬
+  li t2, 0x42000053
   # Skip
   bne t2, t3, 1f
 
@@ -260,7 +260,7 @@ trap_entry:
   mv a0, sp
   # a1 = mcause
   csrr a1, mcause
-  
+
   get_irq_count
   # _irq_count++
   addi t4, t3, 1
@@ -287,7 +287,7 @@ trap_entry:
   # Disable interrupt
   li t0, MSTATUS_MIE
   csrc mstatus, t0
-  
+
   get_irq_count
   # _irq_count--
   addi t4, t3, -1
@@ -311,11 +311,11 @@ trap_entry:
   # Restore mepc
   ld t0, 0 * REGBYTES(a0)
   csrw mepc, t0
-  
+
   # Store a0 to mscratch
   ld t0, 10 * REGBYTES(a0)
   csrw mscratch, t0
-  
+
   ld x1,   1 * REGBYTES(a0)
   ld x2,   2 * REGBYTES(a0)
   ld x4,   4 * REGBYTES(a0)
@@ -389,7 +389,7 @@ sys_apc_thunk:
   ld t0, REG_APC_PROC * REGBYTES(sp)
   sd a7, REG_APC_PROC * REGBYTES(sp)
   jalr t0
-  
+
   ld x1,   1 * REGBYTES(sp)
   ld x4,   4 * REGBYTES(sp)
   ld x5,   5 * REGBYTES(sp)
@@ -456,7 +456,7 @@ sys_apc_thunk:
   li a7, SYS_apc_return
   ecall
   j .
-  
+
 .global _init
 .type   _init, @function
 .global _fini
