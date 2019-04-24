@@ -15,7 +15,7 @@ add_compile_flags(LD
 add_compile_flags(BOTH
         -mcmodel=medany
         -mabi=lp64f
-        -march=rv64imafc
+        -march=rv64imafdc
         -fno-common
         -ffunction-sections
         -fdata-sections
