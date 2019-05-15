@@ -177,17 +177,24 @@ static int i2c_write(const uint8_t *buffer, size_t len, void *userdata)
 {
     COMMON_ENTRY;
 
-    uintptr_t dma_write = dma_open_free();
-
-    dma_set_request_source(dma_write, data->dma_req_base + 1);
-    dma_transmit(dma_write, buffer, &i2c->data_cmd, 1, 0, 1, len, 4);
-    dma_close(dma_write);
-
-    while (i2c->status & I2C_STATUS_ACTIVITY)
+    size_t fifo_len, index;
+    i2c->clr_tx_abrt = i2c->clr_tx_abrt;
+    while (len)
     {
+        fifo_len = 8 - i2c->txflr;
+        fifo_len = len < fifo_len ? len : fifo_len;
+        for (index = 0; index < fifo_len; index++)
+            i2c->data_cmd = I2C_DATA_CMD_DATA(*buffer++);
         if (i2c->tx_abrt_source != 0)
-            configASSERT(!"source abort");
+            return 0;
+        len -= fifo_len;
     }
+
+    while ((i2c->status & I2C_STATUS_ACTIVITY) || !(i2c->status & I2C_STATUS_TFE))
+        ;
+
+    if (i2c->tx_abrt_source != 0)
+        return 0;
     return len;
 }
 
@@ -195,30 +202,36 @@ static int i2c_transfer_sequential(const uint8_t *write_buffer, size_t write_len
 {
     COMMON_ENTRY;
 
-    uint32_t *write_cmd = malloc(sizeof(uint32_t) * (write_len + read_len));
-    size_t i;
-    for (i = 0; i < write_len; i++)
-        write_cmd[i] = write_buffer[i];
-    for (i = 0; i < read_len; i++)
-        write_cmd[i + write_len] = I2C_DATA_CMD_CMD;
+	size_t fifo_len, index;
+    size_t rx_len = read_len;
 
-    uintptr_t dma_write = dma_open_free();
-    uintptr_t dma_read = dma_open_free();
-    SemaphoreHandle_t event_read = xSemaphoreCreateBinary(), event_write = xSemaphoreCreateBinary();
+    while (write_len)
+    {
+        fifo_len = 8 - i2c->txflr;
+        fifo_len = write_len < fifo_len ? write_len : fifo_len;
+        for (index = 0; index < fifo_len; index++)
+            i2c->data_cmd = I2C_DATA_CMD_DATA(*write_buffer++);
+        if (i2c->tx_abrt_source != 0)
+            return 1;
+        write_len -= fifo_len;
+    }
 
-    dma_set_request_source(dma_write, data->dma_req_base + 1);
-    dma_set_request_source(dma_read, data->dma_req_base);
+    while (read_len || rx_len)
+    {
+        fifo_len = i2c->rxflr;
+        fifo_len = rx_len < fifo_len ? rx_len : fifo_len;
+        for (index = 0; index < fifo_len; index++)
+            *read_buffer++ = (uint8_t)i2c->data_cmd;
+        rx_len -= fifo_len;
+        fifo_len = 8 - i2c->txflr;
+        fifo_len = read_len < fifo_len ? read_len : fifo_len;
+        for (index = 0; index < fifo_len; index++)
+            i2c->data_cmd = I2C_DATA_CMD_CMD;
+        if (i2c->tx_abrt_source != 0)
+            return 1;
+        read_len -= fifo_len;
+    }
 
-    dma_transmit_async(dma_read, &i2c->data_cmd, read_buffer, 0, 1, 1 /*sizeof(uint32_t)*/, read_len, 1 /*4*/, event_read);
-    dma_transmit_async(dma_write, write_cmd, &i2c->data_cmd, 1, 0, sizeof(uint32_t), write_len + read_len, 4, event_write);
-
-    configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE && xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
-
-    dma_close(dma_write);
-    dma_close(dma_read);
-    vSemaphoreDelete(event_read);
-    vSemaphoreDelete(event_write);
-    free(write_cmd);
     return read_len;
 }
 
