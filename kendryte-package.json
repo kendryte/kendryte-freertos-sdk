@@ -65,7 +65,8 @@
     "link_flags": [
         "-static",
         "-Wl,-static",
-        "-Wl,-EL"
+        "-Wl,-EL",
+        "-mcmodel=medany"
     ],
     "ld_file": "lds/kendryte.ld",
     "properties": {
@@ -85,9 +86,13 @@
         "c",
         "atomic",
         "stdc++",
-        "freertos",
-        "bsp",
-        "drivers",
-        "posix",
+        "fatfs",
+        "lwipcore"
+    ],
+    "linkArgumentPrefix": [
+        "-Wl,--whole-archive"
+    ],
+    "linkArgumentSuffix": [
+        "-Wl,--no-whole-archive"
     ]
 }
