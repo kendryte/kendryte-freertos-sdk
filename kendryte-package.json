@@ -1,0 +1,98 @@
+{
+    "$schema": "vscode://schemas/CMakeLists",
+    "name": "kendryte-freertos-sdk",
+    "version": "develop",
+    "type": "library",
+    "extraList": "cmake/ide.cmake",
+    "include": [
+        "lib/arch/include",
+        "lib/bsp/include",
+        "lib/bsp/syscalls",
+        "lib/drivers/include",
+        "lib/freertos/conf",
+        "lib/freertos/include",
+        "lib/freertos/kernel",
+        "lib/freertos/portable",
+        "lib/hal/include",
+        "lib/posix",
+        "lib/posix/include",
+        "lib/utils/include",
+        "third_party",
+        "third_party/lwip/src/include",
+        "third_party/fatfs/source"
+    ],
+    "source": [
+        "src/main.c",
+        "lib/**/*.S",
+        "lib/**/*.c",
+        "lib/**/*.cpp"
+    ],
+    "c_flags": [
+        "-std=gnu11",
+        "-Wno-pointer-to-int-cast",
+        "-Wno-old-style-declaration"
+    ],
+    "cpp_flags": [
+        "-std=gnu++17"
+    ],
+    "c_cpp_flags": [
+        "-mcmodel=medany",
+        "-fno-common",
+        "-ffunction-sections",
+        "-fdata-sections",
+        "-fstrict-volatile-bitfields",
+        "-fno-zero-initialized-in-bss",
+        "-O0",
+        "-ggdb",
+        "-Wall",
+        "-Werror=all",
+        "-Wno-error=unused-function",
+        "-Wno-error=unused-but-set-variable",
+        "-Wno-error=unused-variable",
+        "-Wno-error=deprecated-declarations",
+        "-Wextra",
+        "-Werror=frame-larger-than=65536",
+        "-Wno-unused-parameter",
+        "-Wno-sign-compare",
+        "-Wno-error=missing-braces",
+        "-Wno-error=return-type",
+        "-Wno-error=pointer-sign",
+        "-Wno-missing-braces",
+        "-Wno-strict-aliasing",
+        "-Wno-implicit-fallthrough",
+        "-Wno-missing-field-initializers"
+    ],
+    "link_flags": [
+        "-static",
+        "-Wl,-static",
+        "-Wl,-EL",
+        "-mcmodel=medany"
+    ],
+    "ld_file": "lds/kendryte.ld",
+    "properties": {
+        "LINKER_LANGUAGE": "C"
+    },
+    "dependency": {},
+    "definitions": {
+        "KENDRYTE_SDK:raw": "2"
+    },
+    "header": [],
+    "localDependency": [
+        "third_party"
+    ],
+    "systemLibrary": [
+        "gcc",
+        "m",
+        "c",
+        "atomic",
+        "stdc++",
+        "fatfs",
+        "lwipcore"
+    ],
+    "linkArgumentPrefix": [
+        "-Wl,--whole-archive"
+    ],
+    "linkArgumentSuffix": [
+        "-Wl,--no-whole-archive"
+    ]
+}
