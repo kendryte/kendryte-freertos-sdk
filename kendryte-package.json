@@ -1,6 +1,6 @@
 {
     "$schema": "vscode://schemas/CMakeLists",
-    "name": "kendryte-freertos-sdk",
+    "name": "kendryte/freertos-sdk",
     "version": "develop",
     "type": "library",
     "extraList": "cmake/ide.cmake",
