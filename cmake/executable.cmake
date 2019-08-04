@@ -10,6 +10,7 @@ if (NOT BUILDING_SDK)
         ### source code sdk
         include_directories(${SDK_ROOT}/lib/arch/include ${SDK_ROOT}/lib/utils/include)
         add_subdirectory(${SDK_ROOT}/lib SDK)
+	add_subdirectory(${SDK_ROOT}/third_party THIRD_PARTY)
     endif()
 endif ()
 
