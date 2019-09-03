@@ -96,6 +96,15 @@ int io_control(handle_t file, uint32_t control_code, const uint8_t *write_buffer
 void uart_config(handle_t file, uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity);
 
 /**
+ * @brief       Configure a UART device.
+ *
+ * @param[in]   file            The UART handle
+ * @param[in]   buffer_size     Receive FIFO size setting.
+ * @param[in]   use_dma         Use dma or not use.
+ */
+void uart_config_use_dma(handle_t file, size_t buffer_size, int use_dma);
+
+/**
  * @brief       Set uart read blocking time.
  *
  * @param[in]   file            The UART handle

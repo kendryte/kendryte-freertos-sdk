@@ -507,6 +507,10 @@ public:
         dmac.chen |= 0x101 << channel_;
     }
 
+    virtual void stop() override
+    {
+        *(session_.stop_signal) = 1;
+    }
 private:
     static void dma_completion_isr(void *userdata)
     {

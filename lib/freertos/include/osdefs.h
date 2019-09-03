@@ -48,6 +48,12 @@ typedef enum _uart_parity
     UART_PARITY_EVEN
 } uart_parity_t;
 
+typedef enum _uart_use_dma
+{
+    UART_NOT_DMA,
+    UART_USE_DMA
+} uart_use_dma_t;
+
 typedef enum _gpio_drive_mode
 {
     GPIO_DM_INPUT,

@@ -194,6 +194,7 @@ class uart_driver : public driver
 {
 public:
     virtual void config(uint32_t baud_rate, uint32_t databits, uart_stopbits_t stopbits, uart_parity_t parity) = 0;
+    virtual void config_use_dma(size_t buffer_size, int use_dma) = 0;
     virtual int read(gsl::span<uint8_t> buffer) = 0;
     virtual int write(gsl::span<const uint8_t> buffer) = 0;
     virtual void set_read_timeout(size_t millisecond) = 0;
@@ -385,6 +386,7 @@ public:
     virtual void config(uint32_t priority) = 0;
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) = 0;
     virtual void loop_async(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal) = 0;
+    virtual void stop() = 0;
 };
 
 class dmac_driver : public driver

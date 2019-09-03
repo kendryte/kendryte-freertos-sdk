@@ -343,6 +343,12 @@ void uart_config(handle_t file, uint32_t baud_rate, uint32_t databits, uart_stop
     uart->config(baud_rate, databits, stopbits, parity);
 }
 
+void uart_config_use_dma(handle_t file, size_t buffer_size, int use_dma)
+{
+    COMMON_ENTRY(uart);
+    uart->config_use_dma(buffer_size, use_dma);
+}
+
 void uart_set_read_timeout(handle_t file, size_t millisecond)
 {
     COMMON_ENTRY(uart);
@@ -942,6 +948,12 @@ void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, v
 {
     COMMON_ENTRY(dma);
     dma->loop_async(srcs, src_num, dests, dest_num, src_inc, dest_inc, element_size, count, burst_size, stage_completion_handler, stage_completion_handler_data, completion_event, stop_signal);
+}
+
+void dma_stop(handle_t file)
+{
+    COMMON_ENTRY(dma);
+    dma->stop();
 }
 
 /* System */
