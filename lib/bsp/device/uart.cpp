@@ -177,6 +177,7 @@ public:
                 xSemaphoreTake(session_.stage_completion_event, portMAX_DELAY);
                 next_free_buffer = session_.next_free_buffer;
             }
+            configASSERT(session_.buffer_ptr + buffer.size() * sizeof(uint32_t) <= session_.buffer_size);
             uint32_t *v_recv_buf = (uint32_t *)(session_.buffer + session_.buffer_size * next_free_buffer + session_.buffer_ptr);
             for(uint32_t i = 0; i < buffer.size(); i++)
             {
