@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <FreeRTOS.h>
+#include <task.h>
 #include <dmac.h>
 #include <hal.h>
 #include <kernel/driver_impl.hpp>
@@ -25,6 +26,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <iomem.h>
+#include <printf.h>
 
 using namespace sys;
 
@@ -44,11 +47,22 @@ class k_model_context : public heap_object, public free_object_access
 public:
     k_model_context(uint8_t *buffer)
     {
-        uintptr_t base_addr = (uintptr_t)buffer;
-        const kpu_model_header_t *header = (const kpu_model_header_t *)buffer;
+        uint8_t *buffer_iomem;
+#if FIX_CACHE
+        if(is_memory_cache((uintptr_t)buffer))
+        {
+            buffer_iomem = (uint8_t *)((uintptr_t)buffer - 0x40000000);
+        }
+        else
+#endif
+        {
+            buffer_iomem = buffer;
+        }
+        uintptr_t base_addr = (uintptr_t)buffer_iomem;
+        const kpu_model_header_t *header = (const kpu_model_header_t *)buffer_iomem;
         if (header->version == 3 && header->arch == 0)
         {
-            model_buffer_ = buffer;
+            model_buffer_ = buffer_iomem;
             output_count_ = header->output_count;
             outputs_ = (const kpu_model_output_t *)(base_addr + sizeof(kpu_model_header_t));
             layer_headers_ = (const kpu_model_layer_header_t *)((uintptr_t)outputs_ + sizeof(kpu_model_output_t) * output_count_);
@@ -127,17 +141,11 @@ public:
         kpu_model_header_t *header = (kpu_model_header_t *)ctx_.model_buffer;
         kpu_.interrupt_clear.reg = 7;
 
-        kpu_.fifo_threshold.data.fifo_full_threshold = 10;
-        kpu_.fifo_threshold.data.fifo_empty_threshold = 1;
-        kpu_.fifo_threshold.data.reserved = 0;
+        kpu_.fifo_threshold.reg = 0x1a;
 
-        kpu_.eight_bit_mode.data.eight_bit_mode = header->flags & 1;
-        kpu_.eight_bit_mode.data.reserved = 0;
+        kpu_.eight_bit_mode.reg = header->flags & 1;
 
-        kpu_.interrupt_mask.data.calc_done_int = 1;
-        kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 0;
-        kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-        kpu_.interrupt_mask.data.reserved = 0;
+        kpu_.interrupt_mask.reg = 0b110;
 
         pic_set_irq_priority(IRQN_AI_INTERRUPT, 1);
         pic_set_irq_handler(IRQN_AI_INTERRUPT, kpu_isr_handle, this);
@@ -155,7 +163,8 @@ public:
         if ((layer_arg.image_size.data.i_row_wid + 1) % 64 != 0)
         {
             kpu_input_with_padding(&layer_arg, src);
-            ai_step_not_isr();
+
+            xSemaphoreGive(completion_event_);
         }
         else
         {
@@ -200,15 +209,9 @@ private:
     {
         auto &driver = *reinterpret_cast<k_kpu_driver *>(userdata);
 
-        driver.kpu_.interrupt_clear.data.calc_done_int = 1;
-        driver.kpu_.interrupt_clear.data.layer_cfg_almost_empty_int = 1;
-        driver.kpu_.interrupt_clear.data.layer_cfg_almost_full_int = 1;
-        driver.kpu_.interrupt_clear.data.reserved = 0;
+        driver.kpu_.interrupt_clear.reg = 0b111;
 
-        driver.kpu_.interrupt_mask.data.calc_done_int = 1;
-        driver.kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 1;
-        driver.kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-        driver.kpu_.interrupt_mask.data.reserved = 0;
+        driver.kpu_.interrupt_mask.reg = 0b111;
 
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         xSemaphoreGiveFromISR(driver.completion_event_, &xHigherPriorityTaskWoken);
@@ -616,8 +619,14 @@ private:
     void kpu_quantize(const kpu_model_quantize_layer_argument_t *arg)
     {
         size_t count = arg->count;
-        const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);;
-        const kpu_model_quant_param_t q = arg->quant_param;
+        const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
+        kpu_model_quant_param_t q;
+#if FIX_CACHE
+        memcpy(&q, &arg->quant_param, sizeof(kpu_model_quant_param_t));
+#else
+        q = arg->quant_param;
+#endif
+
         float scale = 1.f / q.scale;
 
         uint8_t *dest = (uint8_t *)(ctx_.main_buffer + arg->mem_out_address);
@@ -636,8 +645,13 @@ private:
         const uint8_t *src = (const uint8_t *)(ctx_.main_buffer + arg->main_mem_in_address);
         float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
         size_t oc, count = arg->count;
-        const kpu_model_quant_param_t q = arg->quant_param;
-        
+        kpu_model_quant_param_t q;
+#if FIX_CACHE
+        memcpy(&q, &arg->quant_param, sizeof(kpu_model_quant_param_t));
+#else
+        q = arg->quant_param;
+#endif
+
         for (oc = 0; oc < count; oc++)
             dest[oc] = *src++ * q.scale + q.bias;
     }
@@ -720,7 +734,10 @@ private:
         const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
         float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
         uint32_t in_channels = arg->in_channels, out_channels = arg->out_channels, ic, oc;
-        const float *weights = arg->weights, *bias = arg->weights + in_channels * out_channels;
+
+        float *weights, *bias;
+        memcpy(weights, arg->weights, sizeof(float));
+        memcpy(bias, arg->weights + in_channels * out_channels, sizeof(float));
 
         for (oc = 0; oc < out_channels; oc++)
         {
@@ -783,29 +800,19 @@ private:
         if (arg->flags & KLF_MAIN_MEM_OUT)
         {
             uint8_t *dest = ctx_.main_buffer + arg->main_mem_out_address;
-
+            kpu_.interrupt_clear.reg = 0b111;
+            kpu_.interrupt_mask.reg = 0b111;
             layer.dma_parameter.data.send_data_out = 1;
-            kpu_send_layer((const kpu_layer_argument_t *)&layer);
             dma_set_request_source(dma_ch_, dma_req_);
             dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), dest, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
         }
         else
         {
-#if KPU_DEBUG
-            kpu_.interrupt_mask.data.calc_done_int = 0;
-            kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 1;
-            kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-            kpu_.interrupt_mask.data.reserved = 0;
+            kpu_.interrupt_clear.reg = 0b111;
+            kpu_.interrupt_mask.reg = 0b110;
             layer.interrupt_enabe.data.int_en = 1;
-#else
-            kpu_.interrupt_mask.data.calc_done_int = 1;
-            kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 0;
-            kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-            kpu_.interrupt_mask.data.reserved = 0;
-#endif
-            kpu_send_layer((const kpu_layer_argument_t *)&layer);
         }
-        
+        kpu_send_layer((const kpu_layer_argument_t *)&layer);
     }
 
     void kpu_add_padding(const kpu_model_add_padding_layer_argument_t *arg)
@@ -910,15 +917,9 @@ private:
 
     int kpu_done()
     {
-        kpu_.interrupt_clear.data.calc_done_int = 1;
-        kpu_.interrupt_clear.data.layer_cfg_almost_empty_int = 1;
-        kpu_.interrupt_clear.data.layer_cfg_almost_full_int = 1;
-        kpu_.interrupt_clear.data.reserved = 0;
+        kpu_.interrupt_clear.reg = 0b111;
 
-        kpu_.interrupt_mask.data.calc_done_int = 1;
-        kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 1;
-        kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-        kpu_.interrupt_mask.data.reserved = 0;
+        kpu_.interrupt_mask.reg = 0b111;
 
 #if KPU_DEBUG
         uint32_t cnt_layer_id = ctx_.current_layer - 1;
@@ -1026,13 +1027,6 @@ private:
             kpu_done();
             return 0;
         }
-    }
-
-    void ai_step_not_isr()
-    {
-        portENTER_CRITICAL();
-        ai_step();
-        vPortExitCritical();
     }
 
 private:

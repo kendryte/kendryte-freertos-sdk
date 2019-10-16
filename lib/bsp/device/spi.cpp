@@ -26,10 +26,11 @@
 #include <string.h>
 #include <sysctl.h>
 #include <utility.h>
+#include <printf.h>
 
 using namespace sys;
 
-#define SPI_TRANSMISSION_THRESHOLD 0x800UL
+#define SPI_TRANSMISSION_THRESHOLD 0x0UL
 /* SPI Controller */
 
 #define TMOD_MASK (3 << tmod_off_)

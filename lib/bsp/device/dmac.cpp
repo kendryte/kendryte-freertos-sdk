@@ -25,6 +25,8 @@
 #include <sysctl.h>
 #include <task.h>
 #include <utility.h>
+#include <iomem.h>
+#include <printf.h>
 
 using namespace sys;
 
@@ -195,8 +197,13 @@ public:
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) override
     {
         C_COMMON_ENTRY;
+#if FIX_CACHE
+        //iomem_free(session_.alloc_mem);
+        //session_.alloc_mem = NULL;
+#else
         free(session_.alloc_mem);
         session_.alloc_mem = NULL;
+#endif
         if (count == 0)
         {
             xSemaphoreGive(completion_event);
@@ -248,7 +255,11 @@ public:
 
         if (flow_control != DMAC_MEM2MEM_DMA && old_elm_size < 4)
         {
+#if FIX_CACHE
+            void *alloc_mem = iomem_malloc(sizeof(uint32_t) * count + 128);
+#else
             void *alloc_mem = malloc(sizeof(uint32_t) * count + 128);
+#endif
             session_.alloc_mem = alloc_mem;
             element_size = sizeof(uint32_t);
 
@@ -290,8 +301,49 @@ public:
         }
         else
         {
+#if FIX_CACHE
+            //iomem_free(session_.dest_malloc);
+            //iomem_free(session_.src_malloc);
+            //session_.dest_malloc = NULL;
+            //session_.src_malloc = NULL;
+            uint8_t *src_io = (uint8_t *)src;
+            uint8_t *dest_io = (uint8_t *)dest;
+            if(is_memory_cache((uintptr_t)src))
+            {
+                if(src_inc == 0)
+                {
+                    src_io = (uint8_t *)iomem_malloc(element_size * count);
+                    memcpy(src_io, (uint8_t *)src, element_size * count);
+                }
+                else
+                {
+                    src_io = (uint8_t *)iomem_malloc(element_size);
+                    memcpy(src_io, (uint8_t *)src, element_size);
+                }
+                session_.src_malloc = src_io;
+            }
+            if(is_memory_cache((uintptr_t)dest))
+            {
+                if(dest_inc == 0)
+                {
+                    dest_io = (uint8_t *)iomem_malloc(element_size * count);
+                    session_.buf_len = element_size * count;
+                }
+                else
+                {
+                    dest_io = (uint8_t *)iomem_malloc(element_size);
+                    session_.buf_len = element_size;
+                }
+                session_.dest_malloc = dest_io;
+                session_.dest_buffer = (uint8_t *)dest;
+            }
+            mb();
+            dma.sar = (uint64_t)src_io;
+            dma.dar = (uint64_t)dest_io;
+#else
             dma.sar = (uint64_t)src;
             dma.dar = (uint64_t)dest;
+#endif
         }
 
         dma.block_ts = count - 1;
@@ -370,8 +422,13 @@ public:
     virtual void loop_async(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal) override
     {
         C_COMMON_ENTRY;
+#if FIX_CACHE
+        //iomem_free(session_.alloc_mem);
+#else
         free(session_.alloc_mem);
-        session_.alloc_mem = NULL;
+#endif
+
+        //session_.alloc_mem = NULL;
         if (count == 0)
         {
             xSemaphoreGive(completion_event);
@@ -582,9 +639,27 @@ private:
                 {
                     configASSERT(!"Impossible");
                 }
-
+                iomem_free_isr(driver.session_.alloc_mem);
+                driver.session_.alloc_mem = NULL;
             }
-
+#if FIX_CACHE
+            else
+            {
+                if(driver.session_.buf_len)
+                {
+                    memcpy(driver.session_.dest_buffer, driver.session_.dest_malloc, driver.session_.buf_len);
+                    iomem_free_isr(driver.session_.dest_malloc);
+                    driver.session_.dest_malloc = NULL;
+                    driver.session_.dest_buffer = NULL;
+                    driver.session_.buf_len = 0;
+                }
+                if(driver.session_.src_malloc)
+                {
+                    iomem_free_isr(driver.session_.src_malloc);
+                    driver.session_.src_malloc = NULL;
+                }
+            }
+#endif
             xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
         }
 
@@ -619,6 +694,12 @@ private:
                 size_t count;
                 void *alloc_mem;
                 volatile void *dest;
+#if FIX_CACHE
+                uint8_t *dest_buffer;
+                uint8_t *src_malloc;
+                uint8_t *dest_malloc;
+                size_t buf_len;
+#endif
             };
 
             struct

@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sysctl.h>
 #include <uarths.h>
+#include <sys/lock.h>
 
 using namespace sys;
 
@@ -60,6 +61,7 @@ typedef struct
 static _file *handles_[MAX_HANDLES];
 static driver_registry_t g_custom_drivers[MAX_CUSTOM_DRIVERS];
 static const char dummy_driver_name[] = "";
+static _lock_t dma_lock;
 
 uintptr_t fft_file_;
 uintptr_t aes_file_;
@@ -885,6 +887,7 @@ void sys::kernel_iface_pic_on_irq(uint32_t irq)
 
 handle_t dma_open_free()
 {
+    _lock_acquire_recursive(&dma_lock);
     configASSERT(xSemaphoreTake(dma_free_, portMAX_DELAY) == pdTRUE);
 
     driver_registry_t *head = g_dma_drivers;
@@ -905,12 +908,16 @@ handle_t dma_open_free()
 
     configASSERT(dma);
     uintptr_t handle = io_alloc_handle(io_alloc_file(std::move(dma)));
+    _lock_release_recursive(&dma_lock);
+
     return handle;
 }
 
 void dma_close(handle_t file)
 {
+    _lock_acquire_recursive(&dma_lock);
     io_close(file);
+    _lock_release_recursive(&dma_lock);
 }
 
 static void dma_add_free()
