@@ -194,6 +194,11 @@ public:
         writeq(cfg_u.data, &dma.cfg);
     }
 
+    virtual void test_async(test_context_t *context) override
+    {
+        session_.ctx = context;
+    }
+
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) override
     {
         C_COMMON_ENTRY;
@@ -312,12 +317,12 @@ public:
             {
                 if(src_inc == 0)
                 {
-                    src_io = (uint8_t *)iomem_malloc(element_size * count);
+                    src_io = (uint8_t *)iomem_malloc(element_size * count+128);
                     memcpy(src_io, (uint8_t *)src, element_size * count);
                 }
                 else
                 {
-                    src_io = (uint8_t *)iomem_malloc(element_size);
+                    src_io = (uint8_t *)iomem_malloc(element_size+128);
                     memcpy(src_io, (uint8_t *)src, element_size);
                 }
                 session_.src_malloc = src_io;
@@ -326,18 +331,17 @@ public:
             {
                 if(dest_inc == 0)
                 {
-                    dest_io = (uint8_t *)iomem_malloc(element_size * count);
+                    dest_io = (uint8_t *)iomem_malloc(element_size * count+128);
                     session_.buf_len = element_size * count;
                 }
                 else
                 {
-                    dest_io = (uint8_t *)iomem_malloc(element_size);
+                    dest_io = (uint8_t *)iomem_malloc(element_size+128);
                     session_.buf_len = element_size;
                 }
                 session_.dest_malloc = dest_io;
                 session_.dest_buffer = (uint8_t *)dest;
             }
-            mb();
             dma.sar = (uint64_t)src_io;
             dma.dar = (uint64_t)dest_io;
 #else
@@ -576,6 +580,8 @@ private:
 
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
+        driver.session_.ctx->flag ++;
+
         if (driver.session_.is_loop)
         {
             if (atomic_read(driver.session_.stop_signal))
@@ -660,7 +666,9 @@ private:
                 }
             }
 #endif
+            driver.session_.ctx->flag ++;
             xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
+            driver.session_.ctx->flag ++;
         }
 
         if (xHigherPriorityTaskWoken)
@@ -715,6 +723,7 @@ private:
                 int *stop_signal;
             };
         };
+        test_context_t *ctx;
     } session_;
 };
 

@@ -87,6 +87,7 @@ void dma_set_request_source(handle_t file, uint32_t request);
  * @param[in]   completion_event        Event to signal when this transmition is completed
  */
 void dma_transmit_async(handle_t file, const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event);
+void dma_test_async(handle_t file, test_context_t *context);
 
 /**
  * @brief       DMA synchrnonously

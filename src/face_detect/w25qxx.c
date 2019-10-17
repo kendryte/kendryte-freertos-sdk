@@ -275,7 +275,7 @@ enum w25qxx_status_t w25qxx_init(uintptr_t spi_in)
     uint8_t manuf_id, device_id;
     event = xSemaphoreCreateMutex();
     spi_stand = spi_get_device(spi_in, SPI_MODE_0, SPI_FF_STANDARD, CHIP_SELECT, FRAME_LENGTH);
-    spi_dev_set_clock_rate(spi_stand, 800000);
+    spi_dev_set_clock_rate(spi_stand, 25000000);
     w25qxx_read_id(&manuf_id, &device_id);
     if ((manuf_id != 0xEF && manuf_id != 0xC8) || (device_id != 0x17 && device_id != 0x16))
     {

@@ -34,6 +34,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/lock.h>
 
 handle_t sd0;
 FILE *stream;
@@ -47,6 +48,10 @@ static region_layer_t face_detect_rl;
 static obj_info_t face_detect_info;
 #define ANCHOR_NUM 5
 static float anchor[ANCHOR_NUM * 2] = {1.889,2.5245,  2.9465,3.94056, 3.99987,5.3658, 5.155437,6.92275, 6.718375,9.01025};
+static volatile int task1_flag;
+static volatile int task2_flag;
+static char display[32];
+static _lock_t flash_lock;
 
 #define LOAD_KMODEL_FROM_FLASH 1
 
@@ -111,12 +116,30 @@ static void draw_edge(uint32_t *gram, obj_info_t *obj_info, uint32_t index, uint
     }
 }
 
-#define TEST_START_ADDR (0x200000U)
+#define TEST_START_ADDR (0x300000U)
 #define TEST_NUMBER (0x100U)
 uint8_t data_buf_send[TEST_NUMBER];
-uint8_t data_buf_recv[TEST_NUMBER];
+uint8_t *data_buf_recv;
 handle_t spi3;
 static SemaphoreHandle_t event_read;
+
+void task_list(void *arg)
+{
+    char buffer[2048];
+
+    for(;;)
+    {
+        vTaskDelay(10000 / portTICK_RATE_MS);
+        vTaskList((char *)&buffer);
+        printk("task_name   task_state  priority   stack  task_num\n");
+        printk("%s ", buffer);
+        printk("FreeHeapSize:%ld Byte\n", xPortGetFreeHeapSize());
+        printk("MinimumEverFreeHeapSize:%ld Byte\n", xPortGetMinimumEverFreeHeapSize());
+        printk("unused:%d\n", iomem_unused());
+    }
+    vTaskDelete(NULL);
+    return;
+}
 
 void vTask1()
 {
@@ -127,14 +150,20 @@ void vTask1()
         data_buf_send[index] = (uint8_t)(index);
     while (1) 
     {
-        xSemaphoreTake(event_read, portMAX_DELAY);
+        task1_flag = 1;
+        //configASSERT(xSemaphoreTake(event_read, 200) == pdTRUE);
+        _lock_acquire_recursive(&flash_lock);
 #if 0
         fseek(stream,0,SEEK_SET);
         fwrite(msg, 1, strlen(msg)+1, stream);
 #else
+        task1_flag = 2;
         w25qxx_write_data(page_addr, data_buf_send, TEST_NUMBER);
+        task1_flag = 3;
 #endif
-        xSemaphoreGive(event_read);
+        //xSemaphoreGive(event_read);
+        _lock_release_recursive(&flash_lock);
+        task1_flag = 4;
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 }
@@ -143,11 +172,15 @@ void vTask2()
 {
     int32_t index = 0;
     int32_t page_addr = TEST_START_ADDR;
-    for (index = 0; index < TEST_NUMBER; index++)
-        data_buf_recv[index] = 0;
+    data_buf_recv = iomem_malloc(TEST_NUMBER);
+    
     while (1)
     {
-        xSemaphoreTake(event_read, portMAX_DELAY);
+        task2_flag = 1;
+        //configASSERT(xSemaphoreTake(event_read, 200) == pdTRUE);
+        _lock_acquire_recursive(&flash_lock);
+        for (index = 0; index < TEST_NUMBER; index++)
+            data_buf_recv[index] = 0;
 #if 0
         fseek(stream,0,SEEK_SET);
         fread(buffer, 1, strlen(msg)+1, stream);
@@ -155,8 +188,12 @@ void vTask2()
         printk("test syscalls buffer : %s\n", buffer);
         xSemaphoreGive(event_read);
 #else
+        task2_flag = 2;
         w25qxx_read_data(page_addr, data_buf_recv, TEST_NUMBER);
-        xSemaphoreGive(event_read);
+        task2_flag = 3;
+
+        //xSemaphoreGive(event_read);
+        _lock_release_recursive(&flash_lock);
         for (index = 0; index < TEST_NUMBER; index++)
         {
             if (data_buf_recv[index] != (uint8_t)index) {
@@ -165,7 +202,8 @@ void vTask2()
                     ;
             }
         }
-        printf("%X Test OK\n", page_addr);
+        //printf("%X Test OK\n", page_addr);
+        task2_flag = 4;
 #endif
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
@@ -200,17 +238,31 @@ void detect()
             draw_edge(lcd_gram, &face_detect_info, face_cnt, RED);
         }
 #endif
+        if(!task1_flag)
+            printk("==========>%d %d \n", task1_flag, task2_flag);
+        if(!task2_flag)
+            printk("==========>>%d %d \n", task1_flag, task2_flag);
+        sprintf(display, "task1 = %d task2 = %d", task1_flag, task2_flag);
+        task1_flag = 0;
+        task2_flag = 0;
+
+        lcd_draw_string(50, 50, display, RED);
+
         lcd_draw_picture(0, 0, 320, 240, lcd_gram);
         camera_ctx.gram_mux ^= 0x01;
         time_count ++;
         if(time_count == 100)
         {
             gettimeofday(&get_time[1], NULL);;
-            printf("SPF:%fms\n", ((get_time[1].tv_sec - get_time[0].tv_sec)*1000*1000 + (get_time[1].tv_usec - get_time[0].tv_usec))/1000.0/100);
+            printf("SPF:%fms Byte\n", ((get_time[1].tv_sec - get_time[0].tv_sec)*1000*1000 + (get_time[1].tv_usec - get_time[0].tv_usec))/1000.0/100);
             memcpy(&get_time[0], &get_time[1], sizeof(struct timeval));
             time_count = 0;
         }
     }
+    io_close(model_context);
+    image_deinit(&kpu_image);
+    image_deinit(&display_image0);
+    image_deinit(&display_image1);
 }
 
 handle_t install_sdcard()
@@ -226,7 +278,9 @@ handle_t install_sdcard()
 
 int main(void)
 {
-    event_read = xSemaphoreCreateMutex();
+    struct timeval get_time[2];
+    gettimeofday(&get_time[0], NULL);
+    //event_read = xSemaphoreCreateMutex();
 #if LOAD_KMODEL_FROM_FLASH
     model_data = (uint8_t *)iomem_malloc(KMODEL_SIZE);
 #endif
@@ -284,17 +338,15 @@ int main(void)
     w25qxx_read_data(0xA00000, model_data, KMODEL_SIZE);
 #endif
     model_context = kpu_model_load_from_buffer(model_data);
-
-    xTaskCreate(detect, "detect", 20480, NULL, 3, NULL);
-    xTaskCreate(vTask1, "vTask1", 20480, NULL, 1, NULL);
-    xTaskCreate(vTask2, "vTask2", 20480, NULL, 1, NULL);
-
-    while (1)
-       ;
-    io_close(model_context);
-    image_deinit(&kpu_image);
-    image_deinit(&display_image0);
-    image_deinit(&display_image1);
-    while (1)
-        ;
+    gettimeofday(&get_time[1], NULL);
+    printf("Start time:%fms\n", ((get_time[1].tv_sec - get_time[0].tv_sec)*1000*1000 + (get_time[1].tv_usec - get_time[0].tv_usec))/1000.0);
+    printf("xTaskCreate\n");
+    printf("xTaskCreate\n");
+    printf("xTaskCreate\n");
+    printf("xTaskCreate\n");
+    xTaskCreate(detect, "detect", 2048*2, NULL, 3, NULL);
+    xTaskCreate(vTask1, "vTask1", 2048, NULL, 3, NULL);
+    xTaskCreate(vTask2, "vTask2", 2048, NULL, 3, NULL);
+    xTaskCreate(task_list, "task_list", 2048, NULL, 2, NULL);
+    vTaskDelete(NULL);
 }

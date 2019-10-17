@@ -937,6 +937,12 @@ void dma_transmit_async(handle_t file, const volatile void *src, volatile void *
     dma->transmit_async(src, dest, src_inc, dest_inc, element_size, count, burst_size, completion_event);
 }
 
+void dma_test_async(handle_t file, test_context_t *context)
+{
+    COMMON_ENTRY(dma);
+    dma->test_async(context);
+}
+
 void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size)
 {
     SemaphoreHandle_t event = xSemaphoreCreateBinary();

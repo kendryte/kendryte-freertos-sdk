@@ -383,6 +383,7 @@ class dma_driver : public driver
 public:
     virtual void set_select_request(uint32_t request) = 0;
     virtual void config(uint32_t priority) = 0;
+    virtual void test_async(test_context_t *context) = 0;
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) = 0;
     virtual void loop_async(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal) = 0;
 };

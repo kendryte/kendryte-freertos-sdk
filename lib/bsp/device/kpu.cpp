@@ -172,7 +172,7 @@ public:
         }
         while (!done_flag_)
         {
-            if(xSemaphoreTake(completion_event_, portMAX_DELAY) == pdTRUE)
+            if(xSemaphoreTake(completion_event_, 200) == pdTRUE)
             {
                 if (ctx_.current_layer != ctx_.layers_length)
                 {
@@ -792,6 +792,7 @@ private:
 
     void kpu_conv(const kpu_model_conv_layer_argument_t *arg)
     {
+        configASSERT(!is_memory_cache((uintptr_t)ctx_.model_buffer));
         volatile kpu_layer_argument_t layer = *(kpu_layer_argument_t *)(ctx_.model_buffer + arg->layer_offset);
         layer.kernel_load_cfg.data.para_start_addr = (uintptr_t)(ctx_.model_buffer + arg->weights_offset);
         layer.kernel_pool_type_cfg.data.bwsx_base_addr = (uintptr_t)(ctx_.model_buffer + arg->bn_offset);
@@ -804,7 +805,7 @@ private:
             kpu_.interrupt_mask.reg = 0b111;
             layer.dma_parameter.data.send_data_out = 1;
             dma_set_request_source(dma_ch_, dma_req_);
-            dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), dest, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
+            dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), dest-0x40000000, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
         }
         else
         {

@@ -224,6 +224,11 @@ typedef struct _cbc_context
     uint8_t *iv;
 } cbc_context_t;
 
+typedef struct _test_context_t
+{
+    uint32_t flag;
+} test_context_t;
+
 typedef void(*timer_on_tick_t)(void* userdata);
 
 typedef enum _wdt_response_mode
