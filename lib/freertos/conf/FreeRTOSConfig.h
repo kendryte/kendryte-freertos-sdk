@@ -93,7 +93,7 @@ enum
 
 /* memory */
 #define configMINIMAL_STACK_SIZE			( ( unsigned short ) 1024 )
-#define configTOTAL_HEAP_SIZE				( ( size_t ) ( 2*1024 * 1024 ) )
+#define configTOTAL_HEAP_SIZE				( ( size_t ) ( 1024 * 1024 ) )
 #define configSUPPORT_STATIC_ALLOCATION			1
 #define configSUPPORT_DYNAMIC_ALLOCATION		1
 

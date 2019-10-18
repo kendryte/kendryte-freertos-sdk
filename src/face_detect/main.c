@@ -116,8 +116,10 @@ static void draw_edge(uint32_t *gram, obj_info_t *obj_info, uint32_t index, uint
     }
 }
 
-#define TEST_START_ADDR (0x300000U)
-#define TEST_NUMBER (0x100U)
+#define TEST_START_ADDR (0xB00000U)
+#define TEST_START_ADDR2 (0x100000U)
+
+#define TEST_NUMBER (0x1000U)
 uint8_t data_buf_send[TEST_NUMBER];
 uint8_t *data_buf_recv;
 handle_t spi3;
@@ -145,24 +147,42 @@ void vTask1()
 {
     int32_t index = 0;
     int32_t page_addr = TEST_START_ADDR;
-
-    for (index = 0; index < TEST_NUMBER; index++)
-        data_buf_send[index] = (uint8_t)(index);
+    struct timeval get_time[2];
     while (1) 
     {
         task1_flag = 1;
         //configASSERT(xSemaphoreTake(event_read, 200) == pdTRUE);
         _lock_acquire_recursive(&flash_lock);
+        gettimeofday(&get_time[0], NULL);
 #if 0
         fseek(stream,0,SEEK_SET);
         fwrite(msg, 1, strlen(msg)+1, stream);
 #else
+        if(page_addr >= 0x1000000 - TEST_NUMBER)
+        {
+            page_addr = TEST_START_ADDR;
+        }
         task1_flag = 2;
         w25qxx_write_data(page_addr, data_buf_send, TEST_NUMBER);
+
+        w25qxx_read_data(page_addr, data_buf_recv, TEST_NUMBER);
+
+        for (index = 0; index < TEST_NUMBER; index++)
+        {
+            if (data_buf_recv[index] != (uint8_t)index) {
+                printk("task1 Read err:0x%x 0x%x\n", data_buf_recv[index], index);
+                index += 0x100;
+            }
+        }
+        page_addr += TEST_NUMBER;
         task1_flag = 3;
 #endif
+
+        gettimeofday(&get_time[1], NULL);;
+        //printf("vtask1:%f ms \n", ((get_time[1].tv_sec - get_time[0].tv_sec)*1000*1000 + (get_time[1].tv_usec - get_time[0].tv_usec))/1000.0);
         //xSemaphoreGive(event_read);
         _lock_release_recursive(&flash_lock);
+
         task1_flag = 4;
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
@@ -171,40 +191,44 @@ void vTask1()
 void vTask2()
 {
     int32_t index = 0;
-    int32_t page_addr = TEST_START_ADDR;
-    data_buf_recv = iomem_malloc(TEST_NUMBER);
-    
-    while (1)
+    int32_t page_addr = TEST_START_ADDR2;
+    struct timeval get_time[2];
+
+    while (1) 
     {
         task2_flag = 1;
         //configASSERT(xSemaphoreTake(event_read, 200) == pdTRUE);
         _lock_acquire_recursive(&flash_lock);
-        for (index = 0; index < TEST_NUMBER; index++)
-            data_buf_recv[index] = 0;
+        gettimeofday(&get_time[0], NULL);
 #if 0
         fseek(stream,0,SEEK_SET);
-        fread(buffer, 1, strlen(msg)+1, stream);
-        
-        printk("test syscalls buffer : %s\n", buffer);
-        xSemaphoreGive(event_read);
+        fwrite(msg, 1, strlen(msg)+1, stream);
 #else
+        if(page_addr >= 0xA00000 - TEST_NUMBER)
+        {
+            page_addr = TEST_START_ADDR2;
+        }
         task2_flag = 2;
-        w25qxx_read_data(page_addr, data_buf_recv, TEST_NUMBER);
-        task2_flag = 3;
+        w25qxx_write_data(page_addr, data_buf_send, TEST_NUMBER);
 
-        //xSemaphoreGive(event_read);
-        _lock_release_recursive(&flash_lock);
+        w25qxx_read_data(page_addr, data_buf_recv, TEST_NUMBER);
+
         for (index = 0; index < TEST_NUMBER; index++)
         {
             if (data_buf_recv[index] != (uint8_t)index) {
-                printf("Read err\n");
-                while(1)
-                    ;
+                printk("task2 Read err:0x%x 0x%x\n", data_buf_recv[index], index);
+                index += 0x100;
             }
         }
-        //printf("%X Test OK\n", page_addr);
-        task2_flag = 4;
+        page_addr += TEST_NUMBER;
+        task2_flag = 3;
 #endif
+
+        gettimeofday(&get_time[1], NULL);;
+        //printf("vtask2:%f ms \n", ((get_time[1].tv_sec - get_time[0].tv_sec)*1000*1000 + (get_time[1].tv_usec - get_time[0].tv_usec))/1000.0);
+        //xSemaphoreGive(event_read);
+        _lock_release_recursive(&flash_lock);
+        task2_flag = 4;
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
 }
@@ -234,10 +258,12 @@ void detect()
 
         face_detect_rl.input = output;
         region_layer_run(&face_detect_rl, &face_detect_info);
-        for (uint32_t face_cnt = 0; face_cnt < face_detect_info.obj_number; face_cnt++) {
-            draw_edge(lcd_gram, &face_detect_info, face_cnt, RED);
-        }
+        //for (uint32_t face_cnt = 0; face_cnt < face_detect_info.obj_number; face_cnt++) {
+        //    draw_edge(lcd_gram, &face_detect_info, face_cnt, RED);
+        //}
 #endif
+        if(face_detect_info.obj_number)
+            printk("=====>face detect  %d \n", face_detect_info.obj_number);
         if(!task1_flag)
             printk("==========>%d %d \n", task1_flag, task2_flag);
         if(!task2_flag)
@@ -281,6 +307,11 @@ int main(void)
     struct timeval get_time[2];
     gettimeofday(&get_time[0], NULL);
     //event_read = xSemaphoreCreateMutex();
+    data_buf_recv = iomem_malloc(TEST_NUMBER);
+    for (uint32_t index = 0; index < TEST_NUMBER; index++)
+    {
+        data_buf_send[index] = (uint8_t)(index);
+    }
 #if LOAD_KMODEL_FROM_FLASH
     model_data = (uint8_t *)iomem_malloc(KMODEL_SIZE);
 #endif

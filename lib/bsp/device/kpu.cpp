@@ -116,11 +116,13 @@ public:
     virtual void on_first_open() override
     {
         sysctl_clock_enable(clock_);
+        dma_ch_ = dma_open_free();
     }
 
     virtual void on_last_close() override
     {
         sysctl_clock_disable(clock_);
+        dma_close(dma_ch_);
     }
 
     virtual handle_t model_load_from_buffer(uint8_t *buffer) override
@@ -134,7 +136,7 @@ public:
 
         auto model_context = system_handle_to_object(context).as<k_model_context>();
         model_context->get(&ctx_);
-        dma_ch_ = dma_open_free();
+        
         ctx_.current_layer = 0;
         ctx_.current_body = ctx_.body_start;
         
@@ -147,7 +149,7 @@ public:
 
         kpu_.interrupt_mask.reg = 0b110;
 
-        pic_set_irq_priority(IRQN_AI_INTERRUPT, 1);
+        pic_set_irq_priority(IRQN_AI_INTERRUPT, 2);
         pic_set_irq_handler(IRQN_AI_INTERRUPT, kpu_isr_handle, this);
         pic_set_irq_enable(IRQN_AI_INTERRUPT, 1);
 
@@ -186,7 +188,7 @@ public:
             }
         }
         done_flag_ = 0;
-        dma_close(dma_ch_);
+        
         return 0;
     }
 
@@ -342,6 +344,7 @@ private:
 
     void kpu_input_dma(const kpu_layer_argument_t *layer, const uint8_t *src)
     {
+        configASSERT(!is_memory_cache((uintptr_t)src));
         uint64_t input_size = layer->kernel_calc_type_cfg.data.channel_switch_addr * 64 * (layer->image_channel_num.data.i_ch_num + 1);
 
         dma_set_request_source(dma_ch_, dma_req_);
@@ -805,7 +808,7 @@ private:
             kpu_.interrupt_mask.reg = 0b111;
             layer.dma_parameter.data.send_data_out = 1;
             dma_set_request_source(dma_ch_, dma_req_);
-            dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), dest-0x40000000, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
+            dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), (void *)dest, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
         }
         else
         {
