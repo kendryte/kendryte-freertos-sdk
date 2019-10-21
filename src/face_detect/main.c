@@ -233,6 +233,38 @@ void vTask2()
     }
 }
 
+void vTask3()
+{
+    int32_t index = 0;
+    struct timeval get_time[2];
+    int32_t addr = 0;
+
+    while (1) 
+    {
+        //_lock_acquire_recursive(&flash_lock);
+        gettimeofday(&get_time[0], NULL);
+        if(addr < 1024*1024*10)
+            addr = 0;
+        fseek(stream,addr,SEEK_SET);
+        fwrite(msg, 1, strlen(msg)+1, stream);
+        fseek(stream,addr,SEEK_SET);
+        fread(buffer, 1, strlen(msg)+1, stream);
+        gettimeofday(&get_time[1], NULL);
+        for(index=0; index < strlen(msg); index++)
+        {
+            if(buffer[index] != msg[index])
+            {
+                printk("task2 sd err:0x%x 0x%x\n", buffer[index], msg[index]);
+                break;
+            }
+        }
+        addr += 100;
+        //printf("vtask2:%f ms \n", ((get_time[1].tv_sec - get_time[0].tv_sec)*1000*1000 + (get_time[1].tv_usec - get_time[0].tv_usec))/1000.0);
+        //_lock_release_recursive(&flash_lock);
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+    }
+}
+
 void detect()
 {
     int time_count = 0;
@@ -263,16 +295,19 @@ void detect()
         //}
 #endif
         if(face_detect_info.obj_number)
+        {
             printk("=====>face detect  %d \n", face_detect_info.obj_number);
-        if(!task1_flag)
-            printk("==========>%d %d \n", task1_flag, task2_flag);
-        if(!task2_flag)
-            printk("==========>>%d %d \n", task1_flag, task2_flag);
-        sprintf(display, "task1 = %d task2 = %d", task1_flag, task2_flag);
+            if(!task1_flag)
+                printk("==========>%d %d \n", task1_flag, task2_flag);
+            if(!task2_flag)
+                printk("==========>>%d %d \n", task1_flag, task2_flag);
+        }
+        
+        //sprintf(display, "task1 = %d task2 = %d", task1_flag, task2_flag);
         task1_flag = 0;
         task2_flag = 0;
 
-        lcd_draw_string(50, 50, display, RED);
+        //lcd_draw_string(50, 50, display, RED);
 
         lcd_draw_picture(0, 0, 320, 240, lcd_gram);
         camera_ctx.gram_mux ^= 0x01;
@@ -378,6 +413,7 @@ int main(void)
     xTaskCreate(detect, "detect", 2048*2, NULL, 3, NULL);
     xTaskCreate(vTask1, "vTask1", 2048, NULL, 3, NULL);
     xTaskCreate(vTask2, "vTask2", 2048, NULL, 3, NULL);
+    //xTaskCreate(vTask3, "vTask3", 2048, NULL, 3, NULL);
     xTaskCreate(task_list, "task_list", 2048, NULL, 2, NULL);
     vTaskDelete(NULL);
 }

@@ -197,6 +197,7 @@ public:
     virtual void test_async(test_context_t *context) override
     {
         session_.ctx = context;
+        session_.ctx->channel = channel_;
     }
 
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) override
@@ -414,8 +415,8 @@ public:
         uint32_t axi_master = dmac_.add_lru_axi_master();
         session_.axi_master = axi_master;
 
-        ctl_u.ch_ctl.sms = axi_master;
-        ctl_u.ch_ctl.dms = axi_master;
+        ctl_u.ch_ctl.sms = DMAC_MASTER1;
+        ctl_u.ch_ctl.dms = DMAC_MASTER2;
 
         writeq(ctl_u.data, &dma.ctl);
 
@@ -546,8 +547,8 @@ public:
         uint32_t axi_master = dmac_.add_lru_axi_master();
         session_.axi_master = axi_master;
 
-        ctl_u.ch_ctl.sms = axi_master;
-        ctl_u.ch_ctl.dms = axi_master;
+        ctl_u.ch_ctl.sms = DMAC_MASTER1;
+        ctl_u.ch_ctl.dms = DMAC_MASTER2;
 
         writeq(ctl_u.data, &dma.ctl);
 
@@ -669,6 +670,15 @@ private:
             driver.session_.ctx->flag ++;
             xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
             driver.session_.ctx->flag ++;
+            //driver.session_.completion_event = NULL;
+            //driver.session_.axi_master = 0;
+            //driver.session_.is_loop = 0;
+            //driver.session_.flow_control = DMAC_MEM2MEM_DMA;
+            //driver.session_.element_size = 0;
+            //driver.session_.count = 0;
+            //driver.session_.alloc_mem = NULL;
+            //driver.session_.dest = NULL;
+
         }
 
         if (xHigherPriorityTaskWoken)

@@ -227,6 +227,7 @@ typedef struct _cbc_context
 typedef struct _test_context_t
 {
     uint32_t flag;
+    uint32_t channel;
 } test_context_t;
 
 typedef void(*timer_on_tick_t)(void* userdata);

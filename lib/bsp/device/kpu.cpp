@@ -348,6 +348,11 @@ private:
         uint64_t input_size = layer->kernel_calc_type_cfg.data.channel_switch_addr * 64 * (layer->image_channel_num.data.i_ch_num + 1);
 
         dma_set_request_source(dma_ch_, dma_req_);
+#if PRINT_DMA_CH
+        dma_test_async(dma_ch_, &context_);
+        
+        printk("kpu intput: dma=%d \n", context_.channel);
+#endif
         dma_transmit_async(dma_ch_, src, (void *)(uintptr_t)((uint8_t *)AI_IO_BASE_ADDR + layer->image_addr.data.image_src_addr * 64), 1, 1, sizeof(uint64_t), input_size / 8, 16, completion_event_);
     }
 
@@ -808,6 +813,14 @@ private:
             kpu_.interrupt_mask.reg = 0b111;
             layer.dma_parameter.data.send_data_out = 1;
             dma_set_request_source(dma_ch_, dma_req_);
+#if PRINT_DMA_CH
+            context_.flag = 0;
+            dma_test_async(dma_ch_, &context_);
+            
+            printk("kpu output: dma=%d \n", context_.channel);
+#endif
+            //int len = (layer.dma_parameter.data.dma_total_byte + 8) / 8 * sizeof(uint64_t);
+            //uint8_t *dest_io = (uint8_t *)iomem_malloc(len);
             dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), (void *)dest, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
         }
         else
@@ -1040,8 +1053,10 @@ private:
     SemaphoreHandle_t free_mutex_;
     uintptr_t dma_ch_;
     SemaphoreHandle_t completion_event_;
+
     uint8_t done_flag_ = 0;
     kpu_model_context_t ctx_;
+    test_context_t context_;
 #if KPU_DEBUG
     struct timeval time_;
     struct timeval last_time_;
