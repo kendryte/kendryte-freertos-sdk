@@ -176,6 +176,11 @@ public:
         {
             if(xSemaphoreTake(completion_event_, 200) == pdTRUE)
             {
+                if(mem_out_flag_)
+                {
+                    memcpy(dest_kpu_, dest_io_, dest_len_);
+                    mem_out_flag_ = 0;
+                }
                 if (ctx_.current_layer != ctx_.layers_length)
                 {
                     while(ai_step() == 1)
@@ -808,7 +813,7 @@ private:
 
         if (arg->flags & KLF_MAIN_MEM_OUT)
         {
-            uint8_t *dest = ctx_.main_buffer + arg->main_mem_out_address;
+            mem_out_flag_ = 1;
             kpu_.interrupt_clear.reg = 0b111;
             kpu_.interrupt_mask.reg = 0b111;
             layer.dma_parameter.data.send_data_out = 1;
@@ -819,9 +824,17 @@ private:
             
             printk("kpu output: dma=%d \n", context_.channel);
 #endif
-            //int len = (layer.dma_parameter.data.dma_total_byte + 8) / 8 * sizeof(uint64_t);
-            //uint8_t *dest_io = (uint8_t *)iomem_malloc(len);
-            dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), (void *)dest, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
+            dest_len_ = (layer.dma_parameter.data.dma_total_byte + 8) / 8 * sizeof(uint64_t);
+            dest_kpu_ = ctx_.main_buffer + arg->main_mem_out_address;
+
+            if(dest_len_ > max_len_)
+            {
+                max_len_ = dest_len_;
+                iomem_free(dest_io_);
+                dest_io_ = (uint8_t *)iomem_malloc(dest_len_);
+            }
+            dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), (void *)dest_io_, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
+            
         }
         else
         {
@@ -937,7 +950,6 @@ private:
         kpu_.interrupt_clear.reg = 0b111;
 
         kpu_.interrupt_mask.reg = 0b111;
-
 #if KPU_DEBUG
         uint32_t cnt_layer_id = ctx_.current_layer - 1;
         gettimeofday(&time_, NULL);
@@ -1057,6 +1069,11 @@ private:
     uint8_t done_flag_ = 0;
     kpu_model_context_t ctx_;
     test_context_t context_;
+    uint8_t *dest_kpu_;
+    uint8_t *dest_io_;
+    size_t dest_len_;
+    size_t max_len_;
+    uint8_t mem_out_flag_;
 #if KPU_DEBUG
     struct timeval time_;
     struct timeval last_time_;

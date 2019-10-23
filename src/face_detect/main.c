@@ -290,9 +290,9 @@ void detect()
 
         face_detect_rl.input = output;
         region_layer_run(&face_detect_rl, &face_detect_info);
-        //for (uint32_t face_cnt = 0; face_cnt < face_detect_info.obj_number; face_cnt++) {
-        //    draw_edge(lcd_gram, &face_detect_info, face_cnt, RED);
-        //}
+        for (uint32_t face_cnt = 0; face_cnt < face_detect_info.obj_number; face_cnt++) {
+            draw_edge(lcd_gram, &face_detect_info, face_cnt, RED);
+        }
 #endif
         if(face_detect_info.obj_number)
         {

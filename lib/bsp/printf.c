@@ -647,7 +647,6 @@ static void uart_putf(void* unused, char c)
 
 int printk(const char* format, ...)
 {
-    portENTER_CRITICAL();
     va_list ap;
 
     va_start(ap, format);
@@ -657,7 +656,6 @@ int printk(const char* format, ...)
     /* End protected code */
     corelock_unlock(&lock);
     va_end(ap);
-    portEXIT_CRITICAL();
-
+	
     return 0;
 }

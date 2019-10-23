@@ -36,7 +36,7 @@ class k_dmac_driver : public dmac_driver, public static_object, public free_obje
 {
 public:
     k_dmac_driver(uintptr_t base_addr)
-        : dmac_(*reinterpret_cast<volatile dmac_t *>(base_addr)), axi_master1_use_(0), axi_master2_use_(0)
+        : dmac_(*reinterpret_cast<volatile dmac_t *>(base_addr))
     {
     }
 
@@ -81,31 +81,6 @@ public:
         writeq(dmac_cfg.data, &dmac_.cfg);
     }
 
-    uint32_t add_lru_axi_master()
-    {
-        uint32_t axi1 = atomic_read(&axi_master1_use_);
-        uint32_t axi2 = atomic_read(&axi_master2_use_);
-
-        if (axi1 < axi2)
-        {
-            atomic_add(&axi_master1_use_, 1);
-            return 0;
-        }
-        else
-        {
-            atomic_add(&axi_master2_use_, 1);
-            return 1;
-        }
-    }
-
-    void release_axi_master(uint32_t axi)
-    {
-        if (axi == 0)
-            atomic_add(&axi_master1_use_, -1);
-        else
-            atomic_add(&axi_master2_use_, -1);
-    }
-
     volatile dmac_t &dmac()
     {
         return dmac_;
@@ -113,8 +88,6 @@ public:
 
 private:
     volatile dmac_t &dmac_;
-    int32_t axi_master1_use_;
-    int32_t axi_master2_use_;
 };
 
 static k_dmac_driver dev0_driver(DMAC_BASE_ADDR);
@@ -412,9 +385,6 @@ public:
         ctl_u.ch_ctl.dst_tr_width = tr_width;
         ctl_u.ch_ctl.dst_msize = msize;
 
-        uint32_t axi_master = dmac_.add_lru_axi_master();
-        session_.axi_master = axi_master;
-
         ctl_u.ch_ctl.sms = DMAC_MASTER1;
         ctl_u.ch_ctl.dms = DMAC_MASTER2;
 
@@ -544,9 +514,6 @@ public:
         ctl_u.ch_ctl.dst_tr_width = tr_width;
         ctl_u.ch_ctl.dst_msize = msize;
 
-        uint32_t axi_master = dmac_.add_lru_axi_master();
-        session_.axi_master = axi_master;
-
         ctl_u.ch_ctl.sms = DMAC_MASTER1;
         ctl_u.ch_ctl.dms = DMAC_MASTER2;
 
@@ -587,7 +554,6 @@ private:
         {
             if (atomic_read(driver.session_.stop_signal))
             {
-                driver.dmac_.release_axi_master(driver.session_.axi_master);
                 if (driver.session_.stage_completion_handler)
                     driver.session_.stage_completion_handler(driver.session_.stage_completion_handler_data);
                 xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
@@ -613,8 +579,6 @@ private:
         }
         else
         {
-            driver.dmac_.release_axi_master(driver.session_.axi_master);
-
             if (driver.session_.flow_control != DMAC_MEM2MEM_DMA && driver.session_.element_size < 4)
             {
                 if (driver.session_.flow_control == DMAC_PRF2MEM_DMA)
@@ -670,15 +634,6 @@ private:
             driver.session_.ctx->flag ++;
             xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
             driver.session_.ctx->flag ++;
-            //driver.session_.completion_event = NULL;
-            //driver.session_.axi_master = 0;
-            //driver.session_.is_loop = 0;
-            //driver.session_.flow_control = DMAC_MEM2MEM_DMA;
-            //driver.session_.element_size = 0;
-            //driver.session_.count = 0;
-            //driver.session_.alloc_mem = NULL;
-            //driver.session_.dest = NULL;
-
         }
 
         if (xHigherPriorityTaskWoken)
@@ -702,7 +657,6 @@ private:
     struct
     {
         SemaphoreHandle_t completion_event;
-        uint32_t axi_master;
         int is_loop;
         union {
             struct
