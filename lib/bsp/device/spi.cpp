@@ -30,7 +30,7 @@
 
 using namespace sys;
 
-#define SPI_TRANSMISSION_THRESHOLD  0x0UL
+#define SPI_TRANSMISSION_THRESHOLD  0x800UL
 #define SPI_DMA_BLOCK_TIME          1000UL
 
 /* SPI Controller */
@@ -512,7 +512,6 @@ private:
 
     SemaphoreHandle_t free_mutex_;
     spi_slave_instance_t slave_instance_;
-    test_context_t context_;
 };
 
 /* SPI Device */
@@ -702,8 +701,6 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
         dma_set_request_source(dma_read, dma_req_);
         spi_.dmacr = 0x1;
         SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
-        context_.flag = 0;
-        dma_test_async(dma_read, &context_);
 
         dma_transmit_async(dma_read, &spi_.dr[0], buffer_read, 0, 1, device.buffer_width_, rx_frames, 1, event_read);
         const uint8_t *buffer_it = buffer.data();
@@ -713,8 +710,6 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
 
         configASSERT(pdTRUE == xSemaphoreTake(event_read, SPI_DMA_BLOCK_TIME));
 
-        context_.flag = 0;
-        dma_test_async(dma_read, &context_);
         dma_close(dma_read);
         vSemaphoreDelete(event_read);
     }
@@ -781,13 +776,10 @@ int k_spi_driver::write(k_spi_device_driver &device, gsl::span<const uint8_t> bu
         write_inst_addr(spi_.dr, &buffer_write, device.addr_width_);
         SemaphoreHandle_t event_write = xSemaphoreCreateBinary();
 
-        context_.flag = 0;
-        dma_test_async(dma_write, &context_);
         dma_transmit_async(dma_write, buffer_write, &spi_.dr[0], 1, 0, device.buffer_width_, tx_frames, 4, event_write);
         spi_.ser = device.chip_select_mask_;
         configASSERT(pdTRUE == xSemaphoreTake(event_write, SPI_DMA_BLOCK_TIME));
-        context_.flag = 0;
-        dma_test_async(dma_write, &context_);
+
         dma_close(dma_write);
         vSemaphoreDelete(event_write);
     }

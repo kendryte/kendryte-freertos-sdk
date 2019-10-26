@@ -167,12 +167,6 @@ public:
         writeq(cfg_u.data, &dma.cfg);
     }
 
-    virtual void test_async(test_context_t *context) override
-    {
-        session_.ctx = context;
-        session_.ctx->channel = channel_;
-    }
-
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) override
     {
         C_COMMON_ENTRY;
@@ -548,8 +542,6 @@ private:
 
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-        driver.session_.ctx->flag ++;
-
         if (driver.session_.is_loop)
         {
             if (atomic_read(driver.session_.stop_signal))
@@ -631,9 +623,7 @@ private:
                 }
             }
 #endif
-            driver.session_.ctx->flag ++;
             xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
-            driver.session_.ctx->flag ++;
         }
 
         if (xHigherPriorityTaskWoken)
@@ -687,7 +677,6 @@ private:
                 int *stop_signal;
             };
         };
-        test_context_t *ctx;
     } session_;
 };
 
