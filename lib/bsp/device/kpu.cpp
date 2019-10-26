@@ -47,22 +47,15 @@ class k_model_context : public heap_object, public free_object_access
 public:
     k_model_context(uint8_t *buffer)
     {
-        uint8_t *buffer_iomem;
 #if FIX_CACHE
-        if(is_memory_cache((uintptr_t)buffer))
-        {
-            buffer_iomem = (uint8_t *)((uintptr_t)buffer - 0x40000000);
-        }
-        else
+        configASSERT(!is_memory_cache((uintptr_t)buffer));
 #endif
-        {
-            buffer_iomem = buffer;
-        }
-        uintptr_t base_addr = (uintptr_t)buffer_iomem;
-        const kpu_model_header_t *header = (const kpu_model_header_t *)buffer_iomem;
+
+        uintptr_t base_addr = (uintptr_t)buffer;
+        const kpu_model_header_t *header = (const kpu_model_header_t *)buffer;
         if (header->version == 3 && header->arch == 0)
         {
-            model_buffer_ = buffer_iomem;
+            model_buffer_ = buffer;
             output_count_ = header->output_count;
             outputs_ = (const kpu_model_output_t *)(base_addr + sizeof(kpu_model_header_t));
             layer_headers_ = (const kpu_model_layer_header_t *)((uintptr_t)outputs_ + sizeof(kpu_model_output_t) * output_count_);
@@ -353,11 +346,7 @@ private:
         uint64_t input_size = layer->kernel_calc_type_cfg.data.channel_switch_addr * 64 * (layer->image_channel_num.data.i_ch_num + 1);
 
         dma_set_request_source(dma_ch_, dma_req_);
-#if PRINT_DMA_CH
-        dma_test_async(dma_ch_, &context_);
-        
-        printk("kpu intput: dma=%d \n", context_.channel);
-#endif
+
         dma_transmit_async(dma_ch_, src, (void *)(uintptr_t)((uint8_t *)AI_IO_BASE_ADDR + layer->image_addr.data.image_src_addr * 64), 1, 1, sizeof(uint64_t), input_size / 8, 16, completion_event_);
     }
 
@@ -748,9 +737,10 @@ private:
         float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
         uint32_t in_channels = arg->in_channels, out_channels = arg->out_channels, ic, oc;
 
-        float *weights, *bias;
-        memcpy(weights, arg->weights, sizeof(float));
-        memcpy(bias, arg->weights + in_channels * out_channels, sizeof(float));
+        float *weights = (float *)malloc(out_channels * in_channels);
+        float *bias = (float *)malloc(out_channels);
+        memcpy(weights, arg->weights, out_channels * in_channels * sizeof(float));
+        memcpy(bias, arg->weights + in_channels * out_channels, out_channels * sizeof(float));
 
         for (oc = 0; oc < out_channels; oc++)
         {
@@ -818,12 +808,7 @@ private:
             kpu_.interrupt_mask.reg = 0b111;
             layer.dma_parameter.data.send_data_out = 1;
             dma_set_request_source(dma_ch_, dma_req_);
-#if PRINT_DMA_CH
-            context_.flag = 0;
-            dma_test_async(dma_ch_, &context_);
-            
-            printk("kpu output: dma=%d \n", context_.channel);
-#endif
+
             dest_len_ = (layer.dma_parameter.data.dma_total_byte + 8) / 8 * sizeof(uint64_t);
             dest_kpu_ = ctx_.main_buffer + arg->main_mem_out_address;
 
@@ -1068,7 +1053,6 @@ private:
 
     uint8_t done_flag_ = 0;
     kpu_model_context_t ctx_;
-    test_context_t context_;
     uint8_t *dest_kpu_;
     uint8_t *dest_io_;
     size_t dest_len_;

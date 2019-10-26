@@ -27,7 +27,6 @@
 #include <sysctl.h>
 #include <utility.h>
 #include <printf.h>
-#include <plic.h>
 
 using namespace sys;
 
@@ -36,7 +35,6 @@ using namespace sys;
 
 /* SPI Controller */
 
-extern volatile plic_t plic;
 #define TMOD_MASK (3 << tmod_off_)
 #define TMOD_VALUE(value) (value << tmod_off_)
 #define COMMON_ENTRY \
@@ -713,16 +711,8 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
         write_inst_addr(spi_.dr, &buffer_it, device.addr_width_);
         spi_.ser = device.chip_select_mask_;
 
-        uint32_t spi_mstatus_t = 0;
-        if(pdFALSE == xSemaphoreTake(event_read, SPI_DMA_BLOCK_TIME))
-        {
-            asm("csrr %0, mstatus"
-                : "=r"(spi_mstatus_t)
-                :
-                : "cc");
-            printk("read:context.flag = %d plic.pending_bits.u32[0]=0x%x plic.pending_bits.u32[1]=0x%x\n", context_.flag,plic.pending_bits.u32[0],plic.pending_bits.u32[1]);
-            printk("read:spi_mstatus_t = 0x%x claim_complete=%d \n", spi_mstatus_t, plic.targets.target[0].claim_complete);
-        }
+        configASSERT(pdTRUE == xSemaphoreTake(event_read, SPI_DMA_BLOCK_TIME));
+
         context_.flag = 0;
         dma_test_async(dma_read, &context_);
         dma_close(dma_read);
@@ -795,16 +785,7 @@ int k_spi_driver::write(k_spi_device_driver &device, gsl::span<const uint8_t> bu
         dma_test_async(dma_write, &context_);
         dma_transmit_async(dma_write, buffer_write, &spi_.dr[0], 1, 0, device.buffer_width_, tx_frames, 4, event_write);
         spi_.ser = device.chip_select_mask_;
-        if(pdFALSE == xSemaphoreTake(event_write, SPI_DMA_BLOCK_TIME))
-        {
-            uint32_t spi_mstatus_t = 0;
-            asm("csrr %0, mstatus"
-                : "=r"(spi_mstatus_t)
-                :
-                : "cc");
-            printk("write:context.flag = %d plic.pending_bits.u32[0]=0x%x plic.pending_bits.u32[1]=0x%x\n", context_.flag,plic.pending_bits.u32[0],plic.pending_bits.u32[1]);
-            printk("write:spi_mstatus_t=0x%x claim_complete=%d \n", spi_mstatus_t, plic.targets.target[0].claim_complete);
-        }
+        configASSERT(pdTRUE == xSemaphoreTake(event_write, SPI_DMA_BLOCK_TIME));
         context_.flag = 0;
         dma_test_async(dma_write, &context_);
         dma_close(dma_write);
