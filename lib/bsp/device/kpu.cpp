@@ -751,6 +751,8 @@ private:
                 sum += src[ic] * c_weights[ic];
             dest[oc] = sum + bias[oc];
         }
+		free(weights);
+		free(bias);
     }
 
     void kpu_tf_flatten(const kpu_model_tf_flatten_layer_argument_t *arg)
