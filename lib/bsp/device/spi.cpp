@@ -30,7 +30,7 @@
 
 using namespace sys;
 
-#define SPI_TRANSMISSION_THRESHOLD  0x800UL
+#define SPI_TRANSMISSION_THRESHOLD  0x0UL
 #define SPI_DMA_BLOCK_TIME          1000UL
 
 /* SPI Controller */

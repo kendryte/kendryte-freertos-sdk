@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "fft_soft.h": "c",
+        "devices.h": "c"
+    }
+}

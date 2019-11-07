@@ -951,6 +951,11 @@ void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, v
     dma->loop_async(srcs, src_num, dests, dest_num, src_inc, dest_inc, element_size, count, burst_size, stage_completion_handler, stage_completion_handler_data, completion_event, stop_signal);
 }
 
+void dma_stop(handle_t file)
+{
+    COMMON_ENTRY(dma);
+    dma->stop();
+}
 /* System */
 
 driver_registry_t *sys::system_install_driver(const char *name, object_ptr<driver> driver)

@@ -27,6 +27,8 @@
 
 using namespace sys;
 
+#define I2S_DMA_BLOCK_TIME          1000UL
+
 #define BUFFER_COUNT 2
 #define COMMON_ENTRY                                         \
     i2s_data *data = (i2s_data *)userdata;                   \
@@ -373,6 +375,9 @@ public:
 
     virtual void stop() override
     {
+        dma_stop(session_.transmit_dma);
+        configASSERT(pdTRUE == xSemaphoreTake(session_.completion_event, I2S_DMA_BLOCK_TIME));
+        dma_close(session_.transmit_dma);
         i2s_transmit_set_enable(session_.transmit, 0);
     }
 
