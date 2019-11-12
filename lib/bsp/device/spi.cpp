@@ -90,6 +90,7 @@ public:
     virtual object_ptr<spi_device_driver> get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length) override;
 
     double set_clock_rate(k_spi_device_driver &device, double clock_rate);
+    void set_endian(k_spi_device_driver &device, uint32_t endian);
     int read(k_spi_device_driver &device, gsl::span<uint8_t> buffer);
     int write(k_spi_device_driver &device, gsl::span<const uint8_t> buffer);
     int transfer_full_duplex(k_spi_device_driver &device, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer);
@@ -562,6 +563,11 @@ public:
         return spi_->set_clock_rate(*this, clock_rate);
     }
 
+    virtual void set_endian(uint32_t endian) override
+    {
+        spi_->set_endian(*this, endian);
+    }
+	
     virtual int read(gsl::span<uint8_t> buffer) override
     {
         return spi_->read(*this, buffer);
@@ -626,6 +632,7 @@ private:
     spi_inst_addr_trans_mode_t trans_mode_;
     uint32_t baud_rate_ = 0x2;
     uint32_t buffer_width_ = 0;
+    uint32_t endian_ = 0;
 };
 
 object_ptr<spi_device_driver> k_spi_driver::get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
@@ -643,6 +650,11 @@ double k_spi_driver::set_clock_rate(k_spi_device_driver &device, double clock_ra
         div++;
     device.baud_rate_ = div;
     return clk / div;
+}
+
+void k_spi_driver::set_endian(k_spi_device_driver &device, uint32_t endian)
+{
+    device.endian_ = endian;
 }
 
 int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
@@ -994,6 +1006,7 @@ void k_spi_driver::setup_device(k_spi_device_driver &device)
         uint32_t addr_l = device.address_length_ / 4;
 
         spi_.spi_ctrlr0 = (device.wait_cycles_ << 11) | (inst_l << 8) | (addr_l << 2) | trans;
+        spi_.endian = device.endian_;
     }
 }
 

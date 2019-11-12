@@ -488,6 +488,12 @@ double spi_dev_set_clock_rate(handle_t file, double clock_rate)
     return spi_device->set_clock_rate(clock_rate);
 }
 
+void spi_dev_set_endian(handle_t file, uint32_t endian)
+{
+    COMMON_ENTRY(spi_device);
+    return spi_device->set_endian(endian);
+}
+
 int spi_dev_transfer_full_duplex(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
 {
     COMMON_ENTRY(spi_device);

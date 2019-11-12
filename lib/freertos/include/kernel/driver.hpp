@@ -243,6 +243,7 @@ class spi_device_driver : public driver
 public:
     virtual void config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode) = 0;
     virtual double set_clock_rate(double clock_rate) = 0;
+    virtual void set_endian(uint32_t endian) = 0;
     virtual int read(gsl::span<uint8_t> buffer) = 0;
     virtual int write(gsl::span<const uint8_t> buffer) = 0;
     virtual int transfer_full_duplex(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
