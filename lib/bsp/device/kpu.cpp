@@ -48,7 +48,7 @@ public:
     k_model_context(uint8_t *buffer)
     {
 #if FIX_CACHE
-        configASSERT(!is_memory_cache((uintptr_t)buffer));
+        configASSERT(is_memory_cache((uintptr_t)buffer));
 #endif
 
         uintptr_t base_addr = (uintptr_t)buffer;
@@ -61,6 +61,17 @@ public:
             layer_headers_ = (const kpu_model_layer_header_t *)((uintptr_t)outputs_ + sizeof(kpu_model_output_t) * output_count_);
             layers_length_ = header->layers_length;
             body_start_ = (const uint8_t *)((uintptr_t)layer_headers_ + sizeof(kpu_model_layer_header_t) * header->layers_length);
+
+            uint32_t body_size = 0;
+            for(int i=0; i<layers_length_; i++)
+            {
+                const kpu_model_layer_header_t *cnt_layer_header = layer_headers_ + i;
+                body_size += cnt_layer_header->body_size;
+            }
+            uint8_t *body_start_iomem = (uint8_t *)((uintptr_t)body_start_ - IOMEM);
+            const uint8_t *body_start_cache = body_start_;
+            memcpy(body_start_iomem, body_start_cache, body_size);
+
             storage_ = std::make_unique<uint8_t[]>(header->main_mem_usage);
             main_buffer_ = { storage_.get(), ptrdiff_t(header->main_mem_usage) };
         }
@@ -342,7 +353,6 @@ private:
 
     void kpu_input_dma(const kpu_layer_argument_t *layer, const uint8_t *src)
     {
-        configASSERT(!is_memory_cache((uintptr_t)src));
         uint64_t input_size = layer->kernel_calc_type_cfg.data.channel_switch_addr * 64 * (layer->image_channel_num.data.i_ch_num + 1);
 
         dma_set_request_source(dma_ch_, dma_req_);
@@ -622,12 +632,7 @@ private:
     {
         size_t count = arg->count;
         const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
-        kpu_model_quant_param_t q;
-#if FIX_CACHE
-        memcpy(&q, &arg->quant_param, sizeof(kpu_model_quant_param_t));
-#else
-        q = arg->quant_param;
-#endif
+        kpu_model_quant_param_t q = arg->quant_param;
 
         float scale = 1.f / q.scale;
 
@@ -647,12 +652,7 @@ private:
         const uint8_t *src = (const uint8_t *)(ctx_.main_buffer + arg->main_mem_in_address);
         float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
         size_t oc, count = arg->count;
-        kpu_model_quant_param_t q;
-#if FIX_CACHE
-        memcpy(&q, &arg->quant_param, sizeof(kpu_model_quant_param_t));
-#else
-        q = arg->quant_param;
-#endif
+        kpu_model_quant_param_t q = arg->quant_param;
 
         for (oc = 0; oc < count; oc++)
             dest[oc] = *src++ * q.scale + q.bias;
@@ -797,11 +797,10 @@ private:
 
     void kpu_conv(const kpu_model_conv_layer_argument_t *arg)
     {
-        configASSERT(!is_memory_cache((uintptr_t)ctx_.model_buffer));
         volatile kpu_layer_argument_t layer = *(kpu_layer_argument_t *)(ctx_.model_buffer + arg->layer_offset);
-        layer.kernel_load_cfg.data.para_start_addr = (uintptr_t)(ctx_.model_buffer + arg->weights_offset);
-        layer.kernel_pool_type_cfg.data.bwsx_base_addr = (uintptr_t)(ctx_.model_buffer + arg->bn_offset);
-        layer.kernel_calc_type_cfg.data.active_addr = (uintptr_t)(ctx_.model_buffer + arg->act_offset);
+        layer.kernel_load_cfg.data.para_start_addr = (uintptr_t)(ctx_.model_buffer + arg->weights_offset) - IOMEM;
+        layer.kernel_pool_type_cfg.data.bwsx_base_addr = (uintptr_t)(ctx_.model_buffer + arg->bn_offset) - IOMEM;
+        layer.kernel_calc_type_cfg.data.active_addr = (uintptr_t)(ctx_.model_buffer + arg->act_offset) - IOMEM;
 
         if (arg->flags & KLF_MAIN_MEM_OUT)
         {
