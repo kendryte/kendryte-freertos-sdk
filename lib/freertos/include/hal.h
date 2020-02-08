@@ -120,6 +120,7 @@ void dma_transmit(handle_t file, const volatile void *src, volatile void *dest, 
  */
 void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal);
 
+void dma_stop(handle_t file);
 #ifdef __cplusplus
 }
 #endif

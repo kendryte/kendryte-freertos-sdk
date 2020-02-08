@@ -319,6 +319,8 @@ void spi_dev_config_non_standard(handle_t file, uint32_t instruction_length, uin
  */
 double spi_dev_set_clock_rate(handle_t file, double clock_rate);
 
+void spi_dev_set_endian(handle_t file, uint32_t endian);
+
 /**
  * @brief       Transfer data between a SPI device using full duplex
  *

@@ -102,12 +102,12 @@ static int lock_acquire_generic(_lock_t *lock, uint32_t delay, uint8_t mutex_typ
 
 void _lock_acquire(_lock_t *lock)
 {
-    lock_acquire_generic(lock, portMAX_DELAY, queueQUEUE_TYPE_MUTEX);
+    lock_acquire_generic(lock, 200, queueQUEUE_TYPE_MUTEX);
 }
 
 void _lock_acquire_recursive(_lock_t *lock)
 {
-    lock_acquire_generic(lock, portMAX_DELAY, queueQUEUE_TYPE_RECURSIVE_MUTEX);
+    lock_acquire_generic(lock, 200, queueQUEUE_TYPE_RECURSIVE_MUTEX);
 }
 
 int _lock_try_acquire(_lock_t *lock)

@@ -22,7 +22,6 @@
         "third_party/fatfs/source"
     ],
     "source": [
-        "src/main.c",
         "lib/**/*.S",
         "lib/**/*.c",
         "lib/**/*.cpp"

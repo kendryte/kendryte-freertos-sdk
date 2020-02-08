@@ -22,6 +22,8 @@
 extern "C" {
 #endif
 
+#define IOMEM 0x40000000
+
 typedef struct
 {
     union

@@ -243,6 +243,7 @@ class spi_device_driver : public driver
 public:
     virtual void config_non_standard(uint32_t instruction_length, uint32_t address_length, uint32_t wait_cycles, spi_inst_addr_trans_mode_t trans_mode) = 0;
     virtual double set_clock_rate(double clock_rate) = 0;
+    virtual void set_endian(uint32_t endian) = 0;
     virtual int read(gsl::span<uint8_t> buffer) = 0;
     virtual int write(gsl::span<const uint8_t> buffer) = 0;
     virtual int transfer_full_duplex(gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer) = 0;
@@ -385,6 +386,7 @@ public:
     virtual void config(uint32_t priority) = 0;
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) = 0;
     virtual void loop_async(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal) = 0;
+    virtual void stop() = 0;
 };
 
 class dmac_driver : public driver

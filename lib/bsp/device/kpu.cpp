@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <FreeRTOS.h>
+#include <task.h>
 #include <dmac.h>
 #include <hal.h>
 #include <kernel/driver_impl.hpp>
@@ -25,6 +26,8 @@
 #include <time.h>
 #include <sys/time.h>
 #include <assert.h>
+#include <iomem.h>
+#include <printf.h>
 
 using namespace sys;
 
@@ -44,6 +47,10 @@ class k_model_context : public heap_object, public free_object_access
 public:
     k_model_context(uint8_t *buffer)
     {
+#if FIX_CACHE
+        configASSERT(is_memory_cache((uintptr_t)buffer));
+#endif
+
         uintptr_t base_addr = (uintptr_t)buffer;
         const kpu_model_header_t *header = (const kpu_model_header_t *)buffer;
         if (header->version == 3 && header->arch == 0)
@@ -54,6 +61,17 @@ public:
             layer_headers_ = (const kpu_model_layer_header_t *)((uintptr_t)outputs_ + sizeof(kpu_model_output_t) * output_count_);
             layers_length_ = header->layers_length;
             body_start_ = (const uint8_t *)((uintptr_t)layer_headers_ + sizeof(kpu_model_layer_header_t) * header->layers_length);
+
+            uint32_t body_size = 0;
+            for(int i=0; i<layers_length_; i++)
+            {
+                const kpu_model_layer_header_t *cnt_layer_header = layer_headers_ + i;
+                body_size += cnt_layer_header->body_size;
+            }
+            uint8_t *body_start_iomem = (uint8_t *)((uintptr_t)body_start_ - IOMEM);
+            const uint8_t *body_start_cache = body_start_;
+            memcpy(body_start_iomem, body_start_cache, body_size);
+
             storage_ = std::make_unique<uint8_t[]>(header->main_mem_usage);
             main_buffer_ = { storage_.get(), ptrdiff_t(header->main_mem_usage) };
         }
@@ -102,11 +120,13 @@ public:
     virtual void on_first_open() override
     {
         sysctl_clock_enable(clock_);
+        dma_ch_ = dma_open_free();
     }
 
     virtual void on_last_close() override
     {
         sysctl_clock_disable(clock_);
+        dma_close(dma_ch_);
     }
 
     virtual handle_t model_load_from_buffer(uint8_t *buffer) override
@@ -120,26 +140,20 @@ public:
 
         auto model_context = system_handle_to_object(context).as<k_model_context>();
         model_context->get(&ctx_);
-        dma_ch_ = dma_open_free();
+        
         ctx_.current_layer = 0;
         ctx_.current_body = ctx_.body_start;
         
         kpu_model_header_t *header = (kpu_model_header_t *)ctx_.model_buffer;
         kpu_.interrupt_clear.reg = 7;
 
-        kpu_.fifo_threshold.data.fifo_full_threshold = 10;
-        kpu_.fifo_threshold.data.fifo_empty_threshold = 1;
-        kpu_.fifo_threshold.data.reserved = 0;
+        kpu_.fifo_threshold.reg = 0x1a;
 
-        kpu_.eight_bit_mode.data.eight_bit_mode = header->flags & 1;
-        kpu_.eight_bit_mode.data.reserved = 0;
+        kpu_.eight_bit_mode.reg = header->flags & 1;
 
-        kpu_.interrupt_mask.data.calc_done_int = 1;
-        kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 0;
-        kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-        kpu_.interrupt_mask.data.reserved = 0;
+        kpu_.interrupt_mask.reg = 0b110;
 
-        pic_set_irq_priority(IRQN_AI_INTERRUPT, 1);
+        pic_set_irq_priority(IRQN_AI_INTERRUPT, 2);
         pic_set_irq_handler(IRQN_AI_INTERRUPT, kpu_isr_handle, this);
         pic_set_irq_enable(IRQN_AI_INTERRUPT, 1);
 
@@ -155,7 +169,8 @@ public:
         if ((layer_arg.image_size.data.i_row_wid + 1) % 64 != 0)
         {
             kpu_input_with_padding(&layer_arg, src);
-            ai_step_not_isr();
+
+            xSemaphoreGive(completion_event_);
         }
         else
         {
@@ -163,8 +178,13 @@ public:
         }
         while (!done_flag_)
         {
-            if(xSemaphoreTake(completion_event_, portMAX_DELAY) == pdTRUE)
+            if(xSemaphoreTake(completion_event_, 200) == pdTRUE)
             {
+                if(mem_out_flag_)
+                {
+                    memcpy(dest_kpu_, dest_io_, dest_len_);
+                    mem_out_flag_ = 0;
+                }
                 if (ctx_.current_layer != ctx_.layers_length)
                 {
                     while(ai_step() == 1)
@@ -177,7 +197,7 @@ public:
             }
         }
         done_flag_ = 0;
-        dma_close(dma_ch_);
+        
         return 0;
     }
 
@@ -200,15 +220,9 @@ private:
     {
         auto &driver = *reinterpret_cast<k_kpu_driver *>(userdata);
 
-        driver.kpu_.interrupt_clear.data.calc_done_int = 1;
-        driver.kpu_.interrupt_clear.data.layer_cfg_almost_empty_int = 1;
-        driver.kpu_.interrupt_clear.data.layer_cfg_almost_full_int = 1;
-        driver.kpu_.interrupt_clear.data.reserved = 0;
+        driver.kpu_.interrupt_clear.reg = 0b111;
 
-        driver.kpu_.interrupt_mask.data.calc_done_int = 1;
-        driver.kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 1;
-        driver.kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-        driver.kpu_.interrupt_mask.data.reserved = 0;
+        driver.kpu_.interrupt_mask.reg = 0b111;
 
         BaseType_t xHigherPriorityTaskWoken = pdFALSE;
         xSemaphoreGiveFromISR(driver.completion_event_, &xHigherPriorityTaskWoken);
@@ -342,6 +356,7 @@ private:
         uint64_t input_size = layer->kernel_calc_type_cfg.data.channel_switch_addr * 64 * (layer->image_channel_num.data.i_ch_num + 1);
 
         dma_set_request_source(dma_ch_, dma_req_);
+
         dma_transmit_async(dma_ch_, src, (void *)(uintptr_t)((uint8_t *)AI_IO_BASE_ADDR + layer->image_addr.data.image_src_addr * 64), 1, 1, sizeof(uint64_t), input_size / 8, 16, completion_event_);
     }
 
@@ -616,8 +631,9 @@ private:
     void kpu_quantize(const kpu_model_quantize_layer_argument_t *arg)
     {
         size_t count = arg->count;
-        const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);;
-        const kpu_model_quant_param_t q = arg->quant_param;
+        const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
+        kpu_model_quant_param_t q = arg->quant_param;
+
         float scale = 1.f / q.scale;
 
         uint8_t *dest = (uint8_t *)(ctx_.main_buffer + arg->mem_out_address);
@@ -636,8 +652,8 @@ private:
         const uint8_t *src = (const uint8_t *)(ctx_.main_buffer + arg->main_mem_in_address);
         float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
         size_t oc, count = arg->count;
-        const kpu_model_quant_param_t q = arg->quant_param;
-        
+        kpu_model_quant_param_t q = arg->quant_param;
+
         for (oc = 0; oc < count; oc++)
             dest[oc] = *src++ * q.scale + q.bias;
     }
@@ -720,7 +736,11 @@ private:
         const float *src = (const float *)(ctx_.main_buffer + arg->main_mem_in_address);
         float *dest = (float *)(ctx_.main_buffer + arg->main_mem_out_address);
         uint32_t in_channels = arg->in_channels, out_channels = arg->out_channels, ic, oc;
-        const float *weights = arg->weights, *bias = arg->weights + in_channels * out_channels;
+
+        float *weights = (float *)malloc(out_channels * in_channels);
+        float *bias = (float *)malloc(out_channels);
+        memcpy(weights, arg->weights, out_channels * in_channels * sizeof(float));
+        memcpy(bias, arg->weights + in_channels * out_channels, out_channels * sizeof(float));
 
         for (oc = 0; oc < out_channels; oc++)
         {
@@ -731,6 +751,8 @@ private:
                 sum += src[ic] * c_weights[ic];
             dest[oc] = sum + bias[oc];
         }
+		free(weights);
+		free(bias);
     }
 
     void kpu_tf_flatten(const kpu_model_tf_flatten_layer_argument_t *arg)
@@ -776,36 +798,37 @@ private:
     void kpu_conv(const kpu_model_conv_layer_argument_t *arg)
     {
         volatile kpu_layer_argument_t layer = *(kpu_layer_argument_t *)(ctx_.model_buffer + arg->layer_offset);
-        layer.kernel_load_cfg.data.para_start_addr = (uintptr_t)(ctx_.model_buffer + arg->weights_offset);
-        layer.kernel_pool_type_cfg.data.bwsx_base_addr = (uintptr_t)(ctx_.model_buffer + arg->bn_offset);
-        layer.kernel_calc_type_cfg.data.active_addr = (uintptr_t)(ctx_.model_buffer + arg->act_offset);
+        layer.kernel_load_cfg.data.para_start_addr = (uintptr_t)(ctx_.model_buffer + arg->weights_offset) - IOMEM;
+        layer.kernel_pool_type_cfg.data.bwsx_base_addr = (uintptr_t)(ctx_.model_buffer + arg->bn_offset) - IOMEM;
+        layer.kernel_calc_type_cfg.data.active_addr = (uintptr_t)(ctx_.model_buffer + arg->act_offset) - IOMEM;
 
         if (arg->flags & KLF_MAIN_MEM_OUT)
         {
-            uint8_t *dest = ctx_.main_buffer + arg->main_mem_out_address;
-
+            mem_out_flag_ = 1;
+            kpu_.interrupt_clear.reg = 0b111;
+            kpu_.interrupt_mask.reg = 0b111;
             layer.dma_parameter.data.send_data_out = 1;
-            kpu_send_layer((const kpu_layer_argument_t *)&layer);
             dma_set_request_source(dma_ch_, dma_req_);
-            dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), dest, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
+
+            dest_len_ = (layer.dma_parameter.data.dma_total_byte + 8) / 8 * sizeof(uint64_t);
+            dest_kpu_ = ctx_.main_buffer + arg->main_mem_out_address;
+
+            if(dest_len_ > max_len_)
+            {
+                max_len_ = dest_len_;
+                iomem_free(dest_io_);
+                dest_io_ = (uint8_t *)iomem_malloc(dest_len_);
+            }
+            dma_transmit_async(dma_ch_, (void *)(&kpu_.fifo_data_out), (void *)dest_io_, 0, 1, sizeof(uint64_t), (layer.dma_parameter.data.dma_total_byte + 8) / 8, 8, completion_event_);
+            
         }
         else
         {
-#if KPU_DEBUG
-            kpu_.interrupt_mask.data.calc_done_int = 0;
-            kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 1;
-            kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-            kpu_.interrupt_mask.data.reserved = 0;
+            kpu_.interrupt_clear.reg = 0b111;
+            kpu_.interrupt_mask.reg = 0b110;
             layer.interrupt_enabe.data.int_en = 1;
-#else
-            kpu_.interrupt_mask.data.calc_done_int = 1;
-            kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 0;
-            kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-            kpu_.interrupt_mask.data.reserved = 0;
-#endif
-            kpu_send_layer((const kpu_layer_argument_t *)&layer);
         }
-        
+        kpu_send_layer((const kpu_layer_argument_t *)&layer);
     }
 
     void kpu_add_padding(const kpu_model_add_padding_layer_argument_t *arg)
@@ -910,16 +933,9 @@ private:
 
     int kpu_done()
     {
-        kpu_.interrupt_clear.data.calc_done_int = 1;
-        kpu_.interrupt_clear.data.layer_cfg_almost_empty_int = 1;
-        kpu_.interrupt_clear.data.layer_cfg_almost_full_int = 1;
-        kpu_.interrupt_clear.data.reserved = 0;
+        kpu_.interrupt_clear.reg = 0b111;
 
-        kpu_.interrupt_mask.data.calc_done_int = 1;
-        kpu_.interrupt_mask.data.layer_cfg_almost_empty_int = 1;
-        kpu_.interrupt_mask.data.layer_cfg_almost_full_int = 1;
-        kpu_.interrupt_mask.data.reserved = 0;
-
+        kpu_.interrupt_mask.reg = 0b111;
 #if KPU_DEBUG
         uint32_t cnt_layer_id = ctx_.current_layer - 1;
         gettimeofday(&time_, NULL);
@@ -1028,13 +1044,6 @@ private:
         }
     }
 
-    void ai_step_not_isr()
-    {
-        portENTER_CRITICAL();
-        ai_step();
-        vPortExitCritical();
-    }
-
 private:
     volatile kpu_config_t &kpu_;
     sysctl_clock_t clock_;
@@ -1042,8 +1051,14 @@ private:
     SemaphoreHandle_t free_mutex_;
     uintptr_t dma_ch_;
     SemaphoreHandle_t completion_event_;
+
     uint8_t done_flag_ = 0;
     kpu_model_context_t ctx_;
+    uint8_t *dest_kpu_;
+    uint8_t *dest_io_;
+    size_t dest_len_;
+    size_t max_len_;
+    uint8_t mem_out_flag_;
 #if KPU_DEBUG
     struct timeval time_;
     struct timeval last_time_;

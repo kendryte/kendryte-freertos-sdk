@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sysctl.h>
 #include <uarths.h>
+#include <sys/lock.h>
 
 using namespace sys;
 
@@ -60,6 +61,7 @@ typedef struct
 static _file *handles_[MAX_HANDLES];
 static driver_registry_t g_custom_drivers[MAX_CUSTOM_DRIVERS];
 static const char dummy_driver_name[] = "";
+static _lock_t dma_lock;
 
 uintptr_t fft_file_;
 uintptr_t aes_file_;
@@ -486,6 +488,12 @@ double spi_dev_set_clock_rate(handle_t file, double clock_rate)
     return spi_device->set_clock_rate(clock_rate);
 }
 
+void spi_dev_set_endian(handle_t file, uint32_t endian)
+{
+    COMMON_ENTRY(spi_device);
+    return spi_device->set_endian(endian);
+}
+
 int spi_dev_transfer_full_duplex(handle_t file, const uint8_t *write_buffer, size_t write_len, uint8_t *read_buffer, size_t read_len)
 {
     COMMON_ENTRY(spi_device);
@@ -885,6 +893,7 @@ void sys::kernel_iface_pic_on_irq(uint32_t irq)
 
 handle_t dma_open_free()
 {
+    _lock_acquire_recursive(&dma_lock);
     configASSERT(xSemaphoreTake(dma_free_, portMAX_DELAY) == pdTRUE);
 
     driver_registry_t *head = g_dma_drivers;
@@ -905,12 +914,16 @@ handle_t dma_open_free()
 
     configASSERT(dma);
     uintptr_t handle = io_alloc_handle(io_alloc_file(std::move(dma)));
+    _lock_release_recursive(&dma_lock);
+
     return handle;
 }
 
 void dma_close(handle_t file)
 {
+    _lock_acquire_recursive(&dma_lock);
     io_close(file);
+    _lock_release_recursive(&dma_lock);
 }
 
 static void dma_add_free()
@@ -944,6 +957,11 @@ void dma_loop_async(handle_t file, const volatile void **srcs, size_t src_num, v
     dma->loop_async(srcs, src_num, dests, dest_num, src_inc, dest_inc, element_size, count, burst_size, stage_completion_handler, stage_completion_handler_data, completion_event, stop_signal);
 }
 
+void dma_stop(handle_t file)
+{
+    COMMON_ENTRY(dma);
+    dma->stop();
+}
 /* System */
 
 driver_registry_t *sys::system_install_driver(const char *name, object_ptr<driver> driver)

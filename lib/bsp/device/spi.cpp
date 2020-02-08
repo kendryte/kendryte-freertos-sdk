@@ -26,10 +26,13 @@
 #include <string.h>
 #include <sysctl.h>
 #include <utility.h>
+#include <printf.h>
 
 using namespace sys;
 
-#define SPI_TRANSMISSION_THRESHOLD 0x800UL
+#define SPI_TRANSMISSION_THRESHOLD  0x800UL
+#define SPI_DMA_BLOCK_TIME          1000UL
+
 /* SPI Controller */
 
 #define TMOD_MASK (3 << tmod_off_)
@@ -87,6 +90,7 @@ public:
     virtual object_ptr<spi_device_driver> get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length) override;
 
     double set_clock_rate(k_spi_device_driver &device, double clock_rate);
+    void set_endian(k_spi_device_driver &device, uint32_t endian);
     int read(k_spi_device_driver &device, gsl::span<uint8_t> buffer);
     int write(k_spi_device_driver &device, gsl::span<const uint8_t> buffer);
     int transfer_full_duplex(k_spi_device_driver &device, gsl::span<const uint8_t> write_buffer, gsl::span<uint8_t> read_buffer);
@@ -559,6 +563,11 @@ public:
         return spi_->set_clock_rate(*this, clock_rate);
     }
 
+    virtual void set_endian(uint32_t endian) override
+    {
+        spi_->set_endian(*this, endian);
+    }
+	
     virtual int read(gsl::span<uint8_t> buffer) override
     {
         return spi_->read(*this, buffer);
@@ -623,6 +632,7 @@ private:
     spi_inst_addr_trans_mode_t trans_mode_;
     uint32_t baud_rate_ = 0x2;
     uint32_t buffer_width_ = 0;
+    uint32_t endian_ = 0;
 };
 
 object_ptr<spi_device_driver> k_spi_driver::get_device(spi_mode_t mode, spi_frame_format_t frame_format, uint32_t chip_select_mask, uint32_t data_bit_length)
@@ -640,6 +650,11 @@ double k_spi_driver::set_clock_rate(k_spi_device_driver &device, double clock_ra
         div++;
     device.baud_rate_ = div;
     return clk / div;
+}
+
+void k_spi_driver::set_endian(k_spi_device_driver &device, uint32_t endian)
+{
+    device.endian_ = endian;
 }
 
 int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
@@ -698,12 +713,15 @@ int k_spi_driver::read(k_spi_device_driver &device, gsl::span<uint8_t> buffer)
         dma_set_request_source(dma_read, dma_req_);
         spi_.dmacr = 0x1;
         SemaphoreHandle_t event_read = xSemaphoreCreateBinary();
+
         dma_transmit_async(dma_read, &spi_.dr[0], buffer_read, 0, 1, device.buffer_width_, rx_frames, 1, event_read);
         const uint8_t *buffer_it = buffer.data();
         write_inst_addr(spi_.dr, &buffer_it, device.inst_width_);
         write_inst_addr(spi_.dr, &buffer_it, device.addr_width_);
         spi_.ser = device.chip_select_mask_;
-        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE);
+
+        configASSERT(pdTRUE == xSemaphoreTake(event_read, SPI_DMA_BLOCK_TIME));
+
         dma_close(dma_read);
         vSemaphoreDelete(event_read);
     }
@@ -769,9 +787,11 @@ int k_spi_driver::write(k_spi_device_driver &device, gsl::span<const uint8_t> bu
         write_inst_addr(spi_.dr, &buffer_write, device.inst_width_);
         write_inst_addr(spi_.dr, &buffer_write, device.addr_width_);
         SemaphoreHandle_t event_write = xSemaphoreCreateBinary();
+
         dma_transmit_async(dma_write, buffer_write, &spi_.dr[0], 1, 0, device.buffer_width_, tx_frames, 4, event_write);
         spi_.ser = device.chip_select_mask_;
-        configASSERT(xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
+        configASSERT(pdTRUE == xSemaphoreTake(event_write, SPI_DMA_BLOCK_TIME));
+
         dma_close(dma_write);
         vSemaphoreDelete(event_write);
     }
@@ -883,7 +903,7 @@ int k_spi_driver::read_write(k_spi_device_driver &device, gsl::span<const uint8_
         dma_transmit_async(dma_read, &spi_.dr[0], buffer_read, 0, 1, device.buffer_width_, rx_frames, 1, event_read);
         dma_transmit_async(dma_write, buffer_write, &spi_.dr[0], 1, 0, device.buffer_width_, tx_frames, 4, event_write);
 
-        configASSERT(xSemaphoreTake(event_read, portMAX_DELAY) == pdTRUE && xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
+        configASSERT(xSemaphoreTake(event_read, SPI_DMA_BLOCK_TIME) == pdTRUE && xSemaphoreTake(event_write, SPI_DMA_BLOCK_TIME) == pdTRUE);
 
         dma_close(dma_write);
         dma_close(dma_read);
@@ -918,7 +938,7 @@ void k_spi_driver::fill(k_spi_device_driver &device, uint32_t instruction, uint3
     dma_transmit_async(dma_write, &value, &spi_.dr[0], 0, 0, sizeof(uint32_t), count, 4, event_write);
 
     spi_.ser = device.chip_select_mask_;
-    configASSERT(xSemaphoreTake(event_write, portMAX_DELAY) == pdTRUE);
+    configASSERT(xSemaphoreTake(event_write, SPI_DMA_BLOCK_TIME) == pdTRUE);
     dma_close(dma_write);
     vSemaphoreDelete(event_write);
 
@@ -986,6 +1006,7 @@ void k_spi_driver::setup_device(k_spi_device_driver &device)
         uint32_t addr_l = device.address_length_ / 4;
 
         spi_.spi_ctrlr0 = (device.wait_cycles_ << 11) | (inst_l << 8) | (addr_l << 2) | trans;
+        spi_.endian = device.endian_;
     }
 }
 

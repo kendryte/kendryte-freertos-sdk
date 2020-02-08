@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <sysctl.h>
 #include <utility.h>
+#include <iomem.h>
 
 using namespace sys;
 
@@ -136,7 +137,9 @@ public:
     virtual void set_output_attributes(uint32_t index, video_format_t format, void *output_buffer) override
     {
         configASSERT(index < 2);
-
+#if FIX_CACHE
+        configASSERT(!is_memory_cache((uintptr_t)output_buffer));
+#endif
         if (index == 0)
         {
             configASSERT(format == VIDEO_FMT_RGB24_PLANAR);

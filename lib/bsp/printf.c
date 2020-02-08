@@ -43,6 +43,8 @@
 
 #include <printf.h>
 #include <stddef.h>
+#include <FreeRTOS.h>
+#include <task.h>
 
 /*
  * Configuration
@@ -654,6 +656,6 @@ int printk(const char* format, ...)
     /* End protected code */
     corelock_unlock(&lock);
     va_end(ap);
-
+	
     return 0;
 }

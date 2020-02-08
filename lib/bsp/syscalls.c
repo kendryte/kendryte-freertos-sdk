@@ -98,6 +98,8 @@ extern char _heap_start[];
 extern char _heap_end[];
 extern void sys_apc_thunk();
 char *_heap_cur = &_heap_start[0];
+char *_heap_line = &_heap_start[0];
+char *_ioheap_line = &_heap_end[0]-0x40000000;
 
 void __attribute__((noreturn)) sys_exit(int code)
 {
@@ -159,9 +161,18 @@ static size_t sys_brk(size_t pos)
         if ((uintptr_t)pos > (uintptr_t)&_heap_end[0])
         {
             res = -ENOMEM;
+            printk("OUT OF MEMORY \n");
         }
         else
         {
+            if((uintptr_t)pos > (uintptr_t)_heap_line)
+            {
+                _heap_line = (char *)(uintptr_t)pos;
+                if((uintptr_t)_heap_line-0x40000000 > (uintptr_t)_ioheap_line)
+                {
+                    LOGE(TAG, "WARNING: cache heap line %p > iomem heap line %p!\r\n", _heap_line, _ioheap_line);
+                }
+            }
             /* Adjust brk pointer. */
             _heap_cur = (char *)(uintptr_t)pos;
             /* Return current address. */

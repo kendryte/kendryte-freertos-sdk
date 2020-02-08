@@ -21,7 +21,7 @@
 
 using namespace sys;
 
-static volatile plic_t &plic = *reinterpret_cast<volatile plic_t *>(PLIC_BASE_ADDR);
+volatile plic_t &plic = *reinterpret_cast<volatile plic_t *>(PLIC_BASE_ADDR);
 
 class k_plic_driver : public pic_driver, public static_object, public free_object_access
 {

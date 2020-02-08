@@ -25,6 +25,8 @@
 #include <sysctl.h>
 #include <task.h>
 #include <utility.h>
+#include <iomem.h>
+#include <printf.h>
 
 using namespace sys;
 
@@ -34,7 +36,7 @@ class k_dmac_driver : public dmac_driver, public static_object, public free_obje
 {
 public:
     k_dmac_driver(uintptr_t base_addr)
-        : dmac_(*reinterpret_cast<volatile dmac_t *>(base_addr)), axi_master1_use_(0), axi_master2_use_(0)
+        : dmac_(*reinterpret_cast<volatile dmac_t *>(base_addr))
     {
     }
 
@@ -79,31 +81,6 @@ public:
         writeq(dmac_cfg.data, &dmac_.cfg);
     }
 
-    uint32_t add_lru_axi_master()
-    {
-        uint32_t axi1 = atomic_read(&axi_master1_use_);
-        uint32_t axi2 = atomic_read(&axi_master2_use_);
-
-        if (axi1 < axi2)
-        {
-            atomic_add(&axi_master1_use_, 1);
-            return 0;
-        }
-        else
-        {
-            atomic_add(&axi_master2_use_, 1);
-            return 1;
-        }
-    }
-
-    void release_axi_master(uint32_t axi)
-    {
-        if (axi == 0)
-            atomic_add(&axi_master1_use_, -1);
-        else
-            atomic_add(&axi_master2_use_, -1);
-    }
-
     volatile dmac_t &dmac()
     {
         return dmac_;
@@ -111,8 +88,6 @@ public:
 
 private:
     volatile dmac_t &dmac_;
-    int32_t axi_master1_use_;
-    int32_t axi_master2_use_;
 };
 
 static k_dmac_driver dev0_driver(DMAC_BASE_ADDR);
@@ -195,8 +170,13 @@ public:
     virtual void transmit_async(const volatile void *src, volatile void *dest, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, SemaphoreHandle_t completion_event) override
     {
         C_COMMON_ENTRY;
+#if FIX_CACHE
+        //iomem_free(session_.alloc_mem);
+        //session_.alloc_mem = NULL;
+#else
         free(session_.alloc_mem);
         session_.alloc_mem = NULL;
+#endif
         if (count == 0)
         {
             xSemaphoreGive(completion_event);
@@ -248,7 +228,11 @@ public:
 
         if (flow_control != DMAC_MEM2MEM_DMA && old_elm_size < 4)
         {
+#if FIX_CACHE
+            void *alloc_mem = iomem_malloc(sizeof(uint32_t) * count + 128);
+#else
             void *alloc_mem = malloc(sizeof(uint32_t) * count + 128);
+#endif
             session_.alloc_mem = alloc_mem;
             element_size = sizeof(uint32_t);
 
@@ -290,8 +274,48 @@ public:
         }
         else
         {
+#if FIX_CACHE
+            //iomem_free(session_.dest_malloc);
+            //iomem_free(session_.src_malloc);
+            //session_.dest_malloc = NULL;
+            //session_.src_malloc = NULL;
+            uint8_t *src_io = (uint8_t *)src;
+            uint8_t *dest_io = (uint8_t *)dest;
+            if(is_memory_cache((uintptr_t)src))
+            {
+                if(src_inc == 0)
+                {
+                    src_io = (uint8_t *)iomem_malloc(element_size * count+128);
+                    memcpy(src_io, (uint8_t *)src, element_size * count);
+                }
+                else
+                {
+                    src_io = (uint8_t *)iomem_malloc(element_size+128);
+                    memcpy(src_io, (uint8_t *)src, element_size);
+                }
+                session_.src_malloc = src_io;
+            }
+            if(is_memory_cache((uintptr_t)dest))
+            {
+                if(dest_inc == 0)
+                {
+                    dest_io = (uint8_t *)iomem_malloc(element_size * count+128);
+                    session_.buf_len = element_size * count;
+                }
+                else
+                {
+                    dest_io = (uint8_t *)iomem_malloc(element_size+128);
+                    session_.buf_len = element_size;
+                }
+                session_.dest_malloc = dest_io;
+                session_.dest_buffer = (uint8_t *)dest;
+            }
+            dma.sar = (uint64_t)src_io;
+            dma.dar = (uint64_t)dest_io;
+#else
             dma.sar = (uint64_t)src;
             dma.dar = (uint64_t)dest;
+#endif
         }
 
         dma.block_ts = count - 1;
@@ -355,11 +379,8 @@ public:
         ctl_u.ch_ctl.dst_tr_width = tr_width;
         ctl_u.ch_ctl.dst_msize = msize;
 
-        uint32_t axi_master = dmac_.add_lru_axi_master();
-        session_.axi_master = axi_master;
-
-        ctl_u.ch_ctl.sms = axi_master;
-        ctl_u.ch_ctl.dms = axi_master;
+        ctl_u.ch_ctl.sms = DMAC_MASTER1;
+        ctl_u.ch_ctl.dms = DMAC_MASTER2;
 
         writeq(ctl_u.data, &dma.ctl);
 
@@ -370,8 +391,13 @@ public:
     virtual void loop_async(const volatile void **srcs, size_t src_num, volatile void **dests, size_t dest_num, bool src_inc, bool dest_inc, size_t element_size, size_t count, size_t burst_size, dma_stage_completion_handler_t stage_completion_handler, void *stage_completion_handler_data, SemaphoreHandle_t completion_event, int *stop_signal) override
     {
         C_COMMON_ENTRY;
+#if FIX_CACHE
+        //iomem_free(session_.alloc_mem);
+#else
         free(session_.alloc_mem);
-        session_.alloc_mem = NULL;
+#endif
+
+        //session_.alloc_mem = NULL;
         if (count == 0)
         {
             xSemaphoreGive(completion_event);
@@ -482,11 +508,8 @@ public:
         ctl_u.ch_ctl.dst_tr_width = tr_width;
         ctl_u.ch_ctl.dst_msize = msize;
 
-        uint32_t axi_master = dmac_.add_lru_axi_master();
-        session_.axi_master = axi_master;
-
-        ctl_u.ch_ctl.sms = axi_master;
-        ctl_u.ch_ctl.dms = axi_master;
+        ctl_u.ch_ctl.sms = DMAC_MASTER1;
+        ctl_u.ch_ctl.dms = DMAC_MASTER2;
 
         writeq(ctl_u.data, &dma.ctl);
 
@@ -507,6 +530,10 @@ public:
         dmac.chen |= 0x101 << channel_;
     }
 
+    virtual void stop() override
+    {
+        atomic_set(session_.stop_signal, 1);
+    }
 private:
     static void dma_completion_isr(void *userdata)
     {
@@ -523,7 +550,6 @@ private:
         {
             if (atomic_read(driver.session_.stop_signal))
             {
-                driver.dmac_.release_axi_master(driver.session_.axi_master);
                 if (driver.session_.stage_completion_handler)
                     driver.session_.stage_completion_handler(driver.session_.stage_completion_handler_data);
                 xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
@@ -549,8 +575,6 @@ private:
         }
         else
         {
-            driver.dmac_.release_axi_master(driver.session_.axi_master);
-
             if (driver.session_.flow_control != DMAC_MEM2MEM_DMA && driver.session_.element_size < 4)
             {
                 if (driver.session_.flow_control == DMAC_PRF2MEM_DMA)
@@ -582,9 +606,27 @@ private:
                 {
                     configASSERT(!"Impossible");
                 }
-
+                iomem_free_isr(driver.session_.alloc_mem);
+                driver.session_.alloc_mem = NULL;
             }
-
+#if FIX_CACHE
+            else
+            {
+                if(driver.session_.buf_len)
+                {
+                    memcpy(driver.session_.dest_buffer, driver.session_.dest_malloc, driver.session_.buf_len);
+                    iomem_free_isr(driver.session_.dest_malloc);
+                    driver.session_.dest_malloc = NULL;
+                    driver.session_.dest_buffer = NULL;
+                    driver.session_.buf_len = 0;
+                }
+                if(driver.session_.src_malloc)
+                {
+                    iomem_free_isr(driver.session_.src_malloc);
+                    driver.session_.src_malloc = NULL;
+                }
+            }
+#endif
             xSemaphoreGiveFromISR(driver.session_.completion_event, &xHigherPriorityTaskWoken);
         }
 
@@ -609,7 +651,6 @@ private:
     struct
     {
         SemaphoreHandle_t completion_event;
-        uint32_t axi_master;
         int is_loop;
         union {
             struct
@@ -619,6 +660,12 @@ private:
                 size_t count;
                 void *alloc_mem;
                 volatile void *dest;
+#if FIX_CACHE
+                uint8_t *dest_buffer;
+                uint8_t *src_malloc;
+                uint8_t *dest_malloc;
+                size_t buf_len;
+#endif
             };
 
             struct
