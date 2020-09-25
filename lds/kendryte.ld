@@ -90,7 +90,7 @@ SECTIONS
   .eh_frame :
   {
     KEEP (*(.eh_frame)) *(.eh_frame.*)
-    . = ALIGN(8);
+    . = ALIGN(32);
   } > ram : DATA
   .gnu_extab : { *(.gnu_extab) } > ram : DATA
   .gcc_except_table : { *(.gcc_except_table .gcc_except_table.*) } > ram : DATA
