@@ -6,6 +6,8 @@
 This SDK is for Kendryte K210 which contains FreeRTOS support.
 If you have any questions, please be free to contact us.
 
+[***warning***]This project is no longer maintained.Not recommended for product development.
+
 ## Usage
 
 If you want to start a new project, for instance, `hello_world`, you only need to:
